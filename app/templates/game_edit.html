@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ game.title }} entry · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <a class="back-link" href="{{ url_for('game_detail', game_id=game.id) }}">← Back to game</a>
+  <section class="edit-panel">
+    <p class="eyebrow">Game metadata</p>
+    <h1>Edit game entry</h1>
+    <p class="edit-source">Folder name: <code>{{ game.detected_title }}</code></p>
+
+    <form class="metadata-form" method="post">
+      <label for="game-title">Display title</label>
+      <input id="game-title" name="title" value="{{ game.title }}" maxlength="200" required>
+
+      <fieldset class="category-picker">
+        <legend>Game categories</legend>
+        <p>Select every category that fits. Leave all unchecked for Uncategorized.</p>
+        {% for category in game_categories %}
+          <label>
+            <input type="checkbox" name="category_ids" value="{{ category.id }}"{% if category.id in selected_category_ids %} checked{% endif %}>
+            <span>{{ category.name }}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+      <button type="submit">Save game entry</button>
+    </form>
+
+    {% if game.has_override %}
+      <div class="detected-metadata">
+        <h2>Detected from folder</h2>
+        <p>{{ game.detected_title }}</p>
+        <form action="{{ url_for('game_reset', game_id=game.id) }}" method="post">
+          <button class="secondary-button" type="submit">Reset to folder name</button>
+        </form>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="edit-panel artwork-editor">
+    <p class="eyebrow">Game artwork</p>
+    <h2>Choose a custom image</h2>
+    <p>PNG, JPEG, or WebP up to 25 MB. The image is center-cropped to a square.</p>
+    {% if game.has_artwork %}
+      <img class="artwork-preview" src="{{ url_for('game_artwork', game_id=game.id) }}" alt="Current artwork for {{ game.title }}">
+    {% endif %}
+    <form class="metadata-form" action="{{ url_for('game_artwork_upload', game_id=game.id) }}" method="post" enctype="multipart/form-data">
+      <label for="artwork-file">Artwork image</label>
+      <input id="artwork-file" name="artwork_file" type="file" accept="image/png,image/jpeg,image/webp" required>
+      <button type="submit">Upload artwork</button>
+    </form>
+    {% if game.has_uploaded_artwork %}
+      <form action="{{ url_for('game_artwork_reset', game_id=game.id) }}" method="post">
+        <button class="secondary-button" type="submit">Remove uploaded artwork</button>
+      </form>
+    {% elif game.has_artwork %}
+      <p class="edit-source">Using artwork detected in the game folder.</p>
+    {% endif %}
+  </section>
+{% endblock %}

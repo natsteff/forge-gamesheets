@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ resource.title }} · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <a class="back-link" href="{{ url_for('game_detail', game_id=resource.game_id) }}#resource-{{ resource.id }}">← Back to game</a>
+  <section class="edit-panel">
+    <p class="eyebrow">Display metadata</p>
+    <h1>Edit resource</h1>
+    <p class="edit-source">Source file: <code>{{ resource.relative_path }}</code></p>
+
+    <form class="metadata-form" method="post">
+      <label for="resource-title">Display title</label>
+      <input id="resource-title" name="title" value="{{ resource.title }}" maxlength="200" required>
+
+      <label for="resource-category">Category</label>
+      <select id="resource-category" name="category">
+        {% for value, label in categories %}
+          <option value="{{ value }}"{% if resource.category.value == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="resource-variant">Variant <span>(optional)</span></label>
+      <input id="resource-variant" name="variant" value="{{ resource.variant or '' }}" maxlength="200">
+
+      <button type="submit">Save display metadata</button>
+    </form>
+
+    {% if resource.has_override %}
+      <div class="detected-metadata">
+        <h2>Detected from filename</h2>
+        <p>{{ resource.detected_title }} · {{ resource.detected_category.value }}{% if resource.detected_variant %} · {{ resource.detected_variant }}{% endif %}</p>
+        <form action="{{ url_for('resource_reset', resource_id=resource.id) }}" method="post">
+          <button class="secondary-button" type="submit">Reset to detected values</button>
+        </form>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

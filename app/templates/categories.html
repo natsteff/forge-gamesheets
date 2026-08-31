@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "_library_macros.html" import category_cards with context %}
+
+{% block title %}Categories · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <section class="page-intro compact-intro">
+    <p class="eyebrow">Organized your way</p>
+    <h1>Categories</h1>
+    <p>Browse games by every category that fits.</p>
+  </section>
+  {{ category_cards(game_categories, uncategorized_count, total_game_count) }}
+{% endblock %}

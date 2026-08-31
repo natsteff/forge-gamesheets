@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Favorites · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <section class="history-header">
+    <p class="eyebrow">Quick access</p>
+    <h1>Favorites</h1>
+    <p>Printable resources you have saved for easy access.</p>
+  </section>
+
+  {% if pin_status == "limit" %}
+    <p class="status-banner warning" role="alert">
+      Pinned is full. Unpin one of the 10 resources before adding another.
+    </p>
+  {% endif %}
+
+  {% if favorites %}
+    <div class="section-heading">
+      <h2>Saved resources</h2>
+      <span>{{ favorites|length }} saved</span>
+    </div>
+    <div class="favorite-grid">
+      {% for resource in favorites %}
+        <article class="favorite-card managed-card">
+          <a class="managed-card-link" href="{{ url_for('game_detail', game_id=resource.game_id) }}#resource-{{ resource.id }}">
+            <span aria-hidden="true">★</span>
+            <span>
+              <strong>{{ resource.title }}</strong>
+              <small>{{ resource.game_title }}{% if resource.variant %} · {{ resource.variant }}{% endif %}</small>
+            </span>
+          </a>
+          <form action="{{ url_for('resource_pin', resource_id=resource.id) }}" method="post">
+            <input type="hidden" name="return_to" value="favorites">
+            <button class="favorite-button{% if resource.is_pinned %} active{% endif %}" type="submit" aria-label="{% if resource.is_pinned %}Unpin {{ resource.title }} from Library{% else %}Pin {{ resource.title }} to Library{% endif %}" title="{% if resource.is_pinned %}Unpin from Library{% else %}Pin to Library{% endif %}">⌖</button>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="empty-state compact">
+      <h2>No favorites yet</h2>
+      <p>Use the star beside a resource to save it here.</p>
+    </section>
+  {% endif %}
+{% endblock %}

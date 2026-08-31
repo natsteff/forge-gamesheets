@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_library_macros.html" import game_card with context %}
+
+{% block title %}{{ category_name }} · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <a class="back-link" href="{{ url_for('categories_home') }}">← All categories</a>
+  <section class="page-intro compact-intro">
+    <p class="eyebrow">{{ page_descriptor }}</p>
+    <h1>{{ category_name }}</h1>
+    <p>{{ games|length }} game{% if games|length != 1 %}s{% endif %}</p>
+  </section>
+  {% if games %}
+    <div class="game-grid">
+      {% for game in games %}
+        {{ game_card(game) }}
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="empty-state compact">
+      <h2>No games here yet</h2>
+      <p>Assign this category from a game's Edit game entry page.</p>
+    </section>
+  {% endif %}
+{% endblock %}

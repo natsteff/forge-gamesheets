@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Your self-hosted printable game library.">
+    <title>{% block title %}Forge GameSheets{% endblock %}</title>
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="{{ url_for('static', path='/brand/favicon-32.png') }}"
+    >
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
+    >
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=13">
+    <script src="{{ url_for('static', path='/app.js') }}?v=4" defer></script>
+  </head>
+  <body>
+    {% set preferences = application_preferences(request) %}
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header class="site-header">
+      <a class="brand" href="{{ url_for('library_home') }}">
+        <img
+          class="brand-wordmark"
+          src="{{ url_for('static', path='/brand/forge-wordmark.png') }}"
+          alt="Forge GameSheets"
+        >
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="{{ url_for('library_home') }}"{% if request.url.path == "/" %} aria-current="page"{% endif %}>Library</a>
+        <a href="{{ url_for('categories_home') }}"{% if request.url.path.startswith("/categories") %} aria-current="page"{% endif %}>Categories</a>
+        <a href="{{ url_for('pinned_home') }}"{% if request.url.path == "/pinned" %} aria-current="page"{% endif %}>Pinned</a>
+        <a href="{{ url_for('favorites_home') }}"{% if request.url.path == "/favorites" %} aria-current="page"{% endif %}>Favorites</a>
+        {% if preferences.recent_limit %}<a href="{{ url_for('recent_home') }}"{% if request.url.path == "/recent" %} aria-current="page"{% endif %}>Recent</a>{% endif %}
+        <a href="{{ url_for('activity_history') }}"{% if request.url.path == "/history" %} aria-current="page"{% endif %}>History</a>
+        <a href="{{ url_for('settings_home') }}"{% if request.url.path.startswith("/settings") %} aria-current="page"{% endif %}>Settings</a>
+      </nav>
+    </header>
+    <main class="page-shell" id="main-content" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+    {% if preferences.footer_text %}<footer class="site-footer">{{ preferences.footer_text }}</footer>{% endif %}
+  </body>
+</html>

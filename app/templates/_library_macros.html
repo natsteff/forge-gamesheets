@@ -1,0 +1,36 @@
+{% macro game_card(game) %}
+  <a class="game-card" href="{{ url_for('game_detail', game_id=game.id) }}">
+    {% if game.has_artwork %}
+      <img class="game-artwork" src="{{ url_for('game_artwork', game_id=game.id) }}" alt="">
+    {% else %}
+      <span class="game-initial" aria-hidden="true">{{ game.title[0] }}</span>
+    {% endif %}
+    <span class="game-card-copy">
+      <strong>{{ game.title }}</strong>
+      <small>{{ game.resource_count }} resource{% if game.resource_count != 1 %}s{% endif %}</small>
+    </span>
+    <span class="card-arrow" aria-hidden="true">→</span>
+  </a>
+{% endmacro %}
+
+{% macro category_cards(game_categories, uncategorized_count, total_game_count) %}
+  <div class="category-grid">
+    <a class="category-card" href="{{ url_for('all_games') }}">
+      <strong>All Games</strong>
+      <span>{{ total_game_count }} game{% if total_game_count != 1 %}s{% endif %}</span>
+      <span class="card-arrow" aria-hidden="true">→</span>
+    </a>
+    {% for category in game_categories %}
+      <a class="category-card" href="{{ url_for('category_detail', category_key=category.id) }}">
+        <strong>{{ category.name }}</strong>
+        <span>{{ category.game_count }} game{% if category.game_count != 1 %}s{% endif %}</span>
+        <span class="card-arrow" aria-hidden="true">→</span>
+      </a>
+    {% endfor %}
+    <a class="category-card" href="{{ url_for('category_detail', category_key='uncategorized') }}">
+      <strong>Uncategorized</strong>
+      <span>{{ uncategorized_count }} game{% if uncategorized_count != 1 %}s{% endif %}</span>
+      <span class="card-arrow" aria-hidden="true">→</span>
+    </a>
+  </div>
+{% endmacro %}

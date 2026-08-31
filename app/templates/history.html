@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}History · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <section class="history-header">
+    <p class="eyebrow">Local activity</p>
+    <h1>Use history</h1>
+    <p>Successful PDF actions recorded by this Forge GameSheets server.</p>
+  </section>
+
+  {% if activity %}
+    <div class="history-list">
+      {% for event in activity %}
+        <a class="history-row" href="{{ url_for('game_detail', game_id=event.game_id) }}#resource-{{ event.resource_id }}">
+          <span class="history-action history-action-{{ event.action }}">
+            {% if event.action == "view" %}Viewed{% else %}Downloaded{% endif %}
+          </span>
+          <span>
+            <strong>{{ event.resource_title }}</strong>
+            <small>{{ event.game_title }}</small>
+          </span>
+          <time datetime="{{ event.occurred_at }}">{{ event.occurred_at[:16]|replace("T", " · ") }} UTC</time>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="empty-state compact">
+      <h2>No activity yet</h2>
+      <p>Viewing or downloading a PDF will appear here.</p>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Settings · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <section class="page-intro compact-intro">
+    <p class="eyebrow">Make it yours</p>
+    <h1>Settings</h1>
+    <p>Customize this library and organize the categories available to games.</p>
+  </section>
+
+  {% if status %}
+    <p class="status-banner" role="status">Settings saved successfully.</p>
+  {% elif error == "duplicate-category" %}
+    <p class="status-banner warning" role="alert">That category name is already in use.</p>
+  {% elif error %}
+    <p class="status-banner warning" role="alert">Check the entered value and try again.</p>
+  {% endif %}
+
+  <section class="settings-section">
+    <div class="settings-heading">
+      <div>
+        <p class="eyebrow">Library identity</p>
+        <h2>Display preferences</h2>
+      </div>
+    </div>
+    <form class="metadata-form settings-form" action="{{ url_for('settings_preferences_save') }}" method="post">
+      <label for="footer-text">Library footer</label>
+      <input id="footer-text" name="footer_text" value="{{ preferences.footer_text }}" maxlength="{{ max_footer_length }}">
+      <small>Shown at the bottom of every page. Leave blank to hide it.</small>
+
+      <label for="recent-limit">Recent resources shown</label>
+      <input id="recent-limit" name="recent_limit" type="number" min="0" max="{{ max_recent_limit }}" value="{{ preferences.recent_limit }}" required>
+      <small>Choose 0 to hide Recent, or show between 1 and {{ max_recent_limit }} resources.</small>
+      <button type="submit">Save display preferences</button>
+    </form>
+    <form action="{{ url_for('settings_footer_reset') }}" method="post">
+      <button class="secondary-button settings-secondary" type="submit">Restore default footer</button>
+    </form>
+  </section>
+
+  <section class="settings-section">
+    <div class="settings-heading">
+      <div>
+        <p class="eyebrow">Library organization</p>
+        <h2>Game categories</h2>
+      </div>
+      <span>{{ game_categories|length }} categories</span>
+    </div>
+    <form class="inline-create-form" action="{{ url_for('settings_category_create') }}" method="post">
+      <label class="visually-hidden" for="new-category">New category name</label>
+      <input id="new-category" name="name" maxlength="{{ max_category_name_length }}" placeholder="New category name" required>
+      <button type="submit">Add category</button>
+    </form>
+    <div class="category-management-list">
+      {% for category in game_categories %}
+        <article class="category-management-row">
+          <form action="{{ url_for('settings_category_rename', category_id=category.id) }}" method="post">
+            <label class="visually-hidden" for="category-{{ category.id }}">Rename {{ category.name }}</label>
+            <input id="category-{{ category.id }}" name="name" value="{{ category.name }}" maxlength="{{ max_category_name_length }}" required>
+            <span>{{ category.game_count }} game{% if category.game_count != 1 %}s{% endif %}</span>
+            <button class="secondary-button" type="submit">Rename</button>
+          </form>
+          <form action="{{ url_for('settings_category_delete', category_id=category.id) }}" method="post" data-confirm="Delete {{ category.name }}? This removes the category from {{ category.game_count }} game{% if category.game_count != 1 %}s{% endif %}, but does not delete games or files.">
+            <button class="danger-button" type="submit">Delete</button>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+    <p class="settings-note"><strong>Uncategorized</strong> is automatic and cannot be renamed or deleted.</p>
+  </section>
+{% endblock %}
