@@ -11,11 +11,13 @@ from app.config import ConfigurationError, Settings
 def test_settings_load_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FORGE_GAMESHEETS_LIBRARY", "/example/library")
     monkeypatch.setenv("FORGE_GAMESHEETS_DATA", "/example/data")
+    monkeypatch.setenv("FORGE_GAMESHEETS_BASE_URL", "https://forge.example.test")
 
     settings = Settings.from_environment()
 
     assert settings.library_path == Path("/example/library")
     assert settings.data_path == Path("/example/data")
+    assert settings.base_url == "https://forge.example.test"
 
 
 def test_validation_returns_canonical_directories(tmp_path: Path) -> None:
@@ -24,10 +26,56 @@ def test_validation_returns_canonical_directories(tmp_path: Path) -> None:
     library_path.mkdir()
     data_path.mkdir()
 
-    settings = Settings(library_path=library_path, data_path=data_path).validated()
+    settings = Settings(
+        library_path=library_path,
+        data_path=data_path,
+        base_url=" https://forge.example.test/ ",
+    ).validated()
 
     assert settings.library_path == library_path.resolve()
     assert settings.data_path == data_path.resolve()
+    assert settings.base_url == "https://forge.example.test"
+
+
+def test_validation_allows_unconfigured_base_url(tmp_path: Path) -> None:
+    library_path = tmp_path / "library"
+    data_path = tmp_path / "data"
+    library_path.mkdir()
+    data_path.mkdir()
+
+    settings = Settings(
+        library_path=library_path, data_path=data_path, base_url="  "
+    ).validated()
+
+    assert settings.base_url is None
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "forge.example.test",
+        "ftp://forge.example.test",
+        "https://user:secret@forge.example.test",
+        "https://forge.example.test?mode=print",
+        "https://forge.example.test#resource",
+        "https://forge example.test",
+        "https://forge.example.test:99999",
+    ],
+)
+def test_validation_rejects_unsafe_base_urls(
+    tmp_path: Path, base_url: str
+) -> None:
+    library_path = tmp_path / "library"
+    data_path = tmp_path / "data"
+    library_path.mkdir()
+    data_path.mkdir()
+
+    with pytest.raises(ConfigurationError, match="Base URL"):
+        Settings(
+            library_path=library_path,
+            data_path=data_path,
+            base_url=base_url,
+        ).validated()
 
 
 @pytest.mark.parametrize("field_name", ["library_path", "data_path"])

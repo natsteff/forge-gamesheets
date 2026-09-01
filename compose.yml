@@ -14,6 +14,7 @@ services:
     build:
       context: .
     environment:
+      FORGE_GAMESHEETS_BASE_URL: ${FORGE_GAMESHEETS_BASE_URL:-}
       FORGE_GAMESHEETS_DATA: /data
       FORGE_GAMESHEETS_LIBRARY: /library
     ports:

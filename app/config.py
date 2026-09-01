@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 class ConfigurationError(RuntimeError):
@@ -17,6 +18,7 @@ class Settings:
 
     library_path: Path
     data_path: Path
+    base_url: str | None = None
 
     @classmethod
     def from_environment(cls) -> Settings:
@@ -26,6 +28,7 @@ class Settings:
                 os.environ.get("FORGE_GAMESHEETS_LIBRARY", "/library")
             ),
             data_path=Path(os.environ.get("FORGE_GAMESHEETS_DATA", "/data")),
+            base_url=os.environ.get("FORGE_GAMESHEETS_BASE_URL"),
         )
 
     def validated(self) -> Settings:
@@ -55,7 +58,11 @@ class Settings:
                 "Library and data directories must not contain one another."
             )
 
-        return Settings(library_path=library_path, data_path=data_path)
+        return Settings(
+            library_path=library_path,
+            data_path=data_path,
+            base_url=_validate_base_url(self.base_url),
+        )
 
 
 def _validate_directory(
@@ -86,3 +93,32 @@ def _validate_directory(
         )
 
     return resolved
+
+
+def _validate_base_url(value: str | None) -> str | None:
+    """Normalize an optional absolute URL used in generated QR destinations."""
+    if value is None or not value.strip():
+        return None
+
+    normalized = value.strip().rstrip("/")
+    if any(character.isspace() for character in normalized):
+        raise ConfigurationError("Base URL must not contain whitespace.")
+
+    try:
+        parsed = urlsplit(normalized)
+        parsed_port = parsed.port
+    except ValueError as error:
+        raise ConfigurationError("Base URL is invalid.") from error
+
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ConfigurationError(
+            "Base URL must be an absolute HTTP or HTTPS URL."
+        )
+    if parsed.username is not None or parsed.password is not None:
+        raise ConfigurationError("Base URL must not contain credentials.")
+    if parsed.query or parsed.fragment:
+        raise ConfigurationError("Base URL must not contain a query or fragment.")
+    if parsed_port is not None and not 1 <= parsed_port <= 65535:
+        raise ConfigurationError("Base URL port is invalid.")
+
+    return normalized

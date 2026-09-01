@@ -79,6 +79,7 @@ change only the values needed for the host:
 | --- | --- | --- |
 | `FORGE_GAMESHEETS_BIND_ADDRESS` | `127.0.0.1` | Host address that accepts connections |
 | `FORGE_GAMESHEETS_PORT` | `8000` | Host port used to open Forge |
+| `FORGE_GAMESHEETS_BASE_URL` | unset | Address encoded into future Forge QR links |
 | `FORGE_GAMESHEETS_DATA_PATH` | `./data` | Writable application state |
 | `FORGE_GAMESHEETS_LIBRARY_PATH` | `./library` | Source PDF library, mounted read-only |
 
