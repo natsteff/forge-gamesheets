@@ -13,8 +13,9 @@ COPY tests ./tests
 
 RUN pip install --no-cache-dir ".[dev]"
 
-RUN addgroup --system forge-gamesheets \
-    && adduser --system --ingroup forge-gamesheets forge-gamesheets \
+# Stable IDs make permissions for bind-mounted application data predictable.
+RUN addgroup --system --gid 10001 forge-gamesheets \
+    && adduser --system --uid 10001 --ingroup forge-gamesheets forge-gamesheets \
     && mkdir -p /library /data \
     && chown -R forge-gamesheets:forge-gamesheets /app /data
 
