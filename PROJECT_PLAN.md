@@ -128,6 +128,127 @@ Minimum Phase 1 concepts:
 - User accounts, remote synchronization, or cloud storage.
 - Automatic production deployment.
 
+### Phase 1 transition to Phase 1.5 and wider beta
+
+The completed Phase 1 library will receive the small deployment fixes already
+identified through real-host testing, then development will move directly into
+Phase 1.5. Wider external beta recruitment, the complete setup guide, and the
+public screenshot set will follow a demonstrable Phase 1.5 generation workflow
+rather than delaying feature progress beforehand.
+
+#### Milestone A — Essential self-hosting fixes
+
+- **Confirmed:** Keep the container process non-root and give its runtime user a
+  deterministic, documented numeric UID/GID.
+- **Confirmed:** Keep the source PDF library mounted read-only and application
+  data in a separate writable persistent host directory.
+- **Confirmed:** Preserve localhost-only access as the safe Compose default.
+- **Confirmed:** Make the bind address, host port, data path, and library path
+  configurable without requiring users to edit tracked Compose configuration.
+- **Confirmed:** Clearly distinguish localhost-only, trusted-LAN, and
+  reverse-proxy access models.
+- **Confirmed:** Warn that Forge has no built-in authentication and must not be
+  exposed directly to the public Internet.
+- **Confirmed:** Retain the application health check and verify that container
+  health represents a functioning application rather than merely an existing
+  container.
+- **Confirmed:** Add focused checks for runtime identity, writable application
+  data, read-only source content, and application health.
+- **Confirmed:** Add concise setup and security guidance sufficient for current
+  testers, including the lack of built-in authentication and the difference
+  between localhost-only and trusted-LAN access.
+- **Confirmed:** Do not add a privileged startup process, broad host
+  permissions, automatic NAS mounting, bundled TLS, or a larger orchestration
+  stack as part of this milestone.
+
+#### Milestone B — Phase 1.5 generated reprint foundation
+
+- **Confirmed:** Introduce generated printable copies as derived resources
+  without modifying or replacing the authoritative source PDFs.
+- **Confirmed:** Add a small configurable Forge Mark, brief reprint guidance,
+  and a QR code to generated copies.
+- **Confirmed:** Use stable application resource URLs that survive display-title
+  changes.
+- **Confirmed:** A QR destination opens a resource page with deliberate view and
+  print actions; scanning a code must never trigger printing automatically.
+- **Confirmed:** Store generated output and its metadata separately from the
+  source library and make its lifecycle and cleanup behavior explicit.
+- **Confirmed:** Preserve safe path handling, read-only source mounts, and the
+  filesystem-as-source-of-truth rule for original library content.
+- **Confirmed:** Add tests for generated-file safety, stable URLs, QR targets,
+  and failure behavior before exposing the workflow in the interface.
+
+#### Milestone C — Phase 1.5 user workflow
+
+- **Proposed:** Start with one constrained generated-copy workflow rather than
+  a general template designer or game-specific document generator.
+- **Proposed:** Let a user choose an existing PDF resource, preview the derived
+  copy, and intentionally generate or download it with the Forge Mark and QR
+  reprint information.
+- **Confirmed:** Make generated and static resources understandable within the
+  existing game/resource interface.
+- **Confirmed:** Provide clear states for generation in progress, success,
+  unsupported input, and failure without damaging the source PDF.
+- **Confirmed:** Validate the workflow on representative page sizes and
+  multi-page PDFs before expanding its options.
+- **Confirmed:** Do not pull the Phase 2 declarative template engine, visual
+  designer, or configurable score-sheet generation into this milestone.
+
+#### Milestone D — Deployment documentation and public presentation
+
+- **Confirmed:** Add `docs/deployment.md` as the detailed self-hosted beta guide
+  while keeping the README concise.
+- **Confirmed:** Document prerequisites, installation location, port selection,
+  persistent storage, permissions, access modes, startup, health verification,
+  initial library organization, normal management, upgrades, backups, and
+  common failures.
+- **Confirmed:** Explain that host bind-mount paths may point to local disks or
+  storage already mounted by the host operating system, including NAS-backed
+  paths; Forge does not mount NFS, SMB, or NAS storage itself.
+- **Confirmed:** Include exact troubleshooting guidance for an unwritable data
+  directory, an occupied port, localhost-only access, missing library content,
+  and a container that exits immediately after creation.
+- **Confirmed:** Keep deployment examples suitable for a clean Linux Docker
+  host while making clear that example paths such as `/opt/forge-gamesheets`
+  are recommendations rather than requirements.
+- **Confirmed:** Add a concise screenshot gallery to the README using
+  repository-relative image paths.
+- **Confirmed:** Include representative views of the library/categories, a
+  game's resources, Settings, and the Phase 1.5 generated-copy workflow using
+  invented or otherwise safe sample data.
+- **Confirmed:** Remove personal paths, hostnames, bookmarks, copyrighted PDF
+  contents, and other private details from public screenshots.
+- **Confirmed:** Add a dedicated social-preview image sized and compressed for
+  GitHub link sharing.
+- **Confirmed:** Keep screenshots visually consistent and provide useful alt
+  text.
+
+#### Milestone E — Wider external beta launch
+
+- **Confirmed:** Run the full automated test and lint suite, then complete a
+  clean-host deployment walkthrough in both localhost-only and trusted-LAN
+  modes.
+- **Confirmed:** Verify install, health, first scan, restart, backup, and update
+  instructions against the release candidate.
+- **Confirmed:** Publish a new prerelease rather than moving or rewriting the
+  existing `v0.1.0-beta.1` tag.
+- **Proposed:** Select the next prerelease version after the Phase 1.5 work is
+  complete rather than reserving `v0.1.0-beta.2` prematurely.
+- **Confirmed:** Provide beta testers with a short testing guide, known
+  limitations, security warning, and an obvious way to report defects.
+
+#### Milestone F — External beta feedback triage
+
+- **Confirmed:** Classify reports as setup/documentation, defect, usability,
+  compatibility, security, or later-phase enhancement.
+- **Confirmed:** Prioritize data safety, path safety, failed startup, broken
+  upgrades, and inaccessible documents ahead of cosmetic improvements.
+- **Confirmed:** Keep fixes small and tested; do not expand beyond the approved
+  Phase 1.5 workflow or pull Phase 2 features into beta stabilization.
+- **Proposed:** Use the external beta results to decide whether another beta is
+  needed before declaring the Phase 1.5 release stable and beginning Phase 2
+  planning.
+
 ## 7. Phase 1.5 — Forge Mark and QR reprints
 
 - **Confirmed roadmap:** Offer optional printable copies with a small Forge Mark,
