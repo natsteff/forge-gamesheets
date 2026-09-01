@@ -1,5 +1,14 @@
 name: forge-gamesheets
 
+# SECURITY / DEPLOYMENT NOTE:
+#
+# The default bind address, 127.0.0.1, allows access only from this Docker host.
+# Set FORGE_GAMESHEETS_BIND_ADDRESS=0.0.0.0 only for a trusted LAN or when an
+# appropriate access-control layer protects Forge. Forge currently has no
+# built-in authentication and must not be exposed directly to the Internet.
+#
+# The data mount is writable persistent application state. The library mount
+# contains source PDFs and remains read-only inside the container.
 services:
   app:
     build:
@@ -8,10 +17,16 @@ services:
       FORGE_GAMESHEETS_DATA: /data
       FORGE_GAMESHEETS_LIBRARY: /library
     ports:
-      - "127.0.0.1:8000:8000"
+      - >-
+        ${FORGE_GAMESHEETS_BIND_ADDRESS:-127.0.0.1}:${FORGE_GAMESHEETS_PORT:-8000}:8000
     volumes:
-      - ./data:/data
-      - ./library:/library:ro
+      - type: bind
+        source: ${FORGE_GAMESHEETS_DATA_PATH:-./data}
+        target: /data
+      - type: bind
+        source: ${FORGE_GAMESHEETS_LIBRARY_PATH:-./library}
+        target: /library
+        read_only: true
     healthcheck:
       test:
         - CMD
@@ -24,6 +39,3 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
-
-# Production-specific ports, paths, users, and policies are intentionally not
-# defined during local Phase 1 development.
