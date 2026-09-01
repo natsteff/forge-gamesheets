@@ -53,6 +53,12 @@ from app.library.repository import (
     set_resource_favorite,
     toggle_resource_pin,
 )
+from app.library.reprints import (
+    ReprintGenerationError,
+    existing_forge_reprint,
+    generate_forge_reprint,
+    resource_reprint_url,
+)
 from app.library.scanner import LibraryScanError, ScanIssue, scan_library
 from app.preferences import (
     DEFAULT_FOOTER_TEXT,
@@ -661,19 +667,72 @@ def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
         raise HTTPException(status_code=404, detail="Game not found")
 
     available = True
+    generated_available = False
     try:
-        resolve_resource_pdf(
+        source = resolve_resource_pdf(
             request.app.state.settings.library_path,
             resource.relative_path,
         )
+        base_url = request.app.state.settings.base_url
+        if base_url:
+            target_url = resource_reprint_url(base_url, resource_id)
+            generated_available = existing_forge_reprint(
+                source,
+                request.app.state.settings.data_path,
+                resource_id=resource_id,
+                target_url=target_url,
+            ) is not None
     except (ResourceFileMissing, UnsafeResourcePath):
         available = False
 
     return templates.TemplateResponse(
         request=request,
         name="resource_reprint.html",
-        context={"game": game, "resource": resource, "available": available},
+        context={
+            "game": game,
+            "resource": resource,
+            "available": available,
+            "generation_enabled": bool(request.app.state.settings.base_url),
+            "generated_available": generated_available,
+            "generation_error": request.query_params.get("error"),
+        },
     )
+
+
+@router.post(
+    "/resources/{resource_id}/forge-reprint",
+    response_class=RedirectResponse,
+    name="resource_reprint_generate",
+)
+def resource_reprint_generate(
+    request: Request, resource_id: int
+) -> RedirectResponse:
+    """Generate a derived Forge-marked copy without changing its source PDF."""
+    try:
+        _generated_reprint(request, resource_id)
+    except ReprintGenerationError:
+        return _reprint_redirect(resource_id, error="generation-failed")
+    return _reprint_redirect(resource_id)
+
+
+@router.get(
+    "/resources/{resource_id}/forge-reprint/open",
+    response_class=FileResponse,
+    name="resource_reprint_view",
+)
+def resource_reprint_view(request: Request, resource_id: int) -> FileResponse:
+    """Open the current Forge-marked derived copy for deliberate printing."""
+    return _generated_reprint_response(request, resource_id, disposition="inline")
+
+
+@router.get(
+    "/resources/{resource_id}/forge-reprint/download",
+    response_class=FileResponse,
+    name="resource_reprint_download",
+)
+def resource_reprint_download(request: Request, resource_id: int) -> FileResponse:
+    """Download the current Forge-marked derived copy."""
+    return _generated_reprint_response(request, resource_id, disposition="attachment")
 
 
 @router.get(
@@ -727,6 +786,61 @@ def resource_download(request: Request, resource_id: int) -> FileResponse:
 
 def _database(request: Request) -> Database:
     return request.app.state.database
+
+
+def _generated_reprint(request: Request, resource_id: int) -> Path:
+    resource = get_resource(_database(request), resource_id)
+    if resource is None:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    try:
+        source = resolve_resource_pdf(
+            request.app.state.settings.library_path,
+            resource.relative_path,
+        )
+        target_url = resource_reprint_url(
+            request.app.state.settings.base_url,
+            resource_id,
+        )
+        return generate_forge_reprint(
+            source,
+            request.app.state.settings.data_path,
+            resource_id=resource_id,
+            target_url=target_url,
+        )
+    except ResourceFileMissing as error:
+        raise HTTPException(
+            status_code=410,
+            detail="This PDF was removed after the last library scan.",
+        ) from error
+    except UnsafeResourcePath as error:
+        raise HTTPException(status_code=404, detail="Resource not found") from error
+
+
+def _generated_reprint_response(
+    request: Request, resource_id: int, *, disposition: str
+) -> FileResponse:
+    try:
+        path = _generated_reprint(request, resource_id)
+    except ReprintGenerationError as error:
+        raise HTTPException(
+            status_code=422,
+            detail="FORGE Reprint generation failed.",
+        ) from error
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=f"forge-reprint-{resource_id}.pdf",
+        content_disposition_type=disposition,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def _reprint_redirect(
+    resource_id: int, *, error: str | None = None
+) -> RedirectResponse:
+    query = urlencode({"error": error}) if error else ""
+    suffix = f"?{query}" if query else ""
+    return RedirectResponse(url=f"/r/{resource_id}{suffix}", status_code=303)
 
 
 def _settings_redirect(

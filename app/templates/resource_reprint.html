@@ -5,8 +5,7 @@
 {% block content %}
   <a class="back-link" href="{{ url_for('game_detail', game_id=game.id) }}#resource-{{ resource.id }}">← {{ game.title }}</a>
   <section class="reprint-panel">
-    <span class="document-icon reprint-document-icon" aria-hidden="true"></span>
-    <p class="eyebrow">Forge reprint</p>
+    <p class="eyebrow">FORGE Reprint</p>
     <h1>{{ resource.title }}</h1>
     <p class="reprint-game">
       {{ game.title }}{% if resource.variant %} · {{ resource.variant }}{% endif %}
@@ -14,20 +13,73 @@
 
     {% if available %}
       <p class="reprint-help">
-        Open the PDF in your browser to review and print it, or download a copy
-        to this device. Nothing opens or prints until you choose an action.
+        Create a separate printable copy with a small Forge mark and a QR link
+        back to this page. Your original PDF is never changed.
       </p>
-      <div class="reprint-actions">
-        <a
-          class="resource-action primary"
-          href="{{ url_for('resource_view', resource_id=resource.id) }}"
-          target="_blank"
-          rel="noopener"
-        >View PDF to print</a>
-        <a
-          class="resource-action"
-          href="{{ url_for('resource_download', resource_id=resource.id) }}"
-        >Download</a>
+      <aside class="reprint-responsibility" aria-label="Content responsibility">
+        <strong>Content responsibility</strong>
+        <p>
+          FORGE Reprint adds printing and navigation marks only; it does not
+          claim ownership or affiliation or grant permission to reproduce or
+          distribute the source. The library operator is responsible for
+          ensuring that storage, use, and printing are authorized by the rights
+          holder, license terms, public-domain status, or applicable law.
+        </p>
+      </aside>
+
+      {% if generated_available %}
+        <p class="status-banner success" role="status">
+          Your FORGE Reprint is ready and remains available until its source
+          PDF or QR address changes.
+        </p>
+        <p class="reprint-print-tip">
+          <strong>Print tip:</strong> Choose <strong>Fit to printable area</strong>
+          —or your printer’s equivalent—and confirm the complete URL and QR code
+          are visible in the print preview.
+        </p>
+        <div class="reprint-actions">
+          <a
+            class="resource-action primary"
+            href="{{ url_for('resource_reprint_view', resource_id=resource.id) }}"
+            target="_blank"
+            rel="noopener"
+          >View FORGE Reprint</a>
+          <a
+            class="resource-action"
+            href="{{ url_for('resource_reprint_download', resource_id=resource.id) }}"
+          >Download FORGE Reprint</a>
+        </div>
+      {% elif generation_error == "generation-failed" %}
+        <p class="status-banner warning" role="alert">
+          The FORGE Reprint could not be created. The original PDF was not changed.
+        </p>
+      {% endif %}
+
+      {% if generation_enabled and not generated_available %}
+        <form class="reprint-generate" action="{{ url_for('resource_reprint_generate', resource_id=resource.id) }}" method="post">
+          <button class="resource-action primary" type="submit">Generate FORGE Reprint</button>
+        </form>
+      {% elif not generation_enabled %}
+        <p class="status-banner warning" role="status">
+          Set <code>FORGE_GAMESHEETS_BASE_URL</code> to enable QR reprints.
+        </p>
+      {% endif %}
+
+      <div class="reprint-original">
+        <h2>Original PDF</h2>
+        <p>The original remains available without a Forge mark.</p>
+        <div class="reprint-actions">
+          <a
+            class="resource-action"
+            href="{{ url_for('resource_view', resource_id=resource.id) }}"
+            target="_blank"
+            rel="noopener"
+          >View original</a>
+          <a
+            class="resource-action"
+            href="{{ url_for('resource_download', resource_id=resource.id) }}"
+          >Download original</a>
+        </div>
       </div>
     {% else %}
       <p class="status-banner warning" role="alert">

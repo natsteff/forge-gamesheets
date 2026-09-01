@@ -24,6 +24,7 @@ PDFs, require a cloud service, or store PDF contents in its database.
 - Forgiving filename parsing and document-type recognition
 - Search across game and resource titles
 - Browser viewing, downloads, and first-page PDF previews
+- Optional FORGE Reprint copies with a QR return link and source-rights notice
 - Editable display titles, document metadata, and game artwork
 - Multiple customizable categories per game
 - All Games, category, and Uncategorized browsing
@@ -79,7 +80,7 @@ change only the values needed for the host:
 | --- | --- | --- |
 | `FORGE_GAMESHEETS_BIND_ADDRESS` | `127.0.0.1` | Host address that accepts connections |
 | `FORGE_GAMESHEETS_PORT` | `8000` | Host port used to open Forge |
-| `FORGE_GAMESHEETS_BASE_URL` | unset | Address encoded into future Forge QR links |
+| `FORGE_GAMESHEETS_BASE_URL` | unset | Address encoded into FORGE Reprint QR links |
 | `FORGE_GAMESHEETS_DATA_PATH` | `./data` | Writable application state |
 | `FORGE_GAMESHEETS_LIBRARY_PATH` | `./library` | Source PDF library, mounted read-only |
 
@@ -105,7 +106,7 @@ After a detached start, allow initialization to finish and verify readiness:
 
 ```sh
 docker compose ps
-curl --retry 5 --retry-connrefused --retry-delay 1 \
+curl --retry 10 --retry-all-errors --retry-delay 1 \
   http://127.0.0.1:8000/health
 ```
 
@@ -147,6 +148,26 @@ and authentication layer.
 
 The library mount is read-only. Forge GameSheets never edits source PDFs.
 
+## Content rights and responsibility
+
+Forge GameSheets is self-hosted software. It does not provide, sell, upload,
+inspect, or verify the PDFs placed in an operator's library. The library
+operator controls those files and is responsible for ensuring that their
+storage, reproduction, use, printing, and distribution are permitted by the
+rights holder, applicable license terms, public-domain status, or applicable
+law.
+
+The FORGE GAMESHEETS mark on a generated reprint identifies the software used
+to prepare that copy. It does not claim authorship or ownership of the source
+content and does not imply affiliation with or endorsement by its rights
+holders. A FORGE Reprint does not itself grant permission to reproduce or
+distribute a source PDF.
+
+QR links point back to the operator's own Forge installation. Depending on its
+network configuration, that link may make a resource reachable from other
+devices. Forge has no built-in authentication, so operators must not expose
+protected resources directly to the public internet or an untrusted network.
+
 ## Testing and development
 
 Run the automated checks in the container:
@@ -166,8 +187,8 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
   reliably detect whether a print completed.
 - PDF previews show only the first page and may be unavailable for malformed or
   unsupported PDFs.
-- Phase 1 serves existing PDFs but does not edit, combine, stamp, or generate
-  them.
+- FORGE Reprint creates a marked derived copy but does not edit, combine, or
+  replace source PDFs.
 - Game folders must currently be first-level children of the library root.
 - There is no BoardGameGeek enrichment, remote synchronization, or cloud backup.
 - Production deployment and public network exposure have not been approved.

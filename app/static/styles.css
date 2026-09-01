@@ -413,10 +413,19 @@ h2 { font-size: 1.45rem; }
 }
 .reprint-panel h1 { margin-bottom: 0.5rem; font-size: clamp(2.4rem, 7vw, 4.5rem); }
 .reprint-help { max-width: 36rem; color: var(--muted); }
-.reprint-document-icon { display: block; width: 2.5rem; height: 3.1rem; margin-bottom: 1.5rem; }
 .reprint-game { margin-bottom: 1.5rem; color: var(--forge-dark); font-weight: 750; }
 .reprint-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .reprint-actions .resource-action { min-height: 3rem; padding-inline: 1rem; }
+.reprint-generate { margin-block: 1.5rem; }
+.reprint-generate .resource-action { cursor: pointer; }
+.reprint-print-tip { max-width: 36rem; color: var(--muted); font-size: 0.88rem; }
+.reprint-print-tip strong { color: var(--text); }
+.reprint-responsibility { max-width: 36rem; margin-block: 1.25rem; padding: 1rem; border-left: 3px solid var(--line); background: var(--background); color: var(--muted); font-size: 0.86rem; }
+.reprint-responsibility strong { color: var(--text); }
+.reprint-responsibility p { margin: 0.35rem 0 0; }
+.reprint-original { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.reprint-original h2 { margin-bottom: 0.25rem; font-size: 1.25rem; }
+.reprint-original p { margin-top: 0; color: var(--muted); }
 
 .site-footer { padding-block: 1.5rem 2rem; color: var(--muted); font-size: 0.78rem; }
 

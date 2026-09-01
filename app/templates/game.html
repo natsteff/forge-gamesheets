@@ -82,15 +82,15 @@
                   {% if resource.id not in unavailable_resource_ids %}
                     <a
                       class="resource-action primary"
+                      href="{{ url_for('resource_reprint', resource_id=resource.id) }}"
+                    >FORGE Reprint</a>
+                    <a
+                      class="resource-action"
                       href="{{ url_for('resource_view', resource_id=resource.id) }}"
                       target="_blank"
                       rel="noopener"
-                      aria-label="View {{ resource.title }} (opens in a new tab)"
-                    >View</a>
-                    <a
-                      class="resource-action"
-                      href="{{ url_for('resource_download', resource_id=resource.id) }}"
-                    >Download</a>
+                      aria-label="View original {{ resource.title }} (opens in a new tab)"
+                    >View original</a>
                   {% endif %}
                   <a
                     class="resource-action"

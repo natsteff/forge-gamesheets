@@ -4,6 +4,7 @@ import re
 from io import BytesIO
 from pathlib import Path
 
+import fitz
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -90,8 +91,12 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "Rules" in response.text
     assert "Score Sheets" in response.text
     assert "Large Print" in response.text
-    assert ">View</a>" in response.text
-    assert ">Download</a>" in response.text
+    assert ">FORGE Reprint</a>" in response.text
+    assert ">View original</a>" in response.text
+    assert ">Download</a>" not in response.text
+    assert response.text.index(">FORGE Reprint</a>") < response.text.index(
+        ">View original</a>"
+    )
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=4" in response.text
@@ -283,16 +288,98 @@ def test_reprint_landing_page_requires_a_deliberate_resource_action(
     landing = web_client.get(f"/r/{resource_id}")
 
     assert landing.status_code == 200
-    assert "Forge reprint" in landing.text
+    assert "FORGE Reprint" in landing.text
     assert "Farkle" in landing.text
-    assert "View PDF to print" in landing.text
+    assert "Your original PDF is never changed" in landing.text
+    assert "FORGE_GAMESHEETS_BASE_URL" in landing.text
+    assert "View original" in landing.text
     assert f"/resources/{resource_id}/open" in landing.text
     assert f"/resources/{resource_id}/download" in landing.text
-    assert "Nothing opens or prints until you choose an action" in landing.text
+    assert f"/resources/{resource_id}/forge-reprint" not in landing.text
     with web_client.app.state.database.connect() as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM resource_activity"
         ).fetchone()[0] == 0
+
+
+def test_forge_reprint_is_generated_and_served_without_changing_source(
+    tmp_path: Path,
+) -> None:
+    library = tmp_path / "library"
+    data = tmp_path / "data"
+    game_directory = library / "Farkle"
+    game_directory.mkdir(parents=True)
+    data.mkdir()
+    source = game_directory / "Farkle - Score Sheet.pdf"
+    document = fitz.open()
+    page = document.new_page(width=612, height=792)
+    page.insert_text((72, 72), "Original score sheet")
+    document.save(source)
+    document.close()
+    source_bytes = source.read_bytes()
+    app = create_app(
+        Settings(
+            library_path=library,
+            data_path=data,
+            base_url="https://forge.example.test",
+        )
+    )
+
+    with TestClient(app) as client:
+        with client.app.state.database.connect() as connection:
+            resource_id = connection.execute(
+                "SELECT id FROM resources"
+            ).fetchone()[0]
+
+        landing = client.get(f"/r/{resource_id}")
+        normalized_landing = " ".join(landing.text.split())
+        assert "Generate FORGE Reprint" in landing.text
+        assert "Content responsibility" in landing.text
+        assert "does not claim ownership or affiliation" in normalized_landing
+        assert "library operator is responsible" in normalized_landing
+        assert f"/resources/{resource_id}/forge-reprint" in landing.text
+        assert "View FORGE Reprint" not in landing.text
+
+        generated = client.post(
+            f"/resources/{resource_id}/forge-reprint",
+            follow_redirects=False,
+        )
+        assert generated.status_code == 303
+        assert generated.headers["location"] == f"/r/{resource_id}"
+
+        ready = client.get(generated.headers["location"])
+        assert "Your FORGE Reprint is ready" in ready.text
+        assert "Fit to printable area" in ready.text
+        assert "complete URL and QR code" in ready.text
+        assert "View FORGE Reprint" in ready.text
+        assert "Download FORGE Reprint" in ready.text
+        assert "Generate FORGE Reprint" not in ready.text
+        assert "Regenerate FORGE Reprint" not in ready.text
+        assert "reprint-document-icon" not in ready.text
+
+        refreshed = client.get(f"/r/{resource_id}")
+        assert "Your FORGE Reprint is ready" in refreshed.text
+        assert "View FORGE Reprint" in refreshed.text
+        assert "Generate FORGE Reprint" not in refreshed.text
+
+        opened = client.get(f"/resources/{resource_id}/forge-reprint/open")
+        downloaded = client.get(
+            f"/resources/{resource_id}/forge-reprint/download"
+        )
+
+    assert source.read_bytes() == source_bytes
+    assert opened.status_code == downloaded.status_code == 200
+    assert opened.headers["content-disposition"].startswith("inline;")
+    assert downloaded.headers["content-disposition"].startswith("attachment;")
+    with fitz.open(stream=opened.content, filetype="pdf") as output:
+        assert output.page_count == 1
+        assert "Original score sheet" in output[0].get_text()
+        assert "Scan QR code or access URL to reprint" in output[0].get_text()
+        assert len(output[0].get_images(full=True)) >= 2
+        assert output.metadata["subject"] == (
+            f"https://forge.example.test/r/{resource_id}"
+        )
+    assert len(tuple((data / "generated").glob("*.pdf"))) == 1
 
 
 def test_reprint_url_survives_display_title_changes(
@@ -367,8 +454,10 @@ def test_malformed_resource_preview_fails_without_breaking_page(
 def test_resource_can_be_downloaded(web_client: TestClient) -> None:
     game_ids = _game_ids(web_client)
     detail = web_client.get(f"/games/{game_ids[1]}")
+    resource_id = re.search(r"/resources/(\d+)/open", detail.text).group(1)
+    landing = web_client.get(f"/r/{resource_id}")
     download_path = re.search(
-        r'href="((?:http://testserver)?/resources/\d+/download)"', detail.text
+        r'href="((?:http://testserver)?/resources/\d+/download)"', landing.text
     ).group(1)
 
     response = web_client.get(download_path)
