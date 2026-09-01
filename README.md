@@ -69,6 +69,45 @@ directories and binds the application only to `127.0.0.1:8000`.
 
 The health endpoint is available at <http://localhost:8000/health>.
 
+## Self-hosted beta configuration
+
+The Compose defaults are intentionally local and use the repository's `data/`
+and `library/` directories. To override them, copy `.env.example` to `.env` and
+change only the values needed for the host:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `FORGE_GAMESHEETS_BIND_ADDRESS` | `127.0.0.1` | Host address that accepts connections |
+| `FORGE_GAMESHEETS_PORT` | `8000` | Host port used to open Forge |
+| `FORGE_GAMESHEETS_DATA_PATH` | `./data` | Writable application state |
+| `FORGE_GAMESHEETS_LIBRARY_PATH` | `./library` | Source PDF library, mounted read-only |
+
+On a Linux Docker host using the default bind mount, prepare the data directory
+for Forge's fixed non-root container identity before the first start:
+
+```sh
+sudo chown -R 10001:10001 data
+```
+
+Do not apply that ownership change to the source PDF library. It only needs to
+be readable by the container. Docker Desktop for macOS and Windows normally
+handles bind-mount permissions through its file-sharing layer.
+
+For access from another device on a trusted private LAN, set
+`FORGE_GAMESHEETS_BIND_ADDRESS=0.0.0.0` in `.env`, then open the configured port
+on the Docker host. Forge has no built-in authentication: never expose that
+port directly to the public Internet or an untrusted network. Remote access
+requires an appropriate authenticated proxy, VPN, or network access-control
+layer.
+
+After a detached start, allow initialization to finish and verify readiness:
+
+```sh
+docker compose ps
+curl --retry 5 --retry-connrefused --retry-delay 1 \
+  http://127.0.0.1:8000/health
+```
+
 ## Organizing files
 
 Each first-level directory inside `library/` represents one game. PDFs can be
