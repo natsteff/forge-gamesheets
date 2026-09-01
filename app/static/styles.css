@@ -555,6 +555,22 @@ h2 { font-size: 1.45rem; }
 }
 .settings-note { margin: 1rem 0 0; color: var(--muted); font-size: 0.85rem; }
 
+.build-information dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  margin: 0;
+}
+
+.build-information dl div { display: grid; gap: 0.15rem; }
+.build-information dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.build-information dd { margin: 0; }
+
 @media (max-width: 680px) {
   .page-shell { padding-block: 2.5rem; }
   .hero { margin-bottom: 2.5rem; }

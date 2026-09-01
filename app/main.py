@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.build_info import BuildInfo
 from app.config import Settings
 from app.database import Database
 from app.library.cache import cleanup_managed_files
@@ -15,7 +16,9 @@ from app.library.scanner import scan_library
 from app.web import router as web_router
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, build_info: BuildInfo | None = None
+) -> FastAPI:
     """Create an application whose filesystem settings validate at startup."""
 
     @asynccontextmanager
@@ -37,10 +40,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         application.state.database = database
         yield
 
+    identity = build_info or BuildInfo.from_environment()
     application = FastAPI(
         title="Forge GameSheets",
         description="Organize. Customize. Print. Play.",
-        version="0.1.0",
+        version=identity.version,
         lifespan=lifespan,
     )
     application.mount(
@@ -49,11 +53,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         name="static",
     )
     application.include_router(web_router)
+    application.state.build_info = identity
 
     @application.get("/health", tags=["system"])
-    def health() -> dict[str, str]:
+    def health() -> dict[str, str | None]:
         """Report whether the HTTP service is available."""
-        return {"status": "ok", "service": "forge-gamesheets"}
+        return {
+            "status": "ok",
+            "service": "forge-gamesheets",
+            "version": identity.version,
+            "revision": identity.revision,
+            "build_date": identity.build_date,
+        }
 
     return application
 

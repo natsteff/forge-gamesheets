@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.build_info import BuildInfo
 from app.config import Settings
 from app.library.scanner import ScanIssue, ScanResult
 from app.main import create_app
@@ -28,7 +29,14 @@ def web_client(tmp_path: Path) -> TestClient:
     Image.new("RGB", (40, 20), color=(185, 79, 43)).save(farkle / "cover.png")
     (library / "Empty Game").mkdir()
 
-    app = create_app(Settings(library_path=library, data_path=data))
+    app = create_app(
+        Settings(library_path=library, data_path=data),
+        BuildInfo(
+            version="0.2.0-beta.1",
+            revision="abc1234",
+            build_date="2026-09-01",
+        ),
+    )
     with TestClient(app) as client:
         yield client
 
@@ -100,7 +108,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=4" in response.text
-    assert "/static/styles.css?v=14" in response.text
+    assert "/static/styles.css?v=15" in response.text
 
 
 def test_pages_include_keyboard_navigation_landmarks(
@@ -129,6 +137,9 @@ def test_pages_include_keyboard_navigation_landmarks(
         r'href="(?:http://testserver)?/settings" aria-current="page">Settings',
         settings.text,
     )
+    assert "Version 0.2.0-beta.1" in settings.text
+    assert "abc1234" in settings.text
+    assert "2026-09-01" in settings.text
 
 
 def test_quick_access_pages_have_navigation_and_empty_states(

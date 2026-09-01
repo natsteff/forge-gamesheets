@@ -2,6 +2,7 @@
 
 from fastapi.testclient import TestClient
 
+from app.build_info import BuildInfo
 from app.config import Settings
 from app.database import DATABASE_FILENAME
 from app.library.scanner import ScanIssue, ScanResult
@@ -14,7 +15,14 @@ def test_health_reports_service_is_available(tmp_path) -> None:
     library_path.mkdir()
     data_path.mkdir()
 
-    app = create_app(Settings(library_path=library_path, data_path=data_path))
+    app = create_app(
+        Settings(library_path=library_path, data_path=data_path),
+        BuildInfo(
+            version="0.2.0-beta.1",
+            revision="abc1234",
+            build_date="2026-09-01",
+        ),
+    )
 
     with TestClient(app) as client:
         response = client.get("/health")
@@ -23,6 +31,9 @@ def test_health_reports_service_is_available(tmp_path) -> None:
     assert response.json() == {
         "status": "ok",
         "service": "forge-gamesheets",
+        "version": "0.2.0-beta.1",
+        "revision": "abc1234",
+        "build_date": "2026-09-01",
     }
     assert (data_path / DATABASE_FILENAME).is_file()
 

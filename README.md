@@ -83,6 +83,22 @@ change only the values needed for the host:
 | `FORGE_GAMESHEETS_BASE_URL` | unset | Address encoded into FORGE Reprint QR links |
 | `FORGE_GAMESHEETS_DATA_PATH` | `./data` | Writable application state |
 | `FORGE_GAMESHEETS_LIBRARY_PATH` | `./library` | Source PDF library, mounted read-only |
+| `FORGE_GAMESHEETS_VERSION` | `development` | Release name shown in Settings and health diagnostics |
+| `FORGE_GAMESHEETS_REVISION` | unset | Git revision embedded in the built image |
+| `FORGE_GAMESHEETS_BUILD_DATE` | unset | UTC build date embedded in the built image |
+
+For a development build that identifies the exact checked-out code, build with
+the current Git revision and UTC date:
+
+```sh
+FORGE_GAMESHEETS_REVISION="$(git rev-parse --short HEAD)" \
+FORGE_GAMESHEETS_BUILD_DATE="$(date -u +%F)" \
+docker compose build
+```
+
+These details appear at the bottom of Settings and in `/health`. Release builds
+can also set `FORGE_GAMESHEETS_VERSION` to the published version. Values are
+embedded when the image is built, so changing them requires rebuilding it.
 
 On a Linux Docker host using the default bind mount, prepare the data directory
 for Forge's fixed non-root container identity before the first start:

@@ -252,6 +252,7 @@ def settings_home(request: Request) -> HTMLResponse:
             "max_footer_length": MAX_FOOTER_LENGTH,
             "max_recent_limit": MAX_RECENT_LIMIT,
             "max_category_name_length": MAX_GAME_CATEGORY_NAME_LENGTH,
+            "build_info": request.app.state.build_info,
         },
     )
 

@@ -69,4 +69,31 @@
     </div>
     <p class="settings-note"><strong>Uncategorized</strong> is automatic and cannot be renamed or deleted.</p>
   </section>
+
+  <section class="settings-section build-information">
+    <div class="settings-heading">
+      <div>
+        <p class="eyebrow">Installation details</p>
+        <h2>Build information</h2>
+      </div>
+    </div>
+    <dl>
+      <div>
+        <dt>Release</dt>
+        <dd>{{ build_info.display_version }}</dd>
+      </div>
+      {% if build_info.revision %}
+        <div>
+          <dt>Revision</dt>
+          <dd><code>{{ build_info.revision }}</code></dd>
+        </div>
+      {% endif %}
+      {% if build_info.build_date %}
+        <div>
+          <dt>Built</dt>
+          <dd>{{ build_info.build_date }}</dd>
+        </div>
+      {% endif %}
+    </dl>
+  </section>
 {% endblock %}
