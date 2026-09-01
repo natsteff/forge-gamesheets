@@ -1,4 +1,4 @@
-"""Conservative cleanup for app-managed preview and artwork files."""
+"""Conservative cleanup for reproducible and uploaded managed files."""
 
 from __future__ import annotations
 
@@ -11,15 +11,17 @@ from app.database import Database
 _PREVIEW_FILE = re.compile(r"resource-\d+-\d+-\d+\.webp")
 _ARTWORK_CACHE_FILE = re.compile(r"game-\d+-\d+-\d+\.webp")
 _UPLOADED_ARTWORK_FILE = re.compile(r"game-\d+\.webp")
+_GENERATED_REPRINT_FILE = re.compile(r"resource-\d+-\d+-\d+\.pdf")
 
 
 @dataclass(frozen=True, slots=True)
 class CacheCleanupSummary:
-    """Counts of obsolete app-managed files removed from each cache."""
+    """Counts of obsolete app-managed files removed from each directory."""
 
     previews_removed: int = 0
     artwork_cache_removed: int = 0
     uploaded_artwork_removed: int = 0
+    generated_reprints_removed: int = 0
 
 
 def cleanup_managed_files(
@@ -42,6 +44,10 @@ def cleanup_managed_files(
 
     allowed_previews = {
         f"resource-{row['id']}-{row['size_bytes']}-{row['modified_ns']}.webp"
+        for row in resources
+    }
+    allowed_generated_reprints = {
+        f"resource-{row['id']}-{row['size_bytes']}-{row['modified_ns']}.pdf"
         for row in resources
     }
     allowed_artwork_cache = {
@@ -69,6 +75,11 @@ def cleanup_managed_files(
             _UPLOADED_ARTWORK_FILE,
             allowed_uploaded_artwork,
         ),
+        generated_reprints_removed=_remove_orphans(
+            data_path / "generated",
+            _GENERATED_REPRINT_FILE,
+            allowed_generated_reprints,
+        ),
     )
 
 
@@ -78,7 +89,11 @@ def _remove_orphans(
     if not directory.is_dir():
         return 0
     try:
-        candidates = tuple(directory.iterdir())
+        data_root = directory.parent.resolve(strict=True)
+        resolved_directory = directory.resolve(strict=True)
+        if not resolved_directory.is_relative_to(data_root):
+            return 0
+        candidates = tuple(resolved_directory.iterdir())
     except OSError:
         return 0
     removed = 0
