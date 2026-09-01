@@ -1,3 +1,11 @@
+<p align="center">
+  <img
+    src="app/static/brand/forge-wordmark.png"
+    alt="Forge GameSheets logo"
+    width="620"
+  >
+</p>
+
 # Forge GameSheets
 
 **Organize. Customize. Print. Play.**
