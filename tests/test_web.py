@@ -95,7 +95,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=4" in response.text
-    assert "/static/styles.css?v=13" in response.text
+    assert "/static/styles.css?v=14" in response.text
 
 
 def test_pages_include_keyboard_navigation_landmarks(
@@ -269,6 +269,83 @@ def test_resource_can_be_viewed_inline(web_client: TestClient) -> None:
     assert response.headers["content-disposition"].startswith("inline;")
     assert response.headers["cache-control"] == "no-store"
     assert response.content in {b"rules", b"scores"}
+
+
+def test_reprint_landing_page_requires_a_deliberate_resource_action(
+    web_client: TestClient,
+) -> None:
+    game_ids = _game_ids(web_client)
+    detail = web_client.get(f"/games/{game_ids[1]}")
+    resource_id = int(
+        re.search(r"/resources/(\d+)/open", detail.text).group(1)
+    )
+
+    landing = web_client.get(f"/r/{resource_id}")
+
+    assert landing.status_code == 200
+    assert "Forge reprint" in landing.text
+    assert "Farkle" in landing.text
+    assert "View PDF to print" in landing.text
+    assert f"/resources/{resource_id}/open" in landing.text
+    assert f"/resources/{resource_id}/download" in landing.text
+    assert "Nothing opens or prints until you choose an action" in landing.text
+    with web_client.app.state.database.connect() as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM resource_activity"
+        ).fetchone()[0] == 0
+
+
+def test_reprint_url_survives_display_title_changes(
+    web_client: TestClient,
+) -> None:
+    game_ids = _game_ids(web_client)
+    detail = web_client.get(f"/games/{game_ids[1]}")
+    resource_id = int(
+        re.search(r"/resources/(\d+)/open", detail.text).group(1)
+    )
+    reprint_path = f"/r/{resource_id}"
+
+    web_client.post(
+        f"/resources/{resource_id}/edit",
+        data={
+            "title": "House Reprint",
+            "category": "rules",
+            "variant": "Large Type",
+        },
+    )
+
+    changed = web_client.get(reprint_path)
+    assert changed.status_code == 200
+    assert "House Reprint" in changed.text
+    assert "Large Type" in changed.text
+
+
+def test_reprint_landing_page_reports_missing_source(
+    web_client: TestClient, tmp_path: Path
+) -> None:
+    game_ids = _game_ids(web_client)
+    detail = web_client.get(f"/games/{game_ids[1]}")
+    resource_id = int(
+        re.search(r"/resources/(\d+)/open", detail.text).group(1)
+    )
+    with web_client.app.state.database.connect() as connection:
+        relative_path = connection.execute(
+            "SELECT relative_path FROM resources WHERE id = ?", (resource_id,)
+        ).fetchone()[0]
+    (tmp_path / "library" / relative_path).unlink()
+
+    landing = web_client.get(f"/r/{resource_id}")
+
+    assert landing.status_code == 200
+    assert "currently unavailable" in landing.text
+    assert f"/resources/{resource_id}/open" not in landing.text
+    assert f"/resources/{resource_id}/download" not in landing.text
+
+
+def test_unknown_reprint_resource_returns_not_found(
+    web_client: TestClient,
+) -> None:
+    assert web_client.get("/r/999999").status_code == 404
 
 
 def test_malformed_resource_preview_fails_without_breaking_page(

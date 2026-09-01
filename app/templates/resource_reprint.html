@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}{{ resource.title }} · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <a class="back-link" href="{{ url_for('game_detail', game_id=game.id) }}#resource-{{ resource.id }}">← {{ game.title }}</a>
+  <section class="reprint-panel">
+    <span class="document-icon reprint-document-icon" aria-hidden="true"></span>
+    <p class="eyebrow">Forge reprint</p>
+    <h1>{{ resource.title }}</h1>
+    <p class="reprint-game">
+      {{ game.title }}{% if resource.variant %} · {{ resource.variant }}{% endif %}
+    </p>
+
+    {% if available %}
+      <p class="reprint-help">
+        Open the PDF in your browser to review and print it, or download a copy
+        to this device. Nothing opens or prints until you choose an action.
+      </p>
+      <div class="reprint-actions">
+        <a
+          class="resource-action primary"
+          href="{{ url_for('resource_view', resource_id=resource.id) }}"
+          target="_blank"
+          rel="noopener"
+        >View PDF to print</a>
+        <a
+          class="resource-action"
+          href="{{ url_for('resource_download', resource_id=resource.id) }}"
+        >Download</a>
+      </div>
+    {% else %}
+      <p class="status-banner warning" role="alert">
+        This PDF is currently unavailable. Return to the Forge library and
+        rescan after restoring the source file.
+      </p>
+    {% endif %}
+  </section>
+{% endblock %}

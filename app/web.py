@@ -647,6 +647,36 @@ def game_artwork_reset(request: Request, game_id: int) -> RedirectResponse:
 
 
 @router.get(
+    "/r/{resource_id}",
+    response_class=HTMLResponse,
+    name="resource_reprint",
+)
+def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
+    """Show a stable, deliberate landing page for QR reprint links."""
+    resource = get_resource(_database(request), resource_id)
+    if resource is None:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    game = get_game(_database(request), resource.game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    available = True
+    try:
+        resolve_resource_pdf(
+            request.app.state.settings.library_path,
+            resource.relative_path,
+        )
+    except (ResourceFileMissing, UnsafeResourcePath):
+        available = False
+
+    return templates.TemplateResponse(
+        request=request,
+        name="resource_reprint.html",
+        context={"game": game, "resource": resource, "available": available},
+    )
+
+
+@router.get(
     "/resources/{resource_id}/preview",
     response_class=FileResponse,
     name="resource_preview",

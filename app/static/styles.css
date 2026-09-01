@@ -404,6 +404,20 @@ h2 { font-size: 1.45rem; }
 .resource-action:focus-visible { border-color: var(--forge); outline: none; }
 .resource-action.primary { border-color: var(--forge); color: white; background: var(--forge); }
 
+.reprint-panel {
+  max-width: 680px;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--surface);
+}
+.reprint-panel h1 { margin-bottom: 0.5rem; font-size: clamp(2.4rem, 7vw, 4.5rem); }
+.reprint-help { max-width: 36rem; color: var(--muted); }
+.reprint-document-icon { display: block; width: 2.5rem; height: 3.1rem; margin-bottom: 1.5rem; }
+.reprint-game { margin-bottom: 1.5rem; color: var(--forge-dark); font-weight: 750; }
+.reprint-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.reprint-actions .resource-action { min-height: 3rem; padding-inline: 1rem; }
+
 .site-footer { padding-block: 1.5rem 2rem; color: var(--muted); font-size: 0.78rem; }
 
 .history-header { max-width: 720px; margin-bottom: 2rem; }
