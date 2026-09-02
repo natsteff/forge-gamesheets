@@ -613,7 +613,11 @@ def game_artwork(request: Request, game_id: int) -> FileResponse:
         ) from error
     except UnsafeResourcePath as error:
         raise HTTPException(status_code=404, detail="Game artwork not found") from error
-    return FileResponse(cache_path, media_type="image/webp")
+    return FileResponse(
+        cache_path,
+        media_type="image/webp",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.post(
@@ -758,7 +762,11 @@ def resource_preview(request: Request, resource_id: int) -> FileResponse:
         ) from error
     except (PreviewUnavailable, UnsafeResourcePath) as error:
         raise HTTPException(status_code=404, detail="Preview unavailable") from error
-    return FileResponse(preview, media_type="image/webp")
+    return FileResponse(
+        preview,
+        media_type="image/webp",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get(

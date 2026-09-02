@@ -462,6 +462,32 @@ def test_malformed_resource_preview_fails_without_breaking_page(
     assert "Preview unavailable" in detail.text
 
 
+def test_resource_preview_prevents_stale_browser_cache(tmp_path: Path) -> None:
+    library = tmp_path / "library"
+    data = tmp_path / "data"
+    game_directory = library / "Lantern Vale"
+    game_directory.mkdir(parents=True)
+    data.mkdir()
+    source = game_directory / "Lantern Vale - Rules.pdf"
+    document = fitz.open()
+    page = document.new_page(width=612, height=792)
+    page.insert_text((72, 72), "Invented rules")
+    document.save(source)
+    document.close()
+    app = create_app(Settings(library_path=library, data_path=data))
+
+    with TestClient(app) as client:
+        with client.app.state.database.connect() as connection:
+            resource_id = connection.execute(
+                "SELECT id FROM resources"
+            ).fetchone()[0]
+        response = client.get(f"/resources/{resource_id}/preview")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/webp"
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_resource_can_be_downloaded(web_client: TestClient) -> None:
     game_ids = _game_ids(web_client)
     detail = web_client.get(f"/games/{game_ids[1]}")
@@ -928,6 +954,7 @@ def test_detected_game_artwork_is_rendered_and_served(
     response = web_client.get(artwork_paths[0])
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/webp"
+    assert response.headers["cache-control"] == "no-store"
     with Image.open(BytesIO(response.content)) as image:
         assert image.size == (512, 512)
 
