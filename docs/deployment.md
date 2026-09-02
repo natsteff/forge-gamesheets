@@ -204,11 +204,12 @@ history, uploaded artwork, and generated output.
 
 For a consistent filesystem backup:
 
-1. Run `docker compose down`.
-2. Copy the complete library and data directories to dated backup locations.
-3. Confirm the copied `forge-gamesheets.db` and representative PDFs exist.
-4. Keep at least one verified copy on a different disk or backup system.
-5. Restart with `docker compose up -d`.
+Stop Forge using the method appropriate to the deployment, then back up both
+configured persistent locations: the source library and the complete
+application data directory. Ensure the backup process can read container-owned
+files, treat any permission error or omitted path as a failed backup, and verify
+the result before restarting. Keep at least one verified copy on separate
+storage.
 
 See [Backup and recovery](BACKUP_AND_RECOVERY.md) for restoration guidance.
 

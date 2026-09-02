@@ -35,6 +35,7 @@ The candidate commit must match the revision shown in Settings and `/health`.
 - [ ] The current PDF library and application data have stopped-application
   backups on separate storage.
 - [ ] The copied `forge-gamesheets.db` and representative library PDFs exist.
+- [ ] The backup completed without permission errors or omitted paths.
 - [ ] No PDF, database, `.env`, credential, generated output, or private
   screenshot is tracked by Git.
 

@@ -31,14 +31,11 @@ tag, and verified Git bundle outside the repository.
 
 ## Safe filesystem backup
 
-1. Stop the application with `Ctrl+C`.
-2. Confirm no Forge GameSheets container is writing to `data/`.
-3. Copy `library/` and `data/` to a dated backup location.
-4. Verify the copied database and uploaded-artwork files exist.
-5. Keep at least one copy on a different disk or backup system.
-
-Stopping first ensures the SQLite database and related files are captured as a
-consistent set.
+Stop Forge using the method appropriate to the deployment so nothing is writing
+to application data. Back up both configured persistent locations: the source
+library and the complete application data directory. The backup process must be
+able to read container-owned files; treat permission errors or omitted paths as
+a failed backup. Verify the result and retain a copy on separate storage.
 
 ## Restore
 
