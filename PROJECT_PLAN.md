@@ -45,8 +45,11 @@ will provide one browsable, searchable place to organize and print them.
 7. **Confirmed:** Static PDFs and future generated documents are both modeled
    as resources belonging to a game.
 8. **Confirmed:** Dynamic document generation is outside Phase 1.
-9. **Confirmed:** External enrichment services are outside the MVP.
+9. **Confirmed:** External enrichment services are outside the MVP. The first
+   approved enrichment workstream is the Phase 2 BoardGameGeek integration.
 10. **Confirmed:** Work should proceed in small, tested Git commits.
+11. **Confirmed:** Forge GameSheets remains useful from locally cached state
+    when optional external services are unavailable.
 
 ## 4. Filesystem convention
 
@@ -191,7 +194,7 @@ rather than delaying feature progress beforehand.
   unsupported input, and failure without damaging the source PDF.
 - **Confirmed:** Validate the workflow on representative page sizes and
   multi-page PDFs before expanding its options.
-- **Confirmed:** Do not pull the Phase 2 declarative template engine, visual
+- **Confirmed:** Do not pull the Phase 3 FGS schema, editor, renderer, visual
   designer, or configurable score-sheet generation into this milestone.
 
 #### Milestone D — Deployment documentation and public presentation
@@ -246,8 +249,8 @@ rather than delaying feature progress beforehand.
 - **Confirmed:** Keep fixes small and tested; do not expand beyond the approved
   Phase 1.5 workflow or pull Phase 2 features into beta stabilization.
 - **Proposed:** Use the external beta results to decide whether another beta is
-  needed before declaring the Phase 1.5 release stable and beginning Phase 2
-  planning.
+  needed before declaring the Phase 1.5 release stable and beginning the BGG
+  integration.
 
 ## 7. Phase 1.5 — Forge Mark and QR reprints
 
@@ -258,35 +261,111 @@ rather than delaying feature progress beforehand.
 - **Proposed:** Stable application URLs should survive display-title changes.
 - **Future idea:** Configurable branding/footer placement and access policies.
 
-## 8. Phase 2 — declarative print-on-demand generation
+## 8. Phase 2 — BoardGameGeek integration
 
-Phase 2 introduces configurable templates as another resource provider rather
-than replacing the Phase 1 library.
+BoardGameGeek (BGG) is the primary approved external reference and enrichment
+source. A local Forge game remains the primary object, and normal library use
+must not depend on BGG availability after enrichment data has been cached.
 
-- **Confirmed:** Templates describe documents declaratively; do not hardcode a
-  separate renderer for every game.
-- **Confirmed:** Generic primitives and a layout engine handle tables, text,
-  scoring rows, repeated cards, margins, orientation, and pagination.
-- **Confirmed:** Preserve the lifecycle:
-  template → saved configuration → immutable print snapshot.
-- **Confirmed:** Layout supports full sheet (1 item), half sheet (2 items), and
-  quarter sheet (4 items), with templates able to restrict unreadable sizes.
-- **Confirmed:** Generated and static resources coexist in the same game view.
+- **Confirmed:** Use the official BGG XML API2 where possible. Do not scrape
+  BGG HTML or depend on undocumented/private APIs without a later explicit
+  decision.
+- **Confirmed:** Isolate BGG HTTP, XML parsing, URL generation, caching, and
+  failure handling behind a distinct service boundary.
+- **Confirmed:** Persist a selected BGG ID and match state with the local game.
+  Support matched, unmatched, ambiguous, and manually matched behavior without
+  silently accepting uncertain results.
+- **Confirmed:** Retain manually resolved associations across scans until the
+  user explicitly changes or removes them.
+- **Confirmed:** BGG lookup failures, rate limiting, authorization failures, and
+  ambiguous results never block local discovery or normal library access.
+- **Confirmed:** Cache only useful enrichment metadata, such as the BGG name,
+  artwork references, match information, and refresh timestamp; do not clone
+  the BGG database.
+- **Confirmed:** Preserve local artwork. A reliable BGG image may be used as a
+  fallback when local artwork is absent, and users may explicitly choose a BGG
+  image later.
+- **Confirmed:** Provide game-page and Files-page navigation derived from the
+  stored BGG ID, plus manual find, change, unlink, retry, and artwork actions.
+- **Confirmed:** BGG lookup is enabled by default for ordinary library entries
+  but can be disabled per entry. Preserve a future path-level default with an
+  entry-level override; do not model applicability as `is_board_game`.
+- **Confirmed:** Store credentials or API configuration only through the
+  established application configuration/environment boundary.
+- **Confirmed:** The BGG ID is an optional stable external identifier available
+  to future FGS files and workflows. It is not required for every Forge game or
+  every FGS file.
 
-Representative user stories include configurable Yacht-style score sheets,
-Farkle round sheets, Bunco packs, Euchre tournament assignments, randomized
-Bingo cards, and tasting/judging sheets. These examples preserve product intent;
-they are not all Phase 2 launch requirements.
+Before implementation, review the current database, scanner, artwork, settings,
+and test architecture; propose the migration, service interface, matching
+policy, caching policy, and affected files. Implement the service and mocked
+tests before connecting external lookup to scanning.
 
-## 9. Phase 3 — design and advanced workflows
+The complete approved boundary is recorded in
+[`docs/decisions/003-boardgamegeek-integration.md`](docs/decisions/003-boardgamegeek-integration.md).
 
-- **Future idea:** Visual template designer.
+## 9. Phase 3 — FGS Structured GameSheet System
+
+Forge GameSheets is the application. **FGS** is its portable structured
+GameSheet format, and `.fgs` is the native extension. An FGS file is editable
+source; a **GameSheet** is a rendered result.
+
+- **Confirmed:** FGS is a human-readable, plain-text, declarative, versioned
+  format. YAML is the preferred representation unless schema design finds a
+  compelling reason to use another structured text format.
+- **Confirmed:** Design and document the formal FGS v1 schema before building
+  the editor or renderer. Illustrative YAML in planning documents is not the
+  final schema.
+- **Confirmed:** FGS describes semantic document structure rather than fixed
+  PDF coordinates wherever practical.
+- **Confirmed:** Support reference sheets, record/score sheets, and hybrid
+  sheets across board games, RPGs, miniatures, card games, yard games, sports,
+  tournaments, and other competitions. Do not hardcode the format around one
+  game category or document type.
+- **Confirmed:** Plan for headings, text, images, tables, grids, writable
+  fields, checkboxes, repeated structures, calculations, QR codes, page breaks,
+  and multi-page output without requiring all primitives in FGS v1.
+- **Confirmed:** An FGS renderer may target PDF, print, browser-rendered views,
+  and future outputs. The model must not assume PDF-only or static-only use.
+- **Confirmed:** A game may have zero, one, or many independent FGS files.
+  Existing PDFs remain static artifacts and are not interchangeable with FGS
+  structured sources.
+- **Confirmed:** FGS files are portable between installations and must not rely
+  on local database IDs or installation-specific filesystem paths.
+- **Confirmed:** Imported FGS files are untrusted. Validate schema and version,
+  constrain resource references, prevent path traversal and arbitrary
+  filesystem access, and never execute embedded code.
+- **Confirmed:** BGG association is optional metadata. An FGS without a BGG ID
+  is valid.
+- **Confirmed:** Future sharing may include both a rendered GameSheet and its
+  editable `.fgs` source. Forge distributes tooling, not third-party game
+  content, and will not operate a public FGS repository.
+- **Confirmed:** Investigate `forgegamesheets` as the canonical BGG Files
+  discovery convention. Do not scrape BGG Files or automate uploads without an
+  officially supported API and a later explicit decision.
+
+Major future components are the FGS v1 specification, validation, import and
+export, storage and game association, FGS Library, FGS Editor, FGS Renderer,
+static and browser outputs, version migration, and external community-sharing
+navigation. The exact launch subset will be selected after schema design.
+
+Representative user stories include quick references, setup guides, writable
+score sheets, resource trackers, character sheets, golf scorecards, tournament
+brackets, and hybrid reference/tracking sheets. These examples preserve product
+intent; they are not all FGS v1 requirements.
+
+The complete approved boundary is recorded in
+[`docs/decisions/002-fgs-format-and-architecture.md`](docs/decisions/002-fgs-format-and-architecture.md).
+
+## 10. Phase 4 — design and advanced workflows
+
+- **Future idea:** Visual FGS designer.
 - **Future idea:** Multi-document game-night packs.
 - **Future idea:** Advanced layout and print optimization.
-- **Future idea:** Template import, export, and sharing.
-- **Future idea:** Optional external library enrichment.
+- **Future idea:** Additional FGS render targets and interactive workflows.
+- **Future idea:** Additional external integrations after BGG is stable.
 
-## 10. Proposed technical baseline
+## 11. Proposed technical baseline
 
 - Python web application using FastAPI.
 - Server-rendered responsive interface initially; avoid an unnecessary separate
@@ -301,7 +380,7 @@ they are not all Phase 2 launch requirements.
 
 These are proposed implementation choices, not permission to expand Phase 1.
 
-## 11. Development and Git strategy
+## 12. Development and Git strategy
 
 - Keep `main` in a runnable, tested state.
 - Make one focused change per commit; include tests with the behavior they cover.
@@ -321,7 +400,7 @@ Suggested early commits after this scaffold:
 7. Safe PDF view/download behavior.
 8. Search and manual rescan.
 
-## 12. Decisions to preserve
+## 13. Decisions to preserve
 
 - Do not store source PDFs in SQLite.
 - Do not reject resources because filenames are imperfect.
@@ -329,11 +408,17 @@ Suggested early commits after this scaffold:
 - Do not hardcode individual games into application logic.
 - Do not let future generation needs distort the Phase 1 scope, but keep the
   resource abstraction compatible with them.
+- Do not make normal local library use dependent on BGG availability.
+- Do not require a BGG ID for a Forge game or FGS file.
+- Do not make FGS executable, PDF-only, tied to internal database IDs, or
+  limited to one document per game.
+- Do not ship copyrighted third-party game files or community-created FGS
+  content with Forge.
 - Do not expose arbitrary filesystem paths through the web application.
 - Do not begin production deployment until the local milestones are tested and
   production host, port, storage, permissions, backups, and access are reviewed.
 
-## 13. Open questions for incremental validation
+## 14. Open questions for incremental validation
 
 - Exact rules for recognizing game folders below the first level.
 - Filename precedence and the initial category alias table.
@@ -343,6 +428,11 @@ Suggested early commits after this scaffold:
 - Whether print history records an explicit in-app action or only resource use,
   since browser printing cannot always be observed reliably.
 - Authentication and network exposure expectations for eventual deployment.
+- BGG API authorization requirements, request policy, cache lifetime, and
+  confidence thresholds, to be verified against official documentation before
+  implementation.
+- Formal FGS v1 schema, including semantic content blocks, resource references,
+  calculations, layout hints, page behavior, and compatibility rules.
 
 Open questions should be resolved through small implementation experiments and
 documented decisions, not broad redesigns.
