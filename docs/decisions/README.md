@@ -8,3 +8,4 @@ approved in `PROJECT_PLAN.md` do not need to be duplicated.
 
 - [001 — Browser PDF printing is not tracked](001-browser-pdf-printing.md)
 - [002 — FGS is the portable structured GameSheet format](002-fgs-format-and-architecture.md)
+- [003 — BoardGameGeek is an optional enrichment service](003-boardgamegeek-integration.md)
