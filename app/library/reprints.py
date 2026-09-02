@@ -18,14 +18,14 @@ NARROW_FOOTER_HEIGHT_POINTS = 96
 MINIMUM_PAGE_WIDTH_POINTS = 144
 MINIMUM_PAGE_HEIGHT_POINTS = 72
 THREE_COLUMN_MINIMUM_WIDTH_POINTS = 432
-GENERATOR_VERSION = "4"
+GENERATOR_VERSION = "5"
 
 _OWNERSHIP_NOTICE = "No ownership of or affiliation with source content is claimed."
 _OPERATOR_NOTICE = (
     "Library operator is responsible for authorization, storage, use, and printing."
 )
 
-_FORGE_DARK = (105 / 255, 48 / 255, 30 / 255)
+_BLACK = (0.0, 0.0, 0.0)
 _MUTED = (99 / 255, 96 / 255, 90 / 255)
 _LINE = (218 / 255, 207 / 255, 191 / 255)
 _FOOTER_LOGO_PATH = (
@@ -54,6 +54,7 @@ def generate_forge_reprint(
     *,
     resource_id: int,
     target_url: str,
+    force: bool = False,
 ) -> Path:
     """Create or reuse a source-specific Forge-marked PDF copy atomically."""
     try:
@@ -76,7 +77,11 @@ def generate_forge_reprint(
             "Generated reprint storage is unavailable."
         ) from error
 
-    if destination.is_file() and _generated_pdf_matches(destination, target_url):
+    if (
+        not force
+        and destination.is_file()
+        and _generated_pdf_matches(destination, target_url)
+    ):
         return destination
 
     temporary = destination.with_name(
@@ -285,7 +290,7 @@ def _draw_standard_footer(
         max_width=center_width,
         baselines=(source_height + 15, source_height + 32, source_height + 39),
         instruction_sizes=(6.25, 4.75),
-        legal_size=5.0,
+        legal_size=6.0,
     )
 
 
@@ -312,7 +317,7 @@ def _draw_narrow_footer(
         max_width=page.rect.width - (2 * margin),
         baselines=(source_height + 58, source_height + 78, source_height + 85),
         instruction_sizes=(5.25, 4.0),
-        legal_size=4.5,
+        legal_size=5.25,
     )
 
 
@@ -357,7 +362,7 @@ def _draw_center_lines(
         center_x=center_x,
         fontname="Helvetica",
         fontsize=instruction_size,
-        color=_FORGE_DARK,
+        color=_BLACK,
     )
     _insert_centered_text(
         page,

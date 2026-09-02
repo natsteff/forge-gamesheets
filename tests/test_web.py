@@ -108,7 +108,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=4" in response.text
-    assert "/static/styles.css?v=15" in response.text
+    assert "/static/styles.css?v=16" in response.text
 
 
 def test_pages_include_keyboard_navigation_landmarks(
@@ -365,13 +365,28 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
         assert "View FORGE Reprint" in ready.text
         assert "Download FORGE Reprint" in ready.text
         assert "Generate FORGE Reprint" not in ready.text
-        assert "Regenerate FORGE Reprint" not in ready.text
+        assert "Regenerate FORGE Reprint" in ready.text
         assert "reprint-document-icon" not in ready.text
 
         refreshed = client.get(f"/r/{resource_id}")
         assert "Your FORGE Reprint is ready" in refreshed.text
         assert "View FORGE Reprint" in refreshed.text
+        assert "Regenerate FORGE Reprint" in refreshed.text
         assert "Generate FORGE Reprint" not in refreshed.text
+
+        regenerated = client.post(
+            f"/resources/{resource_id}/forge-reprint/regenerate",
+            follow_redirects=False,
+        )
+        assert regenerated.status_code == 303
+        assert regenerated.headers["location"] == (
+            f"/r/{resource_id}?status=regenerated"
+        )
+        regeneration_confirmation = client.get(regenerated.headers["location"])
+        assert (
+            "Your FORGE Reprint was regenerated successfully"
+            in regeneration_confirmation.text
+        )
 
         opened = client.get(f"/resources/{resource_id}/forge-reprint/open")
         downloaded = client.get(

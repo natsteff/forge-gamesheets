@@ -415,6 +415,7 @@ h2 { font-size: 1.45rem; }
 .reprint-help { max-width: 36rem; color: var(--muted); }
 .reprint-game { margin-bottom: 1.5rem; color: var(--forge-dark); font-weight: 750; }
 .reprint-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.reprint-actions form { margin: 0; }
 .reprint-actions .resource-action { min-height: 3rem; padding-inline: 1rem; }
 .reprint-generate { margin-block: 1.5rem; }
 .reprint-generate .resource-action { cursor: pointer; }

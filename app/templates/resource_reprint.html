@@ -29,8 +29,12 @@
 
       {% if generated_available %}
         <p class="status-banner success" role="status">
-          Your FORGE Reprint is ready and remains available until its source
-          PDF or QR address changes.
+          {% if generation_status == "regenerated" %}
+            Your FORGE Reprint was regenerated successfully.
+          {% else %}
+            Your FORGE Reprint is ready and remains available until its source
+            PDF or QR address changes.
+          {% endif %}
         </p>
         <p class="reprint-print-tip">
           <strong>Print tip:</strong> Choose <strong>Fit to printable area</strong>
@@ -48,6 +52,9 @@
             class="resource-action"
             href="{{ url_for('resource_reprint_download', resource_id=resource.id) }}"
           >Download FORGE Reprint</a>
+          <form action="{{ url_for('resource_reprint_regenerate', resource_id=resource.id) }}" method="post">
+            <button class="resource-action" type="submit">Regenerate FORGE Reprint</button>
+          </form>
         </div>
       {% elif generation_error == "generation-failed" %}
         <p class="status-banner warning" role="alert">

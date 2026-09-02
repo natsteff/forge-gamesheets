@@ -699,6 +699,7 @@ def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
             "available": available,
             "generation_enabled": bool(request.app.state.settings.base_url),
             "generated_available": generated_available,
+            "generation_status": request.query_params.get("status"),
             "generation_error": request.query_params.get("error"),
         },
     )
@@ -718,6 +719,22 @@ def resource_reprint_generate(
     except ReprintGenerationError:
         return _reprint_redirect(resource_id, error="generation-failed")
     return _reprint_redirect(resource_id)
+
+
+@router.post(
+    "/resources/{resource_id}/forge-reprint/regenerate",
+    response_class=RedirectResponse,
+    name="resource_reprint_regenerate",
+)
+def resource_reprint_regenerate(
+    request: Request, resource_id: int
+) -> RedirectResponse:
+    """Replace a current derived copy and confirm the refresh to the user."""
+    try:
+        _generated_reprint(request, resource_id, force=True)
+    except ReprintGenerationError:
+        return _reprint_redirect(resource_id, error="generation-failed")
+    return _reprint_redirect(resource_id, status="regenerated")
 
 
 @router.get(
@@ -797,7 +814,9 @@ def _database(request: Request) -> Database:
     return request.app.state.database
 
 
-def _generated_reprint(request: Request, resource_id: int) -> Path:
+def _generated_reprint(
+    request: Request, resource_id: int, *, force: bool = False
+) -> Path:
     resource = get_resource(_database(request), resource_id)
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -815,6 +834,7 @@ def _generated_reprint(request: Request, resource_id: int) -> Path:
             request.app.state.settings.data_path,
             resource_id=resource_id,
             target_url=target_url,
+            force=force,
         )
     except ResourceFileMissing as error:
         raise HTTPException(
@@ -845,9 +865,14 @@ def _generated_reprint_response(
 
 
 def _reprint_redirect(
-    resource_id: int, *, error: str | None = None
+    resource_id: int,
+    *,
+    status: str | None = None,
+    error: str | None = None,
 ) -> RedirectResponse:
-    query = urlencode({"error": error}) if error else ""
+    query = urlencode(
+        {key: value for key, value in (("status", status), ("error", error)) if value}
+    )
     suffix = f"?{query}" if query else ""
     return RedirectResponse(url=f"/r/{resource_id}{suffix}", status_code=303)
 

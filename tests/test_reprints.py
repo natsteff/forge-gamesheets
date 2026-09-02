@@ -82,21 +82,27 @@ def test_generate_reprint_preserves_source_and_marks_every_page(
                 for line in block["lines"]
                 for span in line["spans"]
             ]
-            instruction_y = next(
-                span["origin"][1]
+            instruction_span = next(
+                span
                 for span in spans
                 if span["text"].startswith("Scan QR code")
             )
-            ownership_y = next(
-                span["origin"][1]
+            ownership_span = next(
+                span
                 for span in spans
                 if span["text"].startswith("No ownership")
             )
-            operator_y = next(
-                span["origin"][1]
+            operator_span = next(
+                span
                 for span in spans
                 if span["text"].startswith("Library operator")
             )
+            instruction_y = instruction_span["origin"][1]
+            ownership_y = ownership_span["origin"][1]
+            operator_y = operator_span["origin"][1]
+            assert instruction_span["color"] == 0
+            assert ownership_span["size"] == pytest.approx(6.0)
+            assert operator_span["size"] == pytest.approx(6.0)
             assert operator_y - ownership_y == pytest.approx(7)
             assert ownership_y - instruction_y > operator_y - ownership_y
         assert output.metadata["keywords"] == (
@@ -192,6 +198,37 @@ def test_generate_reprint_reuses_source_specific_output(tmp_path: Path) -> None:
         resource_id=1,
         target_url="http://forge.local/r/1",
     ) == first
+
+
+def test_generate_reprint_force_replaces_current_output(tmp_path: Path) -> None:
+    source = tmp_path / "source.pdf"
+    data = tmp_path / "data"
+    data.mkdir()
+    _source_pdf(source)
+
+    generated = generate_forge_reprint(
+        source,
+        data,
+        resource_id=1,
+        target_url="http://forge.local/r/1",
+    )
+    current_with_marker = generated.read_bytes() + b"\n% current-cache-marker\n"
+    generated.write_bytes(current_with_marker)
+
+    regenerated = generate_forge_reprint(
+        source,
+        data,
+        resource_id=1,
+        target_url="http://forge.local/r/1",
+        force=True,
+    )
+
+    assert regenerated == generated
+    assert regenerated.read_bytes() != current_with_marker
+    with fitz.open(regenerated) as document:
+        assert document.metadata["keywords"] == (
+            f"forge-reprint-v{GENERATOR_VERSION}"
+        )
 
 
 def test_existing_reprint_rejects_stale_target_without_writing(tmp_path: Path) -> None:
