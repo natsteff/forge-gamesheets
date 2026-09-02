@@ -45,6 +45,10 @@ The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 The included `compose.yml` uses the repository's `library/` and `data/`
 directories and binds the application only to `127.0.0.1:8000`.
 
+For a persistent Docker-host installation, access-model guidance, upgrades,
+backups, and troubleshooting, follow the
+[self-hosted beta deployment guide](docs/deployment.md).
+
 ## Quick start
 
 1. Put game folders inside `library/`:
