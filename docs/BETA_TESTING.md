@@ -87,12 +87,41 @@ you have permission.
 4. Stop and restart the application.
 5. Confirm settings, categories, favorites, pins, metadata, and history persist.
 
-## Test 7 — responsive and keyboard use
+## Test 7 — FORGE Reprint
+
+Use test copies of resources that represent the range in your library. Include
+Letter and A4 pages, portrait and landscape orientation, a multi-page PDF, a
+scanned PDF, and an unusually narrow page when available.
+
+1. Configure `FORGE_GAMESHEETS_BASE_URL` with an address reachable by the device
+   that will scan the QR code.
+2. Generate a FORGE Reprint and confirm the original PDF remains unchanged.
+3. Review every generated page and confirm the logo, complete URL, legal notice,
+   and QR code are visible without covering source content.
+4. Scan the QR code from another device and confirm it opens the intended
+   resource page without automatically opening or printing a PDF.
+5. View and download both the FORGE Reprint and original PDF.
+6. Restart Forge and confirm the generated copy remains available.
+7. Print one generated copy using **Fit to printable area** and confirm the full
+   URL and QR code remain visible on paper.
+8. Change the configured base URL or replace a test source PDF, then confirm
+   Forge requires a fresh generated copy rather than serving the stale one.
+
+Report the general page size and PDF characteristics when a layout fails, but
+do not submit copyrighted source files without permission.
+
+## Test 8 — responsive and keyboard use
 
 1. Resize the browser to phone, tablet, and desktop widths.
 2. Navigate primary pages using only Tab, Shift+Tab, Enter, and Space.
 3. Confirm focused controls remain visible.
 4. Confirm long game, category, and resource names do not overlap controls.
+
+## Test 9 — build identification
+
+1. Open Settings and record the release, revision, and build date.
+2. Open `/health` and confirm it reports the same values.
+3. Confirm the revision matches the Git commit used to build the Docker image.
 
 ## Reporting a problem
 

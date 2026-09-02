@@ -134,6 +134,36 @@ def test_generate_reprint_uses_readable_stacked_footer_on_narrow_page(
         assert len(page.get_images(full=True)) >= 2
 
 
+def test_generate_reprint_preserves_long_url_on_a4_landscape(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "a4-landscape.pdf"
+    data = tmp_path / "data"
+    data.mkdir()
+    document = fitz.open()
+    document.new_page(width=841.89, height=595.28)
+    document.save(source)
+    document.close()
+    target_url = (
+        "https://forge-gamesheets.internal.example.net:8443/"
+        "tabletop-library/r/987654"
+    )
+
+    generated = generate_forge_reprint(
+        source,
+        data,
+        resource_id=987654,
+        target_url=target_url,
+    )
+
+    with fitz.open(generated) as output:
+        page = output[0]
+        assert page.rect.width == pytest.approx(841.89)
+        assert page.rect.height == pytest.approx(595.28 + FOOTER_HEIGHT_POINTS)
+        assert target_url in page.get_text()
+        assert len(page.get_images(full=True)) >= 2
+
+
 def test_generate_reprint_reuses_source_specific_output(tmp_path: Path) -> None:
     source = tmp_path / "source.pdf"
     data = tmp_path / "data"
