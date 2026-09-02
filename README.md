@@ -224,9 +224,11 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
 - There is no BoardGameGeek enrichment, remote synchronization, or cloud backup.
 - Production deployment and public network exposure have not been approved.
 
-See [Phase 1 release checklist](docs/PHASE1_RELEASE_CHECKLIST.md) for beta
-readiness, [beta release notes](docs/PHASE1_BETA_RELEASE_NOTES.md) for the
-timeline-free public summary, and
+See the [Phase 1.5 external beta release checklist](docs/PHASE1_5_RELEASE_CHECKLIST.md)
+for current prerelease readiness, the historical
+[Phase 1 release checklist](docs/PHASE1_RELEASE_CHECKLIST.md),
+[beta release notes](docs/PHASE1_BETA_RELEASE_NOTES.md) for the timeline-free
+Phase 1 summary, and
 [browser PDF printing](docs/decisions/001-browser-pdf-printing.md) for the
 print-history decision.
 
