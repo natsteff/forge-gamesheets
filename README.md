@@ -36,6 +36,17 @@ PDFs, require a cloud service, or store PDF contents in its database.
 
 The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
+## Screenshots
+
+All screenshots use an invented demonstration library; no private or
+copyrighted game files are included.
+
+| Library and categories | Game resources |
+| --- | --- |
+| ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
+| **Settings** | **FORGE Reprint** |
+| ![Forge GameSheets display preferences in Settings](docs/images/settings.png) | ![A ready FORGE Reprint with responsibility notice and print guidance](docs/images/forge-reprint.png) |
+
 ## Requirements
 
 - Docker Desktop or another Docker installation with Compose support
