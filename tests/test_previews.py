@@ -51,6 +51,22 @@ def test_generates_and_reuses_cached_first_page_preview(tmp_path: Path) -> None:
         assert image.size == PREVIEW_SIZE
 
 
+def test_preview_output_failure_cleans_temporary_file(tmp_path, monkeypatch):
+    library, data = tmp_path / "library", tmp_path / "data"
+    source = library / "Farkle" / "Farkle - Rules.pdf"
+    source.parent.mkdir(parents=True)
+    data.mkdir()
+    with pymupdf.open() as document:
+        document.new_page(width=300, height=500)
+        document.save(source)
+    original = source.read_bytes()
+    monkeypatch.setattr("app.library.processing_budget.MAX_PREVIEW_BYTES", 1)
+    with pytest.raises(PreviewUnavailable):
+        cached_resource_preview(library, data, _resource())
+    assert not list((data / "previews").iterdir())
+    assert source.read_bytes() == original
+
+
 def test_rejects_malformed_pdf_preview(tmp_path: Path) -> None:
     library = tmp_path / "library"
     data = tmp_path / "data"

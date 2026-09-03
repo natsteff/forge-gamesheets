@@ -27,6 +27,14 @@
         </p>
       </aside>
 
+      {% if generation_error == "generation-failed" %}
+        <p class="status-banner warning" role="alert">
+          The FORGE Reprint could not be created. Processing may be busy, storage
+          may be low, or the PDF may exceed a processing limit. Try again shortly
+          or ask the library operator to check storage. The original PDF and any
+          previous FORGE Reprint were not changed.
+        </p>
+      {% endif %}
       {% if generated_available %}
         <p class="status-banner success" role="status">
           {% if generation_status == "regenerated" %}
@@ -56,10 +64,6 @@
             <button class="resource-action" type="submit">Regenerate FORGE Reprint</button>
           </form>
         </div>
-      {% elif generation_error == "generation-failed" %}
-        <p class="status-banner warning" role="alert">
-          The FORGE Reprint could not be created. The original PDF was not changed.
-        </p>
       {% endif %}
 
       {% if generation_enabled and not generated_available %}

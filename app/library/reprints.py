@@ -11,6 +11,7 @@ import fitz
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
+from app.library import processing_budget
 from app.library.generated import GeneratedStorageError, generated_reprint_path
 from app.library.processing_limits import validate_pdf_document, validate_pdf_file_size
 
@@ -88,9 +89,19 @@ def generate_forge_reprint(
 
     temporary = destination.with_name(f".{destination.name}.{uuid4().hex}.tmp")
     try:
-        _write_reprint(source_path, temporary, target_url)
-        _validate_generated_pdf(temporary, target_url)
-        os.replace(temporary, destination)
+        with processing_budget.rendering_slot(data_path):
+            # Another worker may have completed this while we waited.
+            if not force and destination.is_file() and _generated_pdf_matches(
+                destination, target_url
+            ):
+                return destination
+            processing_budget.check_storage_budget(
+                data_path, processing_budget.MAX_REPRINT_BYTES
+            )
+            _write_reprint(source_path, temporary, target_url)
+            _validate_generated_pdf(temporary, target_url)
+            processing_budget.check_storage_budget(data_path, 0)
+            os.replace(temporary, destination)
     except ReprintGenerationError:
         temporary.unlink(missing_ok=True)
         raise
@@ -176,7 +187,17 @@ def _write_reprint(source_path: Path, output_path: Path, target_url: str) -> Non
                 "keywords": f"forge-reprint-v{GENERATOR_VERSION}",
             }
         )
-        output.save(output_path, garbage=4, deflate=True)
+        with processing_budget.bounded_output(
+            output_path, processing_budget.MAX_REPRINT_BYTES
+        ) as stream:
+            try:
+                output.save(stream, garbage=4, deflate=True)
+            except Exception as error:
+                # MuPDF wraps callback write failures in native exception types
+                # that vary by version; contain them at this codec boundary.
+                raise ReprintGenerationError(
+                    "Generated PDF could not be saved within its storage budget."
+                ) from error
     except ReprintGenerationError:
         raise
     except (RuntimeError, ValueError) as error:

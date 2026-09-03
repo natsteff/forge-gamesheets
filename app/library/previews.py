@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
+from uuid import uuid4
 
 import pymupdf
 from PIL import Image, ImageOps
 
+from app.library import processing_budget
 from app.library.files import resolve_resource_pdf
 from app.library.processing_limits import (
     MAX_PREVIEW_RENDER_PIXELS,
@@ -42,7 +44,29 @@ def cached_resource_preview(
     )
     if destination.is_file():
         return destination
+    temporary = destination.with_name(f".{destination.name}.{uuid4().hex}.tmp")
+    try:
+        with processing_budget.rendering_slot(data_path):
+            if destination.is_file():
+                return destination
+            processing_budget.check_storage_budget(
+                data_path, processing_budget.MAX_PREVIEW_BYTES
+            )
+            _render_preview(source, temporary)
+            processing_budget.check_storage_budget(data_path, 0)
+            temporary.replace(destination)
+    except (pymupdf.FileDataError, ValueError, OSError) as error:
+        raise PreviewUnavailable("PDF preview could not be generated") from error
+    finally:
+        temporary.unlink(missing_ok=True)
 
+    for stale in preview_directory.glob(f"resource-{resource.id}-*.webp"):
+        if stale != destination:
+            stale.unlink(missing_ok=True)
+    return destination
+
+
+def _render_preview(source: Path, temporary: Path) -> None:
     try:
         with pymupdf.open(source) as document:
             validate_pdf_document(document)
@@ -65,13 +89,9 @@ def cached_resource_preview(
                     (PREVIEW_SIZE[1] - contained.height) // 2,
                 )
                 preview.paste(contained, offset)
-                temporary = destination.with_suffix(".tmp")
-                preview.save(temporary, format="WEBP", quality=82, method=6)
-                temporary.replace(destination)
+                with processing_budget.bounded_output(
+                    temporary, processing_budget.MAX_PREVIEW_BYTES
+                ) as stream:
+                    preview.save(stream, format="WEBP", quality=82, method=6)
     except (pymupdf.FileDataError, ValueError, OSError) as error:
         raise PreviewUnavailable("PDF preview could not be generated") from error
-
-    for stale in preview_directory.glob(f"resource-{resource.id}-*.webp"):
-        if stale != destination:
-            stale.unlink(missing_ok=True)
-    return destination
