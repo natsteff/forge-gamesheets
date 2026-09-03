@@ -1,7 +1,10 @@
 """Browser defenses for the server-rendered library interface."""
 
+from tempfile import SpooledTemporaryFile
 from urllib.parse import urlsplit
 
+import anyio
+from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import URL, Headers, MutableHeaders
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -18,6 +21,109 @@ CONTENT_SECURITY_POLICY = (
 # render library metadata. Keep its existing behavior; do not weaken the library
 # policy to accommodate it. Self-hosting/hardening these UIs is a separate task.
 _FRAMEWORK_DOCS = frozenset({"/docs", "/docs/oauth2-redirect", "/redoc"})
+
+# Includes multipart overhead above the existing 25 MiB artwork-file limit.
+MAX_REQUEST_BODY_BYTES = 26 * 1024 * 1024
+
+
+class LimitedRequestBodies:
+    """Bound ingress before form parsing, including bodies without a length.
+
+    A bounded spool avoids holding whole uploads in memory. Admission is also
+    bounded so simultaneous uploads cannot multiply scratch usage indefinitely.
+    This is not a rate limit or a timeout for PDF processing.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+        self.capacity = anyio.CapacityLimiter(4)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or scope["method"] in {
+            "GET",
+            "HEAD",
+            "OPTIONS",
+            "TRACE",
+        }:
+            await self.app(scope, receive, send)
+            return
+        lengths = Headers(scope=scope).getlist("content-length")
+        if len(lengths) > 1 or (
+            lengths and (not lengths[0].isascii() or not lengths[0].isdigit())
+        ):
+            await PlainTextResponse("Invalid Content-Length", status_code=400)(
+                scope, receive, send
+            )
+            return
+        # Compare strings first: arbitrarily long digit strings must not reach int().
+        length = (lengths[0].lstrip("0") or "0") if lengths else "0"
+        limit = str(MAX_REQUEST_BODY_BYTES)
+        if len(length) > len(limit) or (len(length) == len(limit) and length > limit):
+            await self._too_large(scope, receive, send)
+            return
+        try:
+            self.capacity.acquire_nowait()
+        except anyio.WouldBlock:
+            await PlainTextResponse(
+                "Server busy; try again shortly.",
+                status_code=503,
+                headers={"Retry-After": "5"},
+            )(scope, receive, send)
+            return
+        try:
+            with SpooledTemporaryFile(max_size=1024 * 1024) as spool:
+                total = 0
+                try:
+                    with anyio.fail_after(30):
+                        while True:
+                            message = await receive()
+                            if message["type"] == "http.disconnect":
+                                return
+                            chunk = message.get("body", b"")
+                            total += len(chunk)
+                            if total > MAX_REQUEST_BODY_BYTES:
+                                await self._too_large(scope, receive, send)
+                                return
+                            await run_in_threadpool(spool.write, chunk)
+                            if not message.get("more_body", False):
+                                break
+                except TimeoutError:
+                    await PlainTextResponse("Request timed out", status_code=408)(
+                        scope, receive, send
+                    )
+                    return
+                if lengths and total != int(length):
+                    await PlainTextResponse("Invalid Content-Length", status_code=400)(
+                        scope, receive, send
+                    )
+                    return
+                spool.seek(0)
+                remaining = total
+                replay_finished = False
+
+                async def replay() -> Message:
+                    nonlocal remaining, replay_finished
+                    if replay_finished:
+                        return await receive()
+                    chunk = await run_in_threadpool(spool.read, 64 * 1024)
+                    remaining -= len(chunk)
+                    replay_finished = remaining == 0
+                    return {
+                        "type": "http.request",
+                        "body": chunk,
+                        "more_body": remaining > 0,
+                    }
+
+                await self.app(scope, replay, send)
+        finally:
+            self.capacity.release()
+
+    @staticmethod
+    async def _too_large(scope: Scope, receive: Receive, send: Send) -> None:
+        await PlainTextResponse(
+            "Request too large. Artwork files must be no larger than 25 MiB.",
+            status_code=413,
+        )(scope, receive, send)
 
 
 class AllowedHosts:

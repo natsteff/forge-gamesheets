@@ -13,7 +13,12 @@ from app.database import Database
 from app.library.cache import cleanup_managed_files
 from app.library.reconciliation import ReconciliationError, reconcile_scan
 from app.library.scanner import scan_library
-from app.security import AllowedHosts, BrowserSecurityHeaders, SameOriginMutations
+from app.security import (
+    AllowedHosts,
+    BrowserSecurityHeaders,
+    LimitedRequestBodies,
+    SameOriginMutations,
+)
 from app.web import router as web_router
 
 
@@ -48,6 +53,7 @@ def create_app(
         version=identity.version,
         lifespan=lifespan,
     )
+    application.add_middleware(LimitedRequestBodies)
     application.add_middleware(SameOriginMutations)
     application.add_middleware(AllowedHosts)
     application.add_middleware(BrowserSecurityHeaders)
