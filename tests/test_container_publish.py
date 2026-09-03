@@ -26,3 +26,9 @@ def test_publish_workflow_embeds_build_identity() -> None:
     assert "FORGE_GAMESHEETS_VERSION=" in workflow
     assert "FORGE_GAMESHEETS_REVISION=" in workflow
     assert "FORGE_GAMESHEETS_BUILD_DATE=" in workflow
+
+
+def test_example_configuration_selects_published_image_channel() -> None:
+    example_environment = (PROJECT_ROOT / ".env.example").read_text()
+
+    assert "FORGE_GAMESHEETS_IMAGE_TAG=main" in example_environment

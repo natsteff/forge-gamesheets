@@ -84,6 +84,7 @@ FORGE_GAMESHEETS_PORT=8000
 FORGE_GAMESHEETS_BASE_URL=
 FORGE_GAMESHEETS_DATA_PATH=./data
 FORGE_GAMESHEETS_LIBRARY_PATH=./library
+FORGE_GAMESHEETS_IMAGE_TAG=main
 FORGE_GAMESHEETS_VERSION=development
 FORGE_GAMESHEETS_REVISION=
 FORGE_GAMESHEETS_BUILD_DATE=
@@ -129,14 +130,12 @@ Use HTTPS when an authenticated HTTPS proxy provides access. Changing this
 address makes existing generated copies stale; generate them again so their QR
 codes use the new destination.
 
-## Build and start
+## Pull and start the published image
 
-Build the image. The project command automatically embeds the checked-out Git
-revision and UTC build date:
+The recommended Docker-host workflow pulls the image published from GitHub:
 
 ```sh
-./scripts/build
-
+docker compose pull
 docker compose up -d
 ```
 
@@ -151,17 +150,20 @@ curl --retry 10 \
   http://127.0.0.1:8000/health
 ```
 
-The health response and the bottom of Settings show the running release,
-revision, and build date. The revision should match:
+The health response and the bottom of Settings show the image's release,
+revision, and build date.
+
+Set `FORGE_GAMESHEETS_IMAGE_TAG=main` for the current development image. Use a
+version tag for a fixed release when one is available.
+
+### Local development build
+
+A developer working from checked-out source can build locally instead:
 
 ```sh
-git rev-parse --short HEAD
+./scripts/build
+docker compose up -d
 ```
-
-For a host using the published `ghcr.io/natsteff/forge-gamesheets:main` image,
-update with `docker compose pull` and `docker compose up -d`. Published images
-already contain their revision and build date; no source build is required on
-that host.
 
 ## Add and organize the library
 
@@ -229,13 +231,12 @@ git status --short --branch
 docker compose down
 ```
 
-Back up the data directory while Forge is stopped, then update and rebuild:
+Back up the data directory while Forge is stopped, then update the deployment
+files and pull the published image:
 
 ```sh
 git pull --ff-only origin main
-
-./scripts/build
-
+docker compose pull
 docker compose up -d --force-recreate
 
 curl --retry 10 \

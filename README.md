@@ -99,6 +99,7 @@ change only the values needed for the host:
 | `FORGE_GAMESHEETS_BASE_URL` | unset | Address encoded into FORGE Reprint QR links |
 | `FORGE_GAMESHEETS_DATA_PATH` | `./data` | Writable application state |
 | `FORGE_GAMESHEETS_LIBRARY_PATH` | `./library` | Source PDF library, mounted read-only |
+| `FORGE_GAMESHEETS_IMAGE_TAG` | `main` | Published image channel or fixed release tag |
 | `FORGE_GAMESHEETS_VERSION` | `development` | Release name shown in Settings and health diagnostics |
 | `FORGE_GAMESHEETS_REVISION` | unset | Git revision embedded in the built image |
 | `FORGE_GAMESHEETS_BUILD_DATE` | unset | UTC build date embedded in the built image |
@@ -114,10 +115,23 @@ These details appear at the bottom of Settings and in `/health`. Release builds
 can also set `FORGE_GAMESHEETS_VERSION` to the published version. Values are
 embedded when the image is built, so changing them requires rebuilding it.
 
-The `main` branch is also published as
-`ghcr.io/natsteff/forge-gamesheets:main`. A Docker host using the published
-image can update it with `docker compose pull` followed by
-`docker compose up -d`. Local development continues to use `./scripts/build`.
+### Published image deployment
+
+Normal Docker-host installations use the image published from GitHub. Keep
+`FORGE_GAMESHEETS_IMAGE_TAG=main` in `.env` for current development builds, or
+select a version tag for a fixed release when one is available. Update with:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Do not add host-specific settings to `compose.yml`; keep them in `.env`.
+
+### Local development build
+
+Local development from a source checkout uses `./scripts/build`, followed by
+`docker compose up`. The build command embeds the current revision and date.
 
 On a Linux Docker host using the default bind mount, prepare the data directory
 for Forge's fixed non-root container identity before the first start:
