@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from http.client import HTTPResponse
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 from xml.etree import ElementTree
 
 API_ROOT = "https://boardgamegeek.com/xmlapi2"
@@ -56,13 +56,30 @@ class BggGame:
 Opener = Callable[..., HTTPResponse]
 
 
+class _RejectRedirects(HTTPRedirectHandler):
+    """Never forward authenticated API requests, even to same-origin targets."""
+
+    def http_error_302(self, request, response, code, message, headers):
+        raise HTTPError(request.full_url, code, "Redirect refused", headers, response)
+
+    http_error_301 = http_error_302
+    http_error_303 = http_error_302
+    http_error_307 = http_error_302
+    http_error_308 = http_error_302
+
+
+def _open_api_request(request: Request, *, timeout: float) -> HTTPResponse:
+    # Use our own opener, not a process-global opener that may follow redirects.
+    return build_opener(_RejectRedirects()).open(request, timeout=timeout)
+
+
 @dataclass(frozen=True, slots=True)
 class BggClient:
     """Make authenticated BGG requests without leaking transport details."""
 
     token: str = field(repr=False)
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
-    opener: Opener = urlopen
+    opener: Opener = _open_api_request
 
     def __post_init__(self) -> None:
         if not self.token.strip():
@@ -118,15 +135,21 @@ class BggClient:
         request = Request(
             url,
             headers={
-                "Authorization": f"Bearer {self.token.strip()}",
                 "Accept": "application/xml",
                 "User-Agent": "Forge-GameSheets",
             },
         )
+        # Defense in depth: urllib must not copy this header into a new Request.
+        request.add_unredirected_header("Authorization", f"Bearer {self.token.strip()}")
         try:
             with self.opener(request, timeout=self.timeout_seconds) as response:
                 content = response.read(MAX_RESPONSE_BYTES + 1)
         except HTTPError as error:
+            error.close()
+            if 300 <= error.code < 400:
+                raise BggResponseError(
+                    "BoardGameGeek returned an unexpected redirect."
+                ) from error
             if error.code in {401, 403}:
                 raise BggAuthenticationError(
                     "BoardGameGeek rejected the application token."

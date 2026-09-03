@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from email.message import Message
 from io import BytesIO
 from urllib.error import HTTPError, URLError
+from urllib.request import HTTPHandler, HTTPRedirectHandler, HTTPSHandler, Request
+from urllib.response import addinfourl
 
 import pytest
 
@@ -150,3 +153,65 @@ def test_client_never_includes_application_token_in_repr() -> None:
     representation = repr(BggClient(token))
     assert token not in representation
     assert "token=" not in representation
+
+
+@pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
+@pytest.mark.parametrize(
+    "location",
+    [
+        "https://attacker.example/collect",
+        "http://boardgamegeek.com/xmlapi2/thing",
+        "https://boardgamegeek.com/xmlapi2/thing",
+        "/xmlapi2/thing",
+        "//attacker.example/collect",
+    ],
+)
+def test_default_transport_never_follows_redirects(monkeypatch, status, location):
+    seen, responses = [], []
+
+    def transport(handler, request):
+        seen.append(request)
+        assert len(seen) == 1, "No redirect destination may be contacted"
+        headers = Message()
+        headers["Location"] = location
+        response = addinfourl(BytesIO(b"redirect"), headers, request.full_url, status)
+        response.msg = "redirect"
+        responses.append(response)
+        return response
+
+    monkeypatch.setattr(HTTPSHandler, "https_open", transport)
+    monkeypatch.setattr(HTTPHandler, "http_open", transport)
+    token = "synthetic-redirect-test-token"
+    with pytest.raises(BggResponseError, match="unexpected redirect") as failure:
+        BggClient(token).search_games("Sample")
+    assert len(seen) == 1
+    assert seen[0].full_url.startswith("https://boardgamegeek.com/xmlapi2/search?")
+    assert seen[0].get_header("Authorization") == f"Bearer {token}"
+    assert responses[0].closed
+    assert token not in str(failure.value)
+    assert location not in str(failure.value)
+
+
+def test_authorization_is_not_copied_even_by_standard_redirect_handler():
+    seen = []
+
+    def capture(request, **kwargs):
+        seen.append(request)
+        return FakeResponse(b"<items/>")
+
+    BggClient("synthetic-token", opener=capture).search_games("Sample")
+    redirected = HTTPRedirectHandler().redirect_request(
+        seen[0], None, 302, "redirect", {}, "https://attacker.example/"
+    )
+    assert redirected.get_header("Authorization") is None
+
+
+def test_default_transport_still_accepts_success(monkeypatch):
+    def transport(handler, request):
+        assert isinstance(request, Request)
+        response = addinfourl(BytesIO(b"<items/>"), Message(), request.full_url, 200)
+        response.msg = "OK"
+        return response
+
+    monkeypatch.setattr(HTTPSHandler, "https_open", transport)
+    assert BggClient("synthetic-token").search_games("Sample") == ()
