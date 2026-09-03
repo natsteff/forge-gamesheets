@@ -543,6 +543,9 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
     assert opened.status_code == downloaded.status_code == 200
     assert opened.headers["content-disposition"].startswith("inline;")
     assert downloaded.headers["content-disposition"].startswith("attachment;")
+    assert "FORGE%20Reprint%20-%20Farkle%20-%20Score%20Sheet.pdf" in (
+        opened.headers["content-disposition"]
+    )
     with fitz.open(stream=opened.content, filetype="pdf") as output:
         assert output.page_count == 1
         assert "Original score sheet" in output[0].get_text()
@@ -662,6 +665,9 @@ def test_resource_can_be_downloaded(web_client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.headers["content-disposition"].startswith("attachment;")
+    assert "Farkle%20-%20Rules.pdf" in (
+        response.headers["content-disposition"]
+    )
 
 
 def test_resource_actions_are_listed_in_history(web_client: TestClient) -> None:

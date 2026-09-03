@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -1000,10 +1001,14 @@ def _generated_reprint_response(
             status_code=422,
             detail="FORGE Reprint generation failed.",
         ) from error
+    resource = get_resource(_database(request), resource_id)
+    game = get_game(_database(request), resource.game_id) if resource else None
+    if resource is None or game is None:
+        raise HTTPException(status_code=404, detail="Resource not found")
     return FileResponse(
         path,
         media_type="application/pdf",
-        filename=f"forge-reprint-{resource_id}.pdf",
+        filename=_pdf_filename(game, resource, prefix="FORGE Reprint"),
         content_disposition_type=disposition,
         headers={"Cache-Control": "no-store"},
     )
@@ -1111,6 +1116,9 @@ def _resource_response(
     resource = get_resource(_database(request), resource_id)
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found")
+    game = get_game(_database(request), resource.game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
 
     try:
         path = resolve_resource_pdf(
@@ -1129,7 +1137,18 @@ def _resource_response(
     return FileResponse(
         path,
         media_type="application/pdf",
-        filename=path.name,
+        filename=_pdf_filename(game, resource),
         content_disposition_type=disposition,
         headers={"Cache-Control": "no-store"},
     )
+
+
+def _pdf_filename(
+    game: GameDetail, resource: IndexedResource, *, prefix: str | None = None
+) -> str:
+    """Build a portable filename from trusted display metadata."""
+    parts = [prefix, game.title, resource.title, resource.variant]
+    readable = " - ".join(part for part in parts if part)
+    portable = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]+', " ", readable)
+    portable = " ".join(portable.split()).strip(" .-")[:180].rstrip(" .-")
+    return f"{portable or 'Forge GameSheets resource'}.pdf"
