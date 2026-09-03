@@ -24,7 +24,7 @@ Both directories must exist. Their contents are ignored by Git.
 Stop the attached application first, then run:
 
 ```sh
-docker compose build
+./scripts/build
 docker compose run --rm app pytest
 docker compose run --rm app ruff check .
 ```

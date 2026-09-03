@@ -46,9 +46,7 @@ Stop the application before rebuilding:
 ```sh
 docker compose down
 
-FORGE_GAMESHEETS_REVISION="$(git rev-parse --short HEAD)" \
-FORGE_GAMESHEETS_BUILD_DATE="$(date -u +%F)" \
-docker compose build
+./scripts/build
 
 docker compose run --rm app pytest
 docker compose run --rm app ruff check .

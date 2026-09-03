@@ -131,12 +131,11 @@ codes use the new destination.
 
 ## Build and start
 
-Embed the checked-out Git revision and UTC build date in the Docker image:
+Build the image. The project command automatically embeds the checked-out Git
+revision and UTC build date:
 
 ```sh
-FORGE_GAMESHEETS_REVISION="$(git rev-parse --short HEAD)" \
-FORGE_GAMESHEETS_BUILD_DATE="$(date -u +%F)" \
-docker compose build
+./scripts/build
 
 docker compose up -d
 ```
@@ -230,9 +229,7 @@ Back up the data directory while Forge is stopped, then update and rebuild:
 ```sh
 git pull --ff-only origin main
 
-FORGE_GAMESHEETS_REVISION="$(git rev-parse --short HEAD)" \
-FORGE_GAMESHEETS_BUILD_DATE="$(date -u +%F)" \
-docker compose build
+./scripts/build
 
 docker compose up -d --force-recreate
 

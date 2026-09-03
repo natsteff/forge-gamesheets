@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+project_directory=$(dirname -- "$script_directory")
+
+cd "$project_directory"
+
+FORGE_GAMESHEETS_REVISION=${FORGE_GAMESHEETS_REVISION:-$(git rev-parse --short HEAD)}
+FORGE_GAMESHEETS_BUILD_DATE=${FORGE_GAMESHEETS_BUILD_DATE:-$(date -u +%F)}
+
+export FORGE_GAMESHEETS_REVISION
+export FORGE_GAMESHEETS_BUILD_DATE
+
+exec docker compose build "$@"

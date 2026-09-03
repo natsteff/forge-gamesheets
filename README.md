@@ -76,7 +76,8 @@ backups, and troubleshooting, follow the
 2. Build and start the application:
 
    ```sh
-   docker compose up --build
+   ./scripts/build
+   docker compose up
    ```
 
 3. Open <http://localhost:8000>.
@@ -102,13 +103,11 @@ change only the values needed for the host:
 | `FORGE_GAMESHEETS_REVISION` | unset | Git revision embedded in the built image |
 | `FORGE_GAMESHEETS_BUILD_DATE` | unset | UTC build date embedded in the built image |
 
-For a development build that identifies the exact checked-out code, build with
-the current Git revision and UTC date:
+Build with the project command to automatically embed the current Git revision
+and UTC date:
 
 ```sh
-FORGE_GAMESHEETS_REVISION="$(git rev-parse --short HEAD)" \
-FORGE_GAMESHEETS_BUILD_DATE="$(date -u +%F)" \
-docker compose build
+./scripts/build
 ```
 
 These details appear at the bottom of Settings and in `/health`. Release builds
@@ -204,7 +203,7 @@ protected resources directly to the public internet or an untrusted network.
 Run the automated checks in the container:
 
 ```sh
-docker compose build
+./scripts/build
 docker compose run --rm app pytest
 docker compose run --rm app ruff check .
 ```
