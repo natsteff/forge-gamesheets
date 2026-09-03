@@ -12,7 +12,7 @@
   {% if activity %}
     <div class="history-list">
       {% for event in activity %}
-        <a class="history-row" href="{{ url_for('game_detail', game_id=event.game_id) }}#resource-{{ event.resource_id }}">
+        <a class="history-row" href="{{ url_for('resource_reprint', resource_id=event.resource_id) }}">
           <span class="history-action history-action-{{ event.action }}">
             {% if event.action == "view" %}Viewed{% else %}Downloaded{% endif %}
           </span>

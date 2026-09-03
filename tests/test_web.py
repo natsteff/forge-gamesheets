@@ -681,6 +681,7 @@ def test_resource_actions_are_listed_in_history(web_client: TestClient) -> None:
     assert history.text.count("Viewed") == 2
     assert "Downloaded" in history.text
     assert "Farkle" in history.text
+    assert f'href="http://testserver/r/{resource_id}"' in history.text
 
 
 def test_successful_resource_use_is_shown_on_recent_page(
@@ -699,6 +700,7 @@ def test_successful_resource_use_is_shown_on_recent_page(
     recent = web_client.get("/recent")
     assert "Recently used" not in refreshed_home.text
     assert "Recently used" in recent.text
+    assert f'href="http://testserver/r/{resource_id}"' in recent.text
     with web_client.app.state.database.connect() as connection:
         usage = connection.execute(
             "SELECT use_count, last_used_at FROM resources WHERE id = ?",
@@ -887,6 +889,9 @@ def test_pinning_resource_also_favorites_and_shows_it_on_library(
     assert pinned.text.index("Rules") < pinned.text.index("Score Sheet")
     assert "Pinned resources" in refreshed_home.text
     assert "Farkle" in favorites.text
+    for page in (pinned, favorites, refreshed_home):
+        assert "/r/" in page.text
+        assert not re.search(r"/games/\d+#resource-", page.text)
 
 
 def test_unpin_keeps_favorite_but_unfavorite_also_unpins(

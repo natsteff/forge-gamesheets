@@ -54,7 +54,7 @@
       </div>
       <div class="pinned-strip">
         {% for resource in pinned %}
-          <a class="pinned-card" href="{{ url_for('resource_view', resource_id=resource.id) }}" target="_blank" rel="noopener" aria-label="View {{ resource.title }} from {{ resource.game_title }} (opens in a new tab)" title="{{ resource.title }} · {{ resource.game_title }}">
+          <a class="pinned-card" href="{{ url_for('resource_reprint', resource_id=resource.id) }}" aria-label="Open {{ resource.title }} from {{ resource.game_title }}" title="{{ resource.title }} · {{ resource.game_title }}">
             <span aria-hidden="true">⌖</span>
             <span>
               <strong>{{ resource.title }}</strong>
