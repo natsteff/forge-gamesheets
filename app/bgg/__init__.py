@@ -10,6 +10,7 @@ from app.bgg.client import (
     BggSearchResult,
     BggUnavailableError,
 )
+from app.bgg.matching import LocalGameMissingError, enrich_game, normalize_game_name
 from app.bgg.repository import (
     BggAssociation,
     BggMatchState,
@@ -29,7 +30,10 @@ __all__ = (
     "BggResponseError",
     "BggSearchResult",
     "BggUnavailableError",
+    "LocalGameMissingError",
     "delete_bgg_association",
+    "enrich_game",
     "get_bgg_association",
+    "normalize_game_name",
     "save_bgg_association",
 )
