@@ -47,7 +47,9 @@ copyrighted game files are included.
 | --- | --- |
 | ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
 | **Settings** | **FORGE Reprint** |
-| ![Forge GameSheets display preferences in Settings](docs/images/settings.png) | ![A ready FORGE Reprint with responsibility notice and print guidance](docs/images/forge-reprint.png) |
+| ![Settings showing library preferences and the History time-zone selector](docs/images/settings.png) | ![FORGE Reprint showing regeneration confirmation, print guidance, and original PDF actions](docs/images/forge-reprint.png) |
+| **Integration and build details** | **Mobile navigation** |
+| ![Settings showing BGG disabled without a token and the installed build revision and date](docs/images/settings-build.png) | ![Expanded mobile menu with Library highlighted and all navigation links visible](docs/images/mobile-navigation.png) |
 
 ## Requirements
 
@@ -265,6 +267,8 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
   and manual matching workflow exist, but further development and public
   rollout are on hold pending application approval and token-distribution
   guidance. No token is bundled; normal local use does not require BGG.
+  Without a token, BGG game controls are hidden and Settings shows the disabled
+  status. Configuring a token does not itself verify approval or API access.
 - Automatic BGG scan matching and artwork fallback are not yet implemented.
 - Structured FGS files, an editor, and a renderer remain future work.
 - There is no remote synchronization or cloud backup.
