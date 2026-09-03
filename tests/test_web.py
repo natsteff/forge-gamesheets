@@ -345,6 +345,19 @@ def test_invalid_display_preferences_are_rejected(web_client: TestClient) -> Non
     assert response.headers["location"] == "/settings?error=invalid-preferences"
     assert "Organize. Customize. Print. Play." in web_client.get("/").text
 
+    invalid_timezone = web_client.post(
+        "/settings/preferences",
+        data={
+            "footer_text": "Forge",
+            "recent_limit": "6",
+            "timezone_name": "Not/A_Timezone",
+        },
+        follow_redirects=False,
+    )
+    assert invalid_timezone.headers["location"] == (
+        "/settings?error=invalid-preferences"
+    )
+
 
 def test_categories_can_be_created_renamed_and_safely_deleted(
     web_client: TestClient,
@@ -688,6 +701,33 @@ def test_resource_actions_are_listed_in_history(web_client: TestClient) -> None:
     assert "Downloaded" in history.text
     assert "Farkle" in history.text
     assert f'href="http://testserver/r/{resource_id}"' in history.text
+
+
+def test_history_uses_configured_timezone(web_client: TestClient) -> None:
+    game_id = _game_ids(web_client)[1]
+    detail = web_client.get(f"/games/{game_id}")
+    resource_id = int(re.search(r"/resources/(\d+)/open", detail.text).group(1))
+    web_client.get(f"/resources/{resource_id}/open")
+    with web_client.app.state.database.connect() as connection:
+        connection.execute(
+            "UPDATE resource_activity SET occurred_at = ?",
+            ("2026-01-15T18:30:00.000Z",),
+        )
+    saved = web_client.post(
+        "/settings/preferences",
+        data={
+            "footer_text": "Forge",
+            "recent_limit": "6",
+            "timezone_name": "America/Chicago",
+        },
+        follow_redirects=False,
+    )
+
+    history = web_client.get("/history")
+    assert saved.headers["location"] == "/settings?status=preferences-saved"
+    assert "Jan 15, 2026 · 12:30 PM CST" in history.text
+    assert "Times shown in America/Chicago" in history.text
+    assert 'datetime="2026-01-15T18:30:00.000Z"' in history.text
 
 
 def test_successful_resource_use_is_shown_on_recent_page(

@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -273,7 +274,11 @@ def settings_home(request: Request) -> HTMLResponse:
 async def settings_preferences_save(request: Request) -> RedirectResponse:
     """Validate and save library-wide display preferences."""
     form = await request.form()
+    current_preferences = get_preferences(_database(request))
     footer_text = str(form.get("footer_text", "")).strip()
+    timezone_name = str(
+        form.get("timezone_name", current_preferences.timezone_name)
+    ).strip()
     try:
         recent_limit = int(str(form.get("recent_limit", "")))
     except ValueError:
@@ -281,12 +286,14 @@ async def settings_preferences_save(request: Request) -> RedirectResponse:
     if (
         len(footer_text) > MAX_FOOTER_LENGTH
         or not 0 <= recent_limit <= MAX_RECENT_LIMIT
+        or not _valid_timezone(timezone_name)
     ):
         return _settings_redirect(error="invalid-preferences")
     save_preferences(
         _database(request),
         footer_text=footer_text,
         recent_limit=recent_limit,
+        timezone_name=timezone_name,
     )
     return _settings_redirect(status="preferences-saved")
 
@@ -299,6 +306,7 @@ def settings_footer_reset(request: Request) -> RedirectResponse:
         _database(request),
         footer_text=DEFAULT_FOOTER_TEXT,
         recent_limit=preferences.recent_limit,
+        timezone_name=preferences.timezone_name,
     )
     return _settings_redirect(status="footer-restored")
 
@@ -385,10 +393,18 @@ def library_rescan(request: Request) -> RedirectResponse:
 @router.get("/history", response_class=HTMLResponse, name="activity_history")
 def activity_history(request: Request) -> HTMLResponse:
     """Show recent successful PDF actions stored on this server."""
+    preferences = get_preferences(_database(request))
+    activity = tuple(
+        (
+            event,
+            _format_local_timestamp(event.occurred_at, preferences.timezone_name),
+        )
+        for event in list_resource_activity(_database(request))
+    )
     return templates.TemplateResponse(
         request=request,
         name="history.html",
-        context={"activity": list_resource_activity(_database(request))},
+        context={"activity": activity, "timezone_name": preferences.timezone_name},
     )
 
 
@@ -1097,6 +1113,21 @@ def _game_edit_redirect(
 
 def _utc_timestamp() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _valid_timezone(value: str) -> bool:
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError):
+        return False
+    return True
+
+
+def _format_local_timestamp(value: str, timezone_name: str) -> str:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    local = parsed.astimezone(ZoneInfo(timezone_name))
+    hour = local.strftime("%I").lstrip("0") or "12"
+    return f"{local:%b} {local.day}, {local.year} · {hour}:{local:%M %p %Z}"
 
 
 def _normalized_category_name(value: object) -> str | None:

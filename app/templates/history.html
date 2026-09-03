@@ -11,7 +11,7 @@
 
   {% if activity %}
     <div class="history-list">
-      {% for event in activity %}
+      {% for event, local_time in activity %}
         <a class="history-row" href="{{ url_for('resource_reprint', resource_id=event.resource_id) }}">
           <span class="history-action history-action-{{ event.action }}">
             {% if event.action == "view" %}Viewed{% else %}Downloaded{% endif %}
@@ -20,10 +20,11 @@
             <strong>{{ event.resource_title }}</strong>
             <small>{{ event.game_title }}</small>
           </span>
-          <time datetime="{{ event.occurred_at }}">{{ event.occurred_at[:16]|replace("T", " · ") }} UTC</time>
+          <time datetime="{{ event.occurred_at }}">{{ local_time }}</time>
         </a>
       {% endfor %}
     </div>
+    <p class="settings-note">Times shown in {{ timezone_name }}.</p>
   {% else %}
     <section class="empty-state compact">
       <h2>No activity yet</h2>

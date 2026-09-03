@@ -350,6 +350,16 @@ MIGRATIONS = (
             """,
         ),
     ),
+    Migration(
+        version=15,
+        name="add_display_timezone",
+        statements=(
+            """
+            ALTER TABLE application_preferences
+            ADD COLUMN timezone_name TEXT NOT NULL DEFAULT 'UTC'
+            """,
+        ),
+    ),
 )
 
 

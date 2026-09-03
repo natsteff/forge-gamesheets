@@ -36,7 +36,8 @@ def test_initialize_creates_current_schema(database: Database) -> None:
             "SELECT name FROM game_categories ORDER BY name"
         ).fetchall()
         preferences = connection.execute(
-            "SELECT footer_text, recent_limit FROM application_preferences"
+            "SELECT footer_text, recent_limit, timezone_name "
+            "FROM application_preferences"
         ).fetchone()
 
     assert {
@@ -64,6 +65,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (12, "allow_multiple_game_categories"),
         (13, "add_application_preferences"),
         (14, "add_bgg_game_associations"),
+        (15, "add_display_timezone"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -78,7 +80,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "Trivia",
         "Video",
     ]
-    assert tuple(preferences) == ("Organize. Customize. Print. Play.", 6)
+    assert tuple(preferences) == ("Organize. Customize. Print. Play.", 6, "UTC")
 
 
 def test_initialize_is_idempotent(database: Database) -> None:
@@ -90,7 +92,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             "SELECT COUNT(*) FROM schema_migrations"
         ).fetchone()[0]
 
-    assert count == 14
+    assert count == 15
 
 
 def test_multi_category_migration_preserves_single_category(database: Database) -> None:
