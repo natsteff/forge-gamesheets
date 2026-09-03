@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted for the Phase 2 roadmap. Before implementation, verify current API,
-authorization, rate-limit, and URL behavior against official BoardGameGeek
-documentation and propose the affected code and migration.
+Accepted for Phase 2. The initial client requirements were verified against
+official BoardGameGeek documentation on 2026-09-02. Game and Files browser URL
+behavior will be verified again when those visible links are implemented.
 
 ## Decision
 
@@ -19,6 +19,12 @@ normal library discovery or use.
 Use the official BoardGameGeek XML API2 where possible. Do not build an HTML
 scraper or depend on undocumented/private APIs unless a future decision
 explicitly approves it.
+
+Current official requirements include registering the application, sending its
+application token as an HTTPS `Authorization: Bearer` header, using
+`boardgamegeek.com` without a `www` prefix, minimizing server-side requests,
+and caching useful responses. Public-facing BGG enrichment must also include
+BGG's required linked **Powered by BGG** attribution when that UI is added.
 
 ## Service boundary
 

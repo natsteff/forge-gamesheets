@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -19,6 +19,7 @@ class Settings:
     library_path: Path
     data_path: Path
     base_url: str | None = None
+    bgg_api_token: str | None = field(default=None, repr=False)
 
     @classmethod
     def from_environment(cls) -> Settings:
@@ -29,6 +30,7 @@ class Settings:
             ),
             data_path=Path(os.environ.get("FORGE_GAMESHEETS_DATA", "/data")),
             base_url=os.environ.get("FORGE_GAMESHEETS_BASE_URL"),
+            bgg_api_token=os.environ.get("FORGE_GAMESHEETS_BGG_API_TOKEN"),
         )
 
     def validated(self) -> Settings:
@@ -62,6 +64,7 @@ class Settings:
             library_path=library_path,
             data_path=data_path,
             base_url=_validate_base_url(self.base_url),
+            bgg_api_token=_optional_secret(self.bgg_api_token),
         )
 
 
@@ -122,3 +125,11 @@ def _validate_base_url(value: str | None) -> str | None:
         raise ConfigurationError("Base URL port is invalid.")
 
     return normalized
+
+
+def _optional_secret(value: str | None) -> str | None:
+    """Normalize an optional secret without ever including it in errors."""
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None

@@ -12,12 +12,14 @@ def test_settings_load_from_environment(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("FORGE_GAMESHEETS_LIBRARY", "/example/library")
     monkeypatch.setenv("FORGE_GAMESHEETS_DATA", "/example/data")
     monkeypatch.setenv("FORGE_GAMESHEETS_BASE_URL", "https://forge.example.test")
+    monkeypatch.setenv("FORGE_GAMESHEETS_BGG_API_TOKEN", " bgg-secret ")
 
     settings = Settings.from_environment()
 
     assert settings.library_path == Path("/example/library")
     assert settings.data_path == Path("/example/data")
     assert settings.base_url == "https://forge.example.test"
+    assert settings.bgg_api_token == " bgg-secret "
 
 
 def test_validation_returns_canonical_directories(tmp_path: Path) -> None:
@@ -30,11 +32,29 @@ def test_validation_returns_canonical_directories(tmp_path: Path) -> None:
         library_path=library_path,
         data_path=data_path,
         base_url=" https://forge.example.test/ ",
+        bgg_api_token=" bgg-secret ",
     ).validated()
 
     assert settings.library_path == library_path.resolve()
     assert settings.data_path == data_path.resolve()
     assert settings.base_url == "https://forge.example.test"
+    assert settings.bgg_api_token == "bgg-secret"
+
+
+def test_bgg_token_is_optional_and_hidden_from_repr(tmp_path: Path) -> None:
+    library_path = tmp_path / "library"
+    data_path = tmp_path / "data"
+    library_path.mkdir()
+    data_path.mkdir()
+
+    settings = Settings(
+        library_path=library_path,
+        data_path=data_path,
+        bgg_api_token="  ",
+    ).validated()
+
+    assert settings.bgg_api_token is None
+    assert "bgg_api_token" not in repr(settings)
 
 
 def test_validation_allows_unconfigured_base_url(tmp_path: Path) -> None:
