@@ -2,6 +2,11 @@
 
 ## Status
 
+Implementation paused pending BGG application approval and clarification of
+token distribution for self-hosted installations. Existing optional integration
+code is retained; further features and public rollout are on hold. No project
+token is distributed in source or container images.
+
 Accepted for Phase 2. The initial client requirements were verified against
 official BoardGameGeek documentation on 2026-09-02. Game and Files browser URL
 behavior will be verified again when those visible links are implemented.

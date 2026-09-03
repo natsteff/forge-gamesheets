@@ -15,24 +15,26 @@ player references, and other printable PDF resources. It scans ordinary folders
 on disk and provides a responsive browser interface for organizing, finding,
 viewing, downloading, and printing those files.
 
-Phase 1 is feature-complete for local beta testing. It does not modify source
-PDFs, require a cloud service, or store PDF contents in its database.
+FORGE GAMESHEETS is in beta, with local library management and optional
+FORGE Reprints available. Core operation does not modify source PDFs, require
+a cloud service, or store PDF contents in its database.
 
-## Phase 1 features
+## Available features
 
 - Recursive PDF discovery beneath one first-level folder per game
 - Forgiving filename parsing and document-type recognition
 - Search across game and resource titles
-- Browser viewing, downloads, and first-page PDF previews
+- Browser viewing, descriptive download filenames, and first-page PDF previews
 - Optional FORGE Reprint copies with a QR return link and source-rights notice
 - Editable display titles, document metadata, and game artwork
 - Multiple customizable categories per game
 - All Games, category, and Uncategorized browsing
 - Favorites, up to ten pinned homepage resources, Recent, and use history
-- Configurable library footer and Recent limit
+- Configurable library footer, Recent limit, and History time zone
 - Manual rescans with safe partial-scan and missing-file behavior
-- Responsive, keyboard-accessible server-rendered pages
+- Responsive, keyboard-accessible pages with a compact-screen navigation menu
 - SQLite migrations that preserve application state across restarts
+- GitHub-published container images with revision and build-date information
 
 The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
@@ -62,29 +64,53 @@ backups, and troubleshooting, follow the
 
 ## Quick start
 
-1. Put game folders inside `library/`:
+Run these commands on the Docker host where FORGE will run. Obtain the
+repository once to get `compose.yml` and the example configuration:
+
+```sh
+git clone https://github.com/natsteff/forge-gamesheets.git
+cd forge-gamesheets
+cp .env.example .env
+mkdir -p data library
+```
+
+Keep host-specific configuration in `.env`, not `compose.yml`. On Linux,
+make `data/` writable by the container's `10001:10001` account before starting;
+see the [deployment guide](docs/deployment.md). Docker Desktop usually handles
+this through file sharing.
+
+1. Put game folders inside `library/`, optionally including local game artwork:
 
    ```text
    library/
    ├── Farkle/
    │   ├── Farkle - Rules.pdf
-   │   └── Farkle - Score Sheet.pdf
+   │   ├── Farkle - Score Sheet.pdf
+   │   └── icon.png
    └── Yahtzee/
-       └── Yahtzee - Score Sheet.pdf
+       ├── Yahtzee - Score Sheet.pdf
+       └── cover.jpg
    ```
 
-2. Build and start the application:
+   Images are optional: use `icon` or `cover` with a PNG, JPEG, or WebP
+   extension in the game folder. You can also upload artwork later through
+   **Edit game entry**. No game PDFs or artwork are bundled with FORGE.
+
+2. Pull the prebuilt image from GitHub Container Registry and start it:
 
    ```sh
-   ./scripts/build
-   docker compose up
+   docker compose pull
+   docker compose up -d
    ```
 
-3. Open <http://localhost:8000>.
+3. Open <http://localhost:8000> on that host. For another device on your trusted
+   LAN, configure the bind address and host URL as described below.
 
-4. Stop the application with `Ctrl+C`.
+4. Stop the application when needed with `docker compose down`.
 
-The health endpoint is available at <http://localhost:8000/health>.
+The health endpoint is available at <http://localhost:8000/health>. No local
+image build is required. The default `main` image tracks development; it is not
+a stable-release designation.
 
 ## Self-hosted beta configuration
 
@@ -100,20 +126,9 @@ change only the values needed for the host:
 | `FORGE_GAMESHEETS_DATA_PATH` | `./data` | Writable application state |
 | `FORGE_GAMESHEETS_LIBRARY_PATH` | `./library` | Source PDF library, mounted read-only |
 | `FORGE_GAMESHEETS_IMAGE_TAG` | `main` | Published image channel or fixed release tag |
-| `FORGE_GAMESHEETS_VERSION` | `development` | Release name shown in Settings and health diagnostics |
-| `FORGE_GAMESHEETS_REVISION` | unset | Git revision embedded in the built image |
-| `FORGE_GAMESHEETS_BUILD_DATE` | unset | UTC build date embedded in the built image |
 
-Build with the project command to automatically embed the current Git revision
-and UTC date:
-
-```sh
-./scripts/build
-```
-
-These details appear at the bottom of Settings and in `/health`. Release builds
-can also set `FORGE_GAMESHEETS_VERSION` to the published version. Values are
-embedded when the image is built, so changing them requires rebuilding it.
+Published images already include their release, revision, and UTC build date,
+visible in Settings and `/health`; users do not need to configure these values.
 
 ### Published image deployment
 
@@ -127,11 +142,6 @@ docker compose up -d
 ```
 
 Do not add host-specific settings to `compose.yml`; keep them in `.env`.
-
-### Local development build
-
-Local development from a source checkout uses `./scripts/build`, followed by
-`docker compose up`. The build command embeds the current revision and date.
 
 On a Linux Docker host using the default bind mount, prepare the data directory
 for Forge's fixed non-root container identity before the first start:
@@ -190,7 +200,7 @@ Stop the application before making a simple filesystem copy of `data/`. See
 
 ## Security boundary
 
-Phase 1 has no authentication or user accounts. The supplied Compose file is
+FORGE has no authentication or user accounts. The supplied Compose file is
 intended for local beta use and listens only on localhost. Do not expose it to
 the internet or an untrusted network without an intentionally designed access
 and authentication layer.
@@ -219,10 +229,22 @@ protected resources directly to the public internet or an untrusted network.
 
 ## Testing and development
 
-Run the automated checks in the container:
+Developers working from local source (including on macOS) build instead of
+pulling the published image. The project build command automatically embeds
+the checked-out Git revision and current UTC date:
 
 ```sh
 ./scripts/build
+docker compose up -d
+```
+
+Build identity overrides for release tooling are `FORGE_GAMESHEETS_VERSION`,
+`FORGE_GAMESHEETS_REVISION`, and `FORGE_GAMESHEETS_BUILD_DATE`. They affect image
+builds, not the identity of an already-published image.
+
+Run the automated checks in the container:
+
+```sh
 docker compose run --rm app pytest
 docker compose run --rm app ruff check .
 ```
@@ -239,7 +261,13 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
 - FORGE Reprint creates a marked derived copy but does not edit, combine, or
   replace source PDFs.
 - Game folders must currently be first-level children of the library root.
-- There is no BoardGameGeek enrichment, remote synchronization, or cloud backup.
+- BoardGameGeek integration is experimental. Its client, saved associations,
+  and manual matching workflow exist, but further development and public
+  rollout are on hold pending application approval and token-distribution
+  guidance. No token is bundled; normal local use does not require BGG.
+- Automatic BGG scan matching and artwork fallback are not yet implemented.
+- Structured FGS files, an editor, and a renderer remain future work.
+- There is no remote synchronization or cloud backup.
 - Production deployment and public network exposure have not been approved.
 
 See the [Phase 1.5 external beta release checklist](docs/PHASE1_5_RELEASE_CHECKLIST.md)
