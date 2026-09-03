@@ -12,6 +12,7 @@ import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
 from app.library.generated import GeneratedStorageError, generated_reprint_path
+from app.library.processing_limits import validate_pdf_document, validate_pdf_file_size
 
 FOOTER_HEIGHT_POINTS = 54
 NARROW_FOOTER_HEIGHT_POINTS = 96
@@ -59,7 +60,8 @@ def generate_forge_reprint(
     """Create or reuse a source-specific Forge-marked PDF copy atomically."""
     try:
         source_stat = source_path.stat()
-    except OSError as error:
+        validate_pdf_file_size(source_stat.st_size)
+    except (OSError, ValueError) as error:
         raise ReprintGenerationError("Source PDF is unavailable.") from error
     if not source_path.is_file():
         raise ReprintGenerationError("Source PDF is unavailable.")
@@ -84,9 +86,7 @@ def generate_forge_reprint(
     ):
         return destination
 
-    temporary = destination.with_name(
-        f".{destination.name}.{uuid4().hex}.tmp"
-    )
+    temporary = destination.with_name(f".{destination.name}.{uuid4().hex}.tmp")
     try:
         _write_reprint(source_path, temporary, target_url)
         _validate_generated_pdf(temporary, target_url)
@@ -139,16 +139,17 @@ def _write_reprint(source_path: Path, output_path: Path, target_url: str) -> Non
             )
         if source.page_count == 0:
             raise ReprintGenerationError("Source PDF has no pages.")
+        try:
+            validate_pdf_document(source)
+        except ValueError as error:
+            raise ReprintGenerationError(str(error)) from error
 
         qr_png = _qr_png(target_url)
         logo_png = _footer_logo_png()
         for page_number, source_page in enumerate(source):
             width = source_page.rect.width
             height = source_page.rect.height
-            if (
-                width < MINIMUM_PAGE_WIDTH_POINTS
-                or height < MINIMUM_PAGE_HEIGHT_POINTS
-            ):
+            if width < MINIMUM_PAGE_WIDTH_POINTS or height < MINIMUM_PAGE_HEIGHT_POINTS:
                 raise ReprintGenerationError(
                     f"Page {page_number + 1} is too small for the Forge reprint mark."
                 )
@@ -445,10 +446,6 @@ def _validate_generated_pdf(path: Path, target_url: str) -> None:
                 raise ReprintGenerationError("Generated reprint validation failed.")
             for page in document:
                 if page.rect.height <= FOOTER_HEIGHT_POINTS:
-                    raise ReprintGenerationError(
-                        "Generated reprint validation failed."
-                    )
+                    raise ReprintGenerationError("Generated reprint validation failed.")
     except (fitz.FileDataError, fitz.EmptyFileError, OSError) as error:
-        raise ReprintGenerationError(
-            "Generated reprint validation failed."
-        ) from error
+        raise ReprintGenerationError("Generated reprint validation failed.") from error

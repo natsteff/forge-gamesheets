@@ -71,9 +71,7 @@ def test_get_game_parses_cached_enrichment_fields() -> None:
       <thumbnail>https://images.example/thumb.jpg</thumbnail>
     </item></items>"""
 
-    client = BggClient(
-        "token", opener=lambda *_args, **_kwargs: FakeResponse(response)
-    )
+    client = BggClient("token", opener=lambda *_args, **_kwargs: FakeResponse(response))
     game = client.get_game(822)
 
     assert game is not None
@@ -145,3 +143,10 @@ def test_client_rejects_invalid_local_inputs() -> None:
         client.search_games(" ")
     with pytest.raises(ValueError, match="ID"):
         client.get_game(0)
+
+
+def test_client_never_includes_application_token_in_repr() -> None:
+    token = "synthetic-secret-token"
+    representation = repr(BggClient(token))
+    assert token not in representation
+    assert "token=" not in representation

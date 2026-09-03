@@ -1016,17 +1016,43 @@ def _generated_reprint(
 def _generated_reprint_response(
     request: Request, resource_id: int, *, disposition: str
 ) -> FileResponse:
+    resource = get_resource(_database(request), resource_id)
+    if resource is None:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    game = get_game(_database(request), resource.game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
     try:
-        path = _generated_reprint(request, resource_id)
+        source = resolve_resource_pdf(
+            request.app.state.settings.library_path,
+            resource.relative_path,
+        )
+        target_url = resource_reprint_url(
+            request.app.state.settings.base_url,
+            resource_id,
+        )
+        path = existing_forge_reprint(
+            source,
+            request.app.state.settings.data_path,
+            resource_id=resource_id,
+            target_url=target_url,
+        )
+    except ResourceFileMissing as error:
+        raise HTTPException(
+            status_code=410,
+            detail="This PDF was removed after the last library scan.",
+        ) from error
+    except UnsafeResourcePath:
+        raise HTTPException(status_code=404, detail="Resource not found")
     except ReprintGenerationError as error:
         raise HTTPException(
-            status_code=422,
-            detail="FORGE Reprint generation failed.",
+            status_code=422, detail="FORGE Reprint unavailable."
         ) from error
-    resource = get_resource(_database(request), resource_id)
-    game = get_game(_database(request), resource.game_id) if resource else None
-    if resource is None or game is None:
-        raise HTTPException(status_code=404, detail="Resource not found")
+    if path is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Generate the FORGE Reprint before opening or downloading it.",
+        )
     return FileResponse(
         path,
         media_type="application/pdf",

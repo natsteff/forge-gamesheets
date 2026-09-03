@@ -11,6 +11,7 @@
     {% else %}
       <p>Recent resources are currently disabled in Settings.</p>
     {% endif %}
+    <p>Change how many resources appear here in <a href="{{ url_for('settings_home') }}#recent-limit">Settings</a>.</p>
   </section>
 
   {% if recent %}

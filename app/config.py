@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ipaddress
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -20,17 +22,23 @@ class Settings:
     data_path: Path
     base_url: str | None = None
     bgg_api_token: str | None = field(default=None, repr=False)
+    allowed_hosts: tuple[str, ...] = ()
 
     @classmethod
     def from_environment(cls) -> Settings:
         """Load settings from environment variables without changing the filesystem."""
         return cls(
-            library_path=Path(
-                os.environ.get("FORGE_GAMESHEETS_LIBRARY", "/library")
-            ),
+            library_path=Path(os.environ.get("FORGE_GAMESHEETS_LIBRARY", "/library")),
             data_path=Path(os.environ.get("FORGE_GAMESHEETS_DATA", "/data")),
             base_url=os.environ.get("FORGE_GAMESHEETS_BASE_URL"),
             bgg_api_token=os.environ.get("FORGE_GAMESHEETS_BGG_API_TOKEN"),
+            allowed_hosts=tuple(
+                host.strip()
+                for host in os.environ.get("FORGE_GAMESHEETS_ALLOWED_HOSTS", "").split(
+                    ","
+                )
+                if host.strip()
+            ),
         )
 
     def validated(self) -> Settings:
@@ -60,12 +68,37 @@ class Settings:
                 "Library and data directories must not contain one another."
             )
 
+        base_url = _validate_base_url(self.base_url)
+        hosts = ["localhost", "127.0.0.1", "::1", *self.allowed_hosts]
+        if base_url:
+            hosts.append(urlsplit(base_url).hostname or "")
         return Settings(
             library_path=library_path,
             data_path=data_path,
-            base_url=_validate_base_url(self.base_url),
+            base_url=base_url,
             bgg_api_token=_optional_secret(self.bgg_api_token),
+            allowed_hosts=tuple(dict.fromkeys(normalize_host(host) for host in hosts)),
         )
+
+
+def normalize_host(value: str) -> str:
+    """Accept exact DNS names or IP literals, never patterns, URLs or ports."""
+    try:
+        return str(ipaddress.ip_address(value))
+    except ValueError:
+        pass
+    if (
+        not value
+        or len(value) > 253
+        or any(
+            not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+            for label in value.split(".")
+        )
+    ):
+        raise ConfigurationError(
+            "Allowed hosts must be exact hostnames or IP addresses."
+        )
+    return value.lower()
 
 
 def _validate_directory(
@@ -114,9 +147,7 @@ def _validate_base_url(value: str | None) -> str | None:
         raise ConfigurationError("Base URL is invalid.") from error
 
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise ConfigurationError(
-            "Base URL must be an absolute HTTP or HTTPS URL."
-        )
+        raise ConfigurationError("Base URL must be an absolute HTTP or HTTPS URL.")
     if parsed.username is not None or parsed.password is not None:
         raise ConfigurationError("Base URL must not contain credentials.")
     if parsed.query or parsed.fragment:

@@ -16,7 +16,11 @@ def test_health_reports_service_is_available(tmp_path) -> None:
     data_path.mkdir()
 
     app = create_app(
-        Settings(library_path=library_path, data_path=data_path),
+        Settings(
+            library_path=library_path,
+            data_path=data_path,
+            allowed_hosts=("testserver",),
+        ),
         BuildInfo(
             version="0.2.0-beta.1",
             revision="abc1234",
@@ -48,7 +52,13 @@ def test_application_starts_with_an_incomplete_scan(tmp_path, monkeypatch) -> No
         issues=(ScanIssue(library_path / "Unreadable", "permission denied"),),
     )
     monkeypatch.setattr("app.main.scan_library", lambda _path: incomplete)
-    app = create_app(Settings(library_path=library_path, data_path=data_path))
+    app = create_app(
+        Settings(
+            library_path=library_path,
+            data_path=data_path,
+            allowed_hosts=("testserver",),
+        )
+    )
 
     with TestClient(app) as client:
         health = client.get("/health")

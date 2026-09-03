@@ -9,6 +9,11 @@ import pymupdf
 from PIL import Image, ImageOps
 
 from app.library.files import resolve_resource_pdf
+from app.library.processing_limits import (
+    MAX_PREVIEW_RENDER_PIXELS,
+    validate_pdf_document,
+    validate_pdf_file_size,
+)
 from app.library.repository import IndexedResource
 
 PREVIEW_SIZE = (240, 300)
@@ -26,6 +31,10 @@ def cached_resource_preview(
     """Return a current WebP preview, rendering and caching it when necessary."""
     source = resolve_resource_pdf(library_path, resource.relative_path)
     metadata = source.stat()
+    try:
+        validate_pdf_file_size(metadata.st_size)
+    except ValueError as error:
+        raise PreviewUnavailable(str(error)) from error
     preview_directory = data_path / "previews"
     preview_directory.mkdir(parents=True, exist_ok=True)
     destination = preview_directory / (
@@ -36,11 +45,18 @@ def cached_resource_preview(
 
     try:
         with pymupdf.open(source) as document:
+            validate_pdf_document(document)
             if document.page_count < 1:
                 raise PreviewUnavailable("PDF has no pages")
-            pixmap = document[0].get_pixmap(
-                matrix=pymupdf.Matrix(1.5, 1.5), alpha=False
-            )
+            page = document[0]
+            if (
+                page.rect.width * 1.5 * page.rect.height * 1.5
+                > MAX_PREVIEW_RENDER_PIXELS
+            ):
+                raise PreviewUnavailable(
+                    "PDF preview dimensions exceed the processing limit"
+                )
+            pixmap = page.get_pixmap(matrix=pymupdf.Matrix(1.5, 1.5), alpha=False)
             with Image.open(BytesIO(pixmap.tobytes("png"))) as rendered:
                 contained = ImageOps.contain(rendered.convert("RGB"), PREVIEW_SIZE)
                 preview = Image.new("RGB", PREVIEW_SIZE, "white")

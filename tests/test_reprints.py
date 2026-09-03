@@ -83,19 +83,13 @@ def test_generate_reprint_preserves_source_and_marks_every_page(
                 for span in line["spans"]
             ]
             instruction_span = next(
-                span
-                for span in spans
-                if span["text"].startswith("Scan QR code")
+                span for span in spans if span["text"].startswith("Scan QR code")
             )
             ownership_span = next(
-                span
-                for span in spans
-                if span["text"].startswith("No ownership")
+                span for span in spans if span["text"].startswith("No ownership")
             )
             operator_span = next(
-                span
-                for span in spans
-                if span["text"].startswith("Library operator")
+                span for span in spans if span["text"].startswith("Library operator")
             )
             instruction_y = instruction_span["origin"][1]
             ownership_y = ownership_span["origin"][1]
@@ -105,9 +99,22 @@ def test_generate_reprint_preserves_source_and_marks_every_page(
             assert operator_span["size"] == pytest.approx(6.0)
             assert operator_y - ownership_y == pytest.approx(7)
             assert ownership_y - instruction_y > operator_y - ownership_y
-        assert output.metadata["keywords"] == (
-            f"forge-reprint-v{GENERATOR_VERSION}"
+        assert output.metadata["keywords"] == (f"forge-reprint-v{GENERATOR_VERSION}")
+
+
+def test_reprint_rejects_too_many_pages_without_output(tmp_path, monkeypatch):
+    source, data = tmp_path / "source.pdf", tmp_path / "data"
+    data.mkdir()
+    with fitz.open() as document:
+        document.new_page(width=300, height=500)
+        document.new_page(width=300, height=500)
+        document.save(source)
+    monkeypatch.setattr("app.library.processing_limits.MAX_PDF_PAGES", 1)
+    with pytest.raises(ReprintGenerationError, match="500-page processing limit"):
+        generate_forge_reprint(
+            source, data, resource_id=1, target_url="http://forge/r/1"
         )
+    assert not tuple((data / "generated").glob("*.pdf"))
 
 
 def test_generate_reprint_uses_readable_stacked_footer_on_narrow_page(
@@ -130,9 +137,7 @@ def test_generate_reprint_uses_readable_stacked_footer_on_narrow_page(
 
     with fitz.open(generated) as output:
         page = output[0]
-        assert page.rect.height == pytest.approx(
-            288 + NARROW_FOOTER_HEIGHT_POINTS
-        )
+        assert page.rect.height == pytest.approx(288 + NARROW_FOOTER_HEIGHT_POINTS)
         text = " ".join(page.get_text().split())
         assert "Scan QR code or access URL to reprint:" in text
         assert "No ownership of or affiliation with source content" in text
@@ -151,8 +156,7 @@ def test_generate_reprint_preserves_long_url_on_a4_landscape(
     document.save(source)
     document.close()
     target_url = (
-        "https://forge-gamesheets.internal.example.net:8443/"
-        "tabletop-library/r/987654"
+        "https://forge-gamesheets.internal.example.net:8443/tabletop-library/r/987654"
     )
 
     generated = generate_forge_reprint(
@@ -192,12 +196,15 @@ def test_generate_reprint_reuses_source_specific_output(tmp_path: Path) -> None:
 
     assert second == first
     assert second.read_bytes() == first_bytes
-    assert existing_forge_reprint(
-        source,
-        data,
-        resource_id=1,
-        target_url="http://forge.local/r/1",
-    ) == first
+    assert (
+        existing_forge_reprint(
+            source,
+            data,
+            resource_id=1,
+            target_url="http://forge.local/r/1",
+        )
+        == first
+    )
 
 
 def test_generate_reprint_force_replaces_current_output(tmp_path: Path) -> None:
@@ -226,9 +233,7 @@ def test_generate_reprint_force_replaces_current_output(tmp_path: Path) -> None:
     assert regenerated == generated
     assert regenerated.read_bytes() != current_with_marker
     with fitz.open(regenerated) as document:
-        assert document.metadata["keywords"] == (
-            f"forge-reprint-v{GENERATOR_VERSION}"
-        )
+        assert document.metadata["keywords"] == (f"forge-reprint-v{GENERATOR_VERSION}")
 
 
 def test_existing_reprint_rejects_stale_target_without_writing(tmp_path: Path) -> None:
@@ -244,12 +249,15 @@ def test_existing_reprint_rejects_stale_target_without_writing(tmp_path: Path) -
     )
     original_bytes = generated.read_bytes()
 
-    assert existing_forge_reprint(
-        source,
-        data,
-        resource_id=1,
-        target_url="https://new-forge.example/r/1",
-    ) is None
+    assert (
+        existing_forge_reprint(
+            source,
+            data,
+            resource_id=1,
+            target_url="https://new-forge.example/r/1",
+        )
+        is None
+    )
     assert generated.read_bytes() == original_bytes
 
 

@@ -9,10 +9,25 @@ def test_compose_names_the_published_image() -> None:
     compose = (PROJECT_ROOT / "compose.yml").read_text()
 
     assert (
-        "image: ghcr.io/natsteff/forge-gamesheets:"
-        "${FORGE_GAMESHEETS_IMAGE_TAG:-main}"
+        "image: ghcr.io/natsteff/forge-gamesheets:${FORGE_GAMESHEETS_IMAGE_TAG:-main}"
     ) in compose
     assert "build:" in compose
+
+
+def test_compose_applies_runtime_hardening() -> None:
+    compose = (PROJECT_ROOT / "compose.yml").read_text()
+    for setting in (
+        "read_only: true",
+        "cap_drop:",
+        "- ALL",
+        "no-new-privileges:true",
+        "pids_limit: 100",
+        "mem_limit: 1g",
+        "cpus: 2.0",
+        "/tmp:size=256m,mode=1777",
+        "init: true",
+    ):
+        assert setting in compose
 
 
 def test_publish_workflow_embeds_build_identity() -> None:

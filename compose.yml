@@ -11,6 +11,15 @@ name: forge-gamesheets
 # contains source PDFs and remains read-only inside the container.
 services:
   app:
+    init: true
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    mem_limit: 1g
+    cpus: 2.0
     image: ghcr.io/natsteff/forge-gamesheets:${FORGE_GAMESHEETS_IMAGE_TAG:-main}
     build:
       context: .
@@ -19,6 +28,7 @@ services:
         FORGE_GAMESHEETS_REVISION: ${FORGE_GAMESHEETS_REVISION:-}
         FORGE_GAMESHEETS_BUILD_DATE: ${FORGE_GAMESHEETS_BUILD_DATE:-}
     environment:
+      FORGE_GAMESHEETS_ALLOWED_HOSTS: ${FORGE_GAMESHEETS_ALLOWED_HOSTS:-}
       FORGE_GAMESHEETS_BASE_URL: ${FORGE_GAMESHEETS_BASE_URL:-}
       FORGE_GAMESHEETS_BGG_API_TOKEN: ${FORGE_GAMESHEETS_BGG_API_TOKEN:-}
       FORGE_GAMESHEETS_DATA: /data
@@ -34,6 +44,8 @@ services:
         source: ${FORGE_GAMESHEETS_LIBRARY_PATH:-./library}
         target: /library
         read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
     healthcheck:
       test:
         - CMD

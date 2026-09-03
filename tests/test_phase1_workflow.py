@@ -24,9 +24,13 @@ def test_phase1_state_persists_across_restart_and_rescan(tmp_path: Path) -> None
         page.insert_text((72, 72), "Farkle Rules")
         document.save(rules)
     original_rules = rules.read_bytes()
-    settings = Settings(library_path=library, data_path=data)
+    settings = Settings(
+        library_path=library, data_path=data, allowed_hosts=("testserver",)
+    )
 
-    with TestClient(create_app(settings)) as client:
+    with TestClient(
+        create_app(settings), headers={"Origin": "http://testserver"}
+    ) as client:
         with client.app.state.database.connect() as connection:
             game_id = connection.execute("SELECT id FROM games").fetchone()[0]
         game = client.get(f"/games/{game_id}")
@@ -50,20 +54,18 @@ def test_phase1_state_persists_across_restart_and_rescan(tmp_path: Path) -> None
             },
         )
         client.post(f"/resources/{resource_id}/favorite")
-        client.post(
-            f"/resources/{resource_id}/pin", data={"return_to": "game"}
-        )
+        client.post(f"/resources/{resource_id}/pin", data={"return_to": "game"})
         client.get(f"/resources/{resource_id}/open")
         upload = BytesIO()
-        Image.new("RGB", (40, 60), color=(30, 60, 90)).save(
-            upload, format="PNG"
-        )
+        Image.new("RGB", (40, 60), color=(30, 60, 90)).save(upload, format="PNG")
         client.post(
             f"/games/{game_id}/artwork",
             files={"artwork_file": ("house.png", upload.getvalue(), "image/png")},
         )
 
-    with TestClient(create_app(settings)) as restarted:
+    with TestClient(
+        create_app(settings), headers={"Origin": "http://testserver"}
+    ) as restarted:
         home = restarted.get("/")
         game = restarted.get(f"/games/{game_id}")
         favorites = restarted.get("/favorites")

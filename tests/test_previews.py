@@ -60,3 +60,29 @@ def test_rejects_malformed_pdf_preview(tmp_path: Path) -> None:
 
     with pytest.raises(PreviewUnavailable):
         cached_resource_preview(library, data, _resource())
+
+
+def test_rejects_pdf_over_processing_size_before_opening(tmp_path, monkeypatch):
+    library, data = tmp_path / "library", tmp_path / "data"
+    source = library / "Farkle" / "Farkle - Rules.pdf"
+    source.parent.mkdir(parents=True)
+    data.mkdir()
+    source.write_bytes(b"%PDF oversized probe")
+    monkeypatch.setattr("app.library.processing_limits.MAX_PDF_PROCESSING_BYTES", 1)
+    with pytest.raises(PreviewUnavailable, match="processing limit"):
+        cached_resource_preview(library, data, _resource())
+
+
+def test_rejects_preview_whose_rendered_page_exceeds_pixel_budget(
+    tmp_path, monkeypatch
+):
+    library, data = tmp_path / "library", tmp_path / "data"
+    source = library / "Farkle" / "Farkle - Rules.pdf"
+    source.parent.mkdir(parents=True)
+    data.mkdir()
+    with pymupdf.open() as document:
+        document.new_page(width=300, height=500)
+        document.save(source)
+    monkeypatch.setattr("app.library.previews.MAX_PREVIEW_RENDER_PIXELS", 1)
+    with pytest.raises(PreviewUnavailable, match="dimensions"):
+        cached_resource_preview(library, data, _resource())

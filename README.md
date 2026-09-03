@@ -260,6 +260,10 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
   reliably detect whether a print completed.
 - PDF previews show only the first page and may be unavailable for malformed or
   unsupported PDFs.
+- Preview and FORGE Reprint processing supports source PDFs up to 250 MB, 500
+  pages, and 200 inches in either page dimension. Larger source PDFs remain
+  available for original viewing and download but are not processed.
+- Game artwork is limited to 25 MB and 40 megapixels before normalization.
 - FORGE Reprint creates a marked derived copy but does not edit, combine, or
   replace source PDFs.
 - Game folders must currently be first-level children of the library root.

@@ -2,12 +2,14 @@
 
 import re
 from dataclasses import replace
+from html.parser import HTMLParser
 from io import BytesIO
 from pathlib import Path
 
 import fitz
 import pytest
 from fastapi.testclient import TestClient
+from markupsafe import escape
 from PIL import Image
 
 from app.bgg.client import BggGame, BggSearchResult, BggUnavailableError
@@ -16,6 +18,108 @@ from app.build_info import BuildInfo
 from app.config import Settings
 from app.library.scanner import ScanIssue, ScanResult
 from app.main import create_app
+from app.security import CONTENT_SECURITY_POLICY
+
+
+class _ExecutableMarkupProbe(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.unsafe = []
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=5"):
+            self.unsafe.append(tag)
+        for name, value in attrs:
+            if name.startswith("on") or (value or "").lower().startswith("javascript:"):
+                self.unsafe.append(name)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        '<script>alert("xss")</script>',
+        '"><img src=x onerror=alert(1)>',
+        '" autofocus onfocus=alert(1) x="',
+    ],
+)
+def test_user_text_remains_text_across_library_pages(web_client, payload):
+    with web_client.app.state.database.connect() as connection:
+        resource = connection.execute(
+            "SELECT id, game_id FROM resources LIMIT 1"
+        ).fetchone()
+    resource_id, game_id = resource["id"], resource["game_id"]
+    for path, values in (
+        (
+            "/settings/preferences",
+            {"footer_text": payload, "recent_limit": "6", "timezone_name": "UTC"},
+        ),
+        (f"/games/{game_id}/edit", {"title": payload}),
+        (
+            f"/resources/{resource_id}/edit",
+            {"title": payload, "variant": payload, "category": "rules"},
+        ),
+        ("/settings/categories", {"name": payload}),
+    ):
+        assert (
+            web_client.post(path, data=values, follow_redirects=False).status_code
+            == 303
+        )
+    for path in (
+        "/",
+        "/settings",
+        "/games",
+        "/categories",
+        f"/games/{game_id}",
+        f"/games/{game_id}/edit",
+        f"/resources/{resource_id}/edit",
+        f"/r/{resource_id}",
+    ):
+        response = web_client.get(path)
+        assert response.status_code == 200
+        assert str(escape(payload)) in response.text
+        probe = _ExecutableMarkupProbe()
+        probe.feed(response.text)
+        assert not probe.unsafe
+    response = web_client.get("/", params={"q": payload})
+    assert str(escape(payload)) in response.text
+    probe = _ExecutableMarkupProbe()
+    probe.feed(response.text)
+    assert not probe.unsafe
+
+
+@pytest.mark.parametrize(
+    "path", ["/", "/settings", "/not-found", "/health", "/static/app.js"]
+)
+def test_browser_security_headers(web_client, path):
+    response = web_client.get(path)
+    assert response.headers["content-security-policy"] == CONTENT_SECURITY_POLICY
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["referrer-policy"] == "same-origin"
+    assert "unsafe-inline" not in CONTENT_SECURITY_POLICY
+    assert "unsafe-eval" not in CONTENT_SECURITY_POLICY
+
+
+def test_security_headers_preserve_original_pdf_delivery(web_client):
+    with web_client.app.state.database.connect() as connection:
+        resource_id = connection.execute("SELECT id FROM resources LIMIT 1").fetchone()[
+            0
+        ]
+    for action, disposition in (("open", "inline"), ("download", "attachment")):
+        response = web_client.get(f"/resources/{resource_id}/{action}")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert response.headers["content-disposition"].startswith(disposition)
+        assert response.headers["content-security-policy"] == CONTENT_SECURITY_POLICY
+        assert response.headers["x-content-type-options"] == "nosniff"
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/docs/oauth2-redirect"])
+def test_framework_documentation_keeps_its_existing_asset_policy(web_client, path):
+    response = web_client.get(path)
+    assert response.status_code == 200
+    assert "content-security-policy" not in response.headers
+    assert response.headers["x-content-type-options"] == "nosniff"
 
 
 @pytest.fixture
@@ -33,14 +137,14 @@ def web_client(tmp_path: Path) -> TestClient:
     (library / "Empty Game").mkdir()
 
     app = create_app(
-        Settings(library_path=library, data_path=data),
+        Settings(library_path=library, data_path=data, allowed_hosts=("testserver",)),
         BuildInfo(
             version="0.2.0-beta.1",
             revision="abc1234",
             build_date="2026-09-01",
         ),
     )
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         yield client
 
 
@@ -86,9 +190,11 @@ def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
     data = tmp_path / "data"
     library.mkdir()
     data.mkdir()
-    app = create_app(Settings(library_path=library, data_path=data))
+    app = create_app(
+        Settings(library_path=library, data_path=data, allowed_hosts=("testserver",))
+    )
 
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         response = client.get("/")
 
     assert response.status_code == 200
@@ -168,9 +274,11 @@ def test_settings_show_bgg_configuration_without_exposing_token(
     )
     response = web_client.get("/settings")
     assert "private-test-token" not in response.text
+    assert "Select the region (e.g. America/Chicago)" in response.text
     expected = (
         "Configured — approval/access not verified."
-        if configured else "Disabled — no token configured."
+        if configured
+        else "Disabled — no token configured."
     )
     assert expected in response.text
 
@@ -215,9 +323,7 @@ def test_operator_can_search_select_change_and_unlink_bgg_game(
     )
     web_client.app.state.bgg_client_factory = lambda _token: client
 
-    results = web_client.post(
-        f"/games/{game_id}/bgg/find", data={"query": "Farkle"}
-    )
+    results = web_client.post(f"/games/{game_id}/bgg/find", data={"query": "Farkle"})
     assert results.status_code == 200
     assert "Choose the correct game" in results.text
     assert "Farkle Flip" in results.text
@@ -241,9 +347,7 @@ def test_operator_can_search_select_change_and_unlink_bgg_game(
     assert "Unlink BGG game" in linked_page.text
     assert "Search BoardGameGeek" in linked_page.text
 
-    unlinked = web_client.post(
-        f"/games/{game_id}/bgg/unlink", follow_redirects=False
-    )
+    unlinked = web_client.post(f"/games/{game_id}/bgg/unlink", follow_redirects=False)
     assert unlinked.status_code == 303
     assert get_bgg_association(web_client.app.state.database, game_id) is None
 
@@ -261,9 +365,7 @@ def test_operator_can_retry_and_disable_bgg_lookup(
     )
     web_client.app.state.bgg_client_factory = lambda _token: client
 
-    retried = web_client.post(
-        f"/games/{game_id}/bgg/retry", follow_redirects=False
-    )
+    retried = web_client.post(f"/games/{game_id}/bgg/retry", follow_redirects=False)
     assert retried.headers["location"].endswith("bgg_status=matched")
     assert client.searches == ["Farkle"]
 
@@ -293,9 +395,7 @@ def test_bgg_search_failure_does_not_affect_local_game(
         error=BggUnavailableError("offline")
     )
 
-    response = web_client.post(
-        f"/games/{game_id}/bgg/find", data={"query": "Farkle"}
-    )
+    response = web_client.post(f"/games/{game_id}/bgg/find", data={"query": "Farkle"})
 
     assert response.status_code == 200
     assert "could not complete the request" in response.text
@@ -499,9 +599,7 @@ def test_reprint_landing_page_requires_a_deliberate_resource_action(
 ) -> None:
     game_ids = _game_ids(web_client)
     detail = web_client.get(f"/games/{game_ids[1]}")
-    resource_id = int(
-        re.search(r"/resources/(\d+)/open", detail.text).group(1)
-    )
+    resource_id = int(re.search(r"/resources/(\d+)/open", detail.text).group(1))
 
     landing = web_client.get(f"/r/{resource_id}")
 
@@ -515,9 +613,10 @@ def test_reprint_landing_page_requires_a_deliberate_resource_action(
     assert f"/resources/{resource_id}/download" in landing.text
     assert f"/resources/{resource_id}/forge-reprint" not in landing.text
     with web_client.app.state.database.connect() as connection:
-        assert connection.execute(
-            "SELECT COUNT(*) FROM resource_activity"
-        ).fetchone()[0] == 0
+        assert (
+            connection.execute("SELECT COUNT(*) FROM resource_activity").fetchone()[0]
+            == 0
+        )
 
 
 def test_forge_reprint_is_generated_and_served_without_changing_source(
@@ -536,18 +635,17 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
     document.close()
     source_bytes = source.read_bytes()
     app = create_app(
-        Settings(
-            library_path=library,
-            data_path=data,
-            base_url="https://forge.example.test",
-        )
+            Settings(
+                library_path=library,
+                data_path=data,
+                base_url="https://forge.example.test",
+                allowed_hosts=("testserver",),
+            )
     )
 
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         with client.app.state.database.connect() as connection:
-            resource_id = connection.execute(
-                "SELECT id FROM resources"
-            ).fetchone()[0]
+            resource_id = connection.execute("SELECT id FROM resources").fetchone()[0]
 
         landing = client.get(f"/r/{resource_id}")
         normalized_landing = " ".join(landing.text.split())
@@ -557,6 +655,12 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
         assert "library operator is responsible" in normalized_landing
         assert f"/resources/{resource_id}/forge-reprint" in landing.text
         assert "View FORGE Reprint" not in landing.text
+        missing_open = client.get(f"/resources/{resource_id}/forge-reprint/open")
+        missing_download = client.get(
+            f"/resources/{resource_id}/forge-reprint/download"
+        )
+        assert missing_open.status_code == missing_download.status_code == 409
+        assert not tuple((data / "generated").glob("*.pdf"))
 
         generated = client.post(
             f"/resources/{resource_id}/forge-reprint",
@@ -596,16 +700,15 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
         )
 
         opened = client.get(f"/resources/{resource_id}/forge-reprint/open")
-        downloaded = client.get(
-            f"/resources/{resource_id}/forge-reprint/download"
-        )
+        downloaded = client.get(f"/resources/{resource_id}/forge-reprint/download")
 
     assert source.read_bytes() == source_bytes
     assert opened.status_code == downloaded.status_code == 200
     assert opened.headers["content-disposition"].startswith("inline;")
     assert downloaded.headers["content-disposition"].startswith("attachment;")
-    assert "FORGE%20Reprint%20-%20Farkle%20-%20Score%20Sheet.pdf" in (
-        opened.headers["content-disposition"]
+    assert (
+        "FORGE%20Reprint%20-%20Farkle%20-%20Score%20Sheet.pdf"
+        in (opened.headers["content-disposition"])
     )
     with fitz.open(stream=opened.content, filetype="pdf") as output:
         assert output.page_count == 1
@@ -623,9 +726,7 @@ def test_reprint_url_survives_display_title_changes(
 ) -> None:
     game_ids = _game_ids(web_client)
     detail = web_client.get(f"/games/{game_ids[1]}")
-    resource_id = int(
-        re.search(r"/resources/(\d+)/open", detail.text).group(1)
-    )
+    resource_id = int(re.search(r"/resources/(\d+)/open", detail.text).group(1))
     reprint_path = f"/r/{resource_id}"
 
     web_client.post(
@@ -648,9 +749,7 @@ def test_reprint_landing_page_reports_missing_source(
 ) -> None:
     game_ids = _game_ids(web_client)
     detail = web_client.get(f"/games/{game_ids[1]}")
-    resource_id = int(
-        re.search(r"/resources/(\d+)/open", detail.text).group(1)
-    )
+    resource_id = int(re.search(r"/resources/(\d+)/open", detail.text).group(1))
     with web_client.app.state.database.connect() as connection:
         relative_path = connection.execute(
             "SELECT relative_path FROM resources WHERE id = ?", (resource_id,)
@@ -699,13 +798,13 @@ def test_resource_preview_prevents_stale_browser_cache(tmp_path: Path) -> None:
     page.insert_text((72, 72), "Invented rules")
     document.save(source)
     document.close()
-    app = create_app(Settings(library_path=library, data_path=data))
+    app = create_app(
+        Settings(library_path=library, data_path=data, allowed_hosts=("testserver",))
+    )
 
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         with client.app.state.database.connect() as connection:
-            resource_id = connection.execute(
-                "SELECT id FROM resources"
-            ).fetchone()[0]
+            resource_id = connection.execute("SELECT id FROM resources").fetchone()[0]
         response = client.get(f"/resources/{resource_id}/preview")
 
     assert response.status_code == 200
@@ -726,9 +825,7 @@ def test_resource_can_be_downloaded(web_client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.headers["content-disposition"].startswith("attachment;")
-    assert "Farkle%20-%20Rules.pdf" in (
-        response.headers["content-disposition"]
-    )
+    assert "Farkle%20-%20Rules.pdf" in (response.headers["content-disposition"])
 
 
 def test_resource_actions_are_listed_in_history(web_client: TestClient) -> None:
@@ -799,6 +896,8 @@ def test_successful_resource_use_is_shown_on_recent_page(
     recent = web_client.get("/recent")
     assert "Recently used" not in refreshed_home.text
     assert "Recently used" in recent.text
+    assert "Change how many resources appear here in" in recent.text
+    assert 'href="http://testserver/settings#recent-limit"' in recent.text
     assert f'href="http://testserver/r/{resource_id}"' in recent.text
     with web_client.app.state.database.connect() as connection:
         usage = connection.execute(
@@ -832,9 +931,7 @@ def test_missing_resource_is_not_recorded_as_used(
     assert use_count == 0
 
 
-def test_removed_resource_returns_gone(
-    web_client: TestClient, tmp_path: Path
-) -> None:
+def test_removed_resource_returns_gone(web_client: TestClient, tmp_path: Path) -> None:
     game_ids = _game_ids(web_client)
     detail = web_client.get(f"/games/{game_ids[1]}")
     view_path = re.search(
@@ -999,21 +1096,16 @@ def test_unpin_keeps_favorite_but_unfavorite_also_unpins(
     game_ids = _game_ids(web_client)
     detail = web_client.get(f"/games/{game_ids[1]}")
     resource_id = int(
-        re.search(r'action="(?:http://testserver)?/resources/(\d+)/pin"', detail.text)
-        .group(1)
+        re.search(
+            r'action="(?:http://testserver)?/resources/(\d+)/pin"', detail.text
+        ).group(1)
     )
-    web_client.post(
-        f"/resources/{resource_id}/pin", data={"return_to": "pinned"}
-    )
-    web_client.post(
-        f"/resources/{resource_id}/pin", data={"return_to": "pinned"}
-    )
+    web_client.post(f"/resources/{resource_id}/pin", data={"return_to": "pinned"})
+    web_client.post(f"/resources/{resource_id}/pin", data={"return_to": "pinned"})
     assert "Farkle" in web_client.get("/favorites").text
     assert "Nothing pinned yet" in web_client.get("/pinned").text
 
-    web_client.post(
-        f"/resources/{resource_id}/pin", data={"return_to": "game"}
-    )
+    web_client.post(f"/resources/{resource_id}/pin", data={"return_to": "game"})
     web_client.post(f"/resources/{resource_id}/favorite")
     assert "Nothing pinned yet" in web_client.get("/pinned").text
     assert "No favorites yet" in web_client.get("/favorites").text
@@ -1042,9 +1134,7 @@ def test_pin_limit_rejects_eleventh_resource(web_client: TestClient) -> None:
         ]
 
     for resource_id in resource_ids[:10]:
-        web_client.post(
-            f"/resources/{resource_id}/pin", data={"return_to": "pinned"}
-        )
+        web_client.post(f"/resources/{resource_id}/pin", data={"return_to": "pinned"})
     rejected = web_client.post(
         f"/resources/{resource_ids[10]}/pin",
         data={"return_to": "pinned"},
@@ -1055,9 +1145,12 @@ def test_pin_limit_rejects_eleventh_resource(web_client: TestClient) -> None:
     limit_page = web_client.get(rejected.headers["location"])
     assert "Pinned is full" in limit_page.text
     with web_client.app.state.database.connect() as connection:
-        assert connection.execute(
-            "SELECT COUNT(*) FROM resources WHERE is_pinned = 1"
-        ).fetchone()[0] == 10
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM resources WHERE is_pinned = 1"
+            ).fetchone()[0]
+            == 10
+        )
 
 
 def test_resource_display_metadata_can_be_edited_and_reset(
@@ -1168,18 +1261,20 @@ def test_multiple_game_categories_can_be_assigned_and_survive_rescan(
     )
 
     assert saved.status_code == 303
-    assert "Board, Card · 2 printable resources" in web_client.get(
-        saved.headers["location"]
-    ).text
+    assert (
+        "Board, Card · 2 printable resources"
+        in web_client.get(saved.headers["location"]).text
+    )
     categorized_home = web_client.get("/")
     assert "Farkle" not in categorized_home.text
     assert "1 game" in categorized_home.text
     assert "Farkle" in web_client.get(f"/categories/{board_id}").text
     assert "Farkle" in web_client.get(f"/categories/{card_id}").text
     web_client.post("/rescan")
-    assert "Board, Card · 2 printable resources" in web_client.get(
-        f"/games/{game_id}"
-    ).text
+    assert (
+        "Board, Card · 2 printable resources"
+        in web_client.get(f"/games/{game_id}").text
+    )
 
 
 def test_game_edit_rejects_unknown_category(web_client: TestClient) -> None:

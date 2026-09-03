@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http.client import HTTPResponse
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -60,7 +60,7 @@ Opener = Callable[..., HTTPResponse]
 class BggClient:
     """Make authenticated BGG requests without leaking transport details."""
 
-    token: str
+    token: str = field(repr=False)
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     opener: Opener = urlopen
 
@@ -75,9 +75,7 @@ class BggClient:
         query = name.strip()
         if not query:
             raise ValueError("BoardGameGeek search name must not be empty.")
-        root = self._request_xml(
-            "search", {"query": query, "type": THING_TYPES}
-        )
+        root = self._request_xml("search", {"query": query, "type": THING_TYPES})
         results: list[BggSearchResult] = []
         for item in root.findall("item")[:MAX_SEARCH_RESULTS]:
             item_id = _positive_int(item.get("id"))
@@ -145,9 +143,7 @@ class BggClient:
                 f"BoardGameGeek request failed with status {error.code}."
             ) from error
         except (TimeoutError, URLError, OSError) as error:
-            raise BggUnavailableError(
-                "BoardGameGeek could not be reached."
-            ) from error
+            raise BggUnavailableError("BoardGameGeek could not be reached.") from error
         if len(content) > MAX_RESPONSE_BYTES:
             raise BggResponseError("BoardGameGeek response exceeded the size limit.")
         try:

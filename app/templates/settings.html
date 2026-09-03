@@ -39,7 +39,7 @@
           <option value="{{ timezone_name }}"{% if timezone_name == preferences.timezone_name %} selected{% endif %}>{{ timezone_name }}</option>
         {% endfor %}
       </select>
-      <small>Select the region where this library is used. Daylight-saving changes are applied automatically.</small>
+      <small>Select the region (e.g. America/Chicago) where this library is used. Daylight-saving changes are applied automatically.</small>
       <button type="submit">Save display preferences</button>
     </form>
     <form action="{{ url_for('settings_footer_reset') }}" method="post">

@@ -339,3 +339,38 @@ retry the fast-forward pull.
 - Store and print only content the library operator is authorized to use.
 
 For beta workflow testing, continue with [the beta testing guide](BETA_TESTING.md).
+
+## Browser submission protection
+
+FORGE rejects state-changing requests unless their Origin matches the requested
+scheme, hostname, and port. If Origin is absent, a matching Referer is required;
+missing or invalid values receive 403. This protects browser submissions, not
+access by untrusted clients, and does not replace authentication.
+
+Reverse proxies must preserve the public Host and convey the external scheme
+through the server's trusted-proxy configuration. Do not trust forwarded headers
+from arbitrary clients. FORGE does not use raw X-Forwarded-Host as an allowlist.
+The QR base URL is not an alternate allowed origin. Use the same address to open
+the form and submit it. Scripted mutations must supply their intended Origin.
+Referrer information is retained for same-origin requests only and is not sent
+to other origins. GET-based viewing and QR navigation remain available without
+Origin headers; protections for expensive GET operations are a separate review.
+
+Viewing and downloading an existing FORGE Reprint never creates a missing
+generated file. Generate or regenerate it from its FORGE Reprint page first.
+Original PDF view/download intentionally records Recent and History activity.
+Preview requests may populate their bounded cache; both are expected product
+behavior rather than administrative changes.
+
+FORGE accepts `localhost`, `127.0.0.1`, `::1`, and the hostname from
+`FORGE_GAMESHEETS_BASE_URL` automatically. Add other exact LAN or proxy names as
+a comma-separated `FORGE_GAMESHEETS_ALLOWED_HOSTS` value in `.env`, without
+schemes, ports, paths, or wildcard characters. For example:
+
+```dotenv
+FORGE_GAMESHEETS_ALLOWED_HOSTS=docker-test.nate,192.168.1.7
+```
+
+Requests using any other or malformed Host header are rejected. This is
+defense-in-depth against unexpected hostnames; it is not authentication and
+does not make direct Internet exposure appropriate.

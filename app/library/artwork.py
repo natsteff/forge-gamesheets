@@ -9,6 +9,7 @@ from uuid import uuid4
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.library.files import ResourceFileMissing, UnsafeResourcePath
+from app.library.processing_limits import validate_image_pixels
 from app.library.repository import GameArtwork
 
 MAX_ARTWORK_BYTES = 25 * 1024 * 1024
@@ -36,13 +37,19 @@ def cached_game_artwork(
         with Image.open(source) as image:
             if image.format not in {"JPEG", "PNG", "WEBP"}:
                 raise UnsafeResourcePath("Unsupported game artwork format.")
+            validate_image_pixels(*image.size)
             image.load()
             thumbnail = ImageOps.fit(
                 image.convert("RGBA"), THUMBNAIL_SIZE, method=Image.Resampling.LANCZOS
             )
             thumbnail.save(temporary_path, format="WEBP", quality=88, method=6)
         temporary_path.replace(cache_path)
-    except (Image.DecompressionBombError, UnidentifiedImageError, OSError) as error:
+    except (
+        Image.DecompressionBombError,
+        UnidentifiedImageError,
+        OSError,
+        ValueError,
+    ) as error:
         temporary_path.unlink(missing_ok=True)
         raise UnsafeResourcePath("Invalid game artwork image.") from error
     return cache_path
@@ -61,13 +68,19 @@ def save_uploaded_artwork(data_path: Path, game_id: int, content: bytes) -> Game
         with Image.open(BytesIO(content)) as image:
             if image.format not in {"JPEG", "PNG", "WEBP"}:
                 raise UnsafeResourcePath("Unsupported uploaded artwork format.")
+            validate_image_pixels(*image.size)
             image.load()
             normalized = ImageOps.fit(
                 image.convert("RGBA"), UPLOAD_SIZE, method=Image.Resampling.LANCZOS
             )
             normalized.save(temporary_path, format="WEBP", quality=90, method=6)
         temporary_path.replace(destination)
-    except (Image.DecompressionBombError, UnidentifiedImageError, OSError) as error:
+    except (
+        Image.DecompressionBombError,
+        UnidentifiedImageError,
+        OSError,
+        ValueError,
+    ) as error:
         temporary_path.unlink(missing_ok=True)
         raise UnsafeResourcePath("Invalid uploaded artwork image.") from error
     metadata = destination.stat()
