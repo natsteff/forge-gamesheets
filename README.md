@@ -225,7 +225,9 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
 - Production deployment and public network exposure have not been approved.
 
 See the [Phase 1.5 external beta release checklist](docs/PHASE1_5_RELEASE_CHECKLIST.md)
-for current prerelease readiness, the historical
+for current prerelease readiness, the
+[Phase 1.5 beta release notes](docs/PHASE1_5_BETA_RELEASE_NOTES.md) for the
+next prerelease summary, the historical
 [Phase 1 release checklist](docs/PHASE1_RELEASE_CHECKLIST.md),
 [beta release notes](docs/PHASE1_BETA_RELEASE_NOTES.md) for the timeline-free
 Phase 1 summary, and

@@ -161,8 +161,8 @@ Begin from a working older checkout with populated test data.
 - [ ] The testing guide includes FORGE Reprint and build-identification checks.
 - [ ] Testers receive the security warning and supported access models.
 - [ ] Testers receive an obvious GitHub issue or other approved reporting path.
-- [ ] Known limitations distinguish defects from intentionally deferred Phase 2
-  generation features.
+- [ ] Known limitations distinguish defects from intentionally deferred BGG and
+  FGS features.
 - [ ] The owner approves the final version, tag, release title, and release
   notes.
 
