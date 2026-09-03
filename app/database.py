@@ -298,6 +298,58 @@ MIGRATIONS = (
             """,
         ),
     ),
+    Migration(
+        version=14,
+        name="add_bgg_game_associations",
+        statements=(
+            """
+            CREATE TABLE game_bgg_associations (
+                game_id INTEGER PRIMARY KEY
+                    REFERENCES games(id) ON DELETE CASCADE,
+                lookup_enabled INTEGER NOT NULL DEFAULT 1
+                    CHECK (lookup_enabled IN (0, 1)),
+                match_state TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (match_state IN (
+                        'pending', 'matched', 'manual', 'ambiguous',
+                        'unmatched', 'failed'
+                    )),
+                bgg_id INTEGER CHECK (bgg_id IS NULL OR bgg_id > 0),
+                match_confidence REAL CHECK (
+                    match_confidence IS NULL OR
+                    match_confidence BETWEEN 0.0 AND 1.0
+                ),
+                cached_name TEXT,
+                year_published INTEGER CHECK (
+                    year_published IS NULL OR
+                    year_published BETWEEN 1 AND 9999
+                ),
+                image_url TEXT,
+                thumbnail_url TEXT,
+                source_title TEXT NOT NULL,
+                failure_code TEXT,
+                last_lookup_at TEXT,
+                created_at TEXT NOT NULL DEFAULT (
+                    strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                ),
+                updated_at TEXT NOT NULL DEFAULT (
+                    strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                ),
+                CHECK (
+                    (match_state IN ('matched', 'manual') AND bgg_id IS NOT NULL)
+                    OR match_state NOT IN ('matched', 'manual')
+                )
+            )
+            """,
+            """
+            CREATE INDEX game_bgg_associations_state_idx
+            ON game_bgg_associations(match_state)
+            """,
+            """
+            CREATE INDEX game_bgg_associations_bgg_id_idx
+            ON game_bgg_associations(bgg_id) WHERE bgg_id IS NOT NULL
+            """,
+        ),
+    ),
 )
 
 

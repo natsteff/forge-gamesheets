@@ -10,14 +10,26 @@ from app.bgg.client import (
     BggSearchResult,
     BggUnavailableError,
 )
+from app.bgg.repository import (
+    BggAssociation,
+    BggMatchState,
+    delete_bgg_association,
+    get_bgg_association,
+    save_bgg_association,
+)
 
 __all__ = (
     "BggApiError",
+    "BggAssociation",
     "BggAuthenticationError",
     "BggClient",
     "BggGame",
+    "BggMatchState",
     "BggRateLimitError",
     "BggResponseError",
     "BggSearchResult",
     "BggUnavailableError",
+    "delete_bgg_association",
+    "get_bgg_association",
+    "save_bgg_association",
 )
