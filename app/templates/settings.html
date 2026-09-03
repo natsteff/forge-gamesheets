@@ -78,6 +78,18 @@
     <p class="settings-note"><strong>Uncategorized</strong> is automatic and cannot be renamed or deleted.</p>
   </section>
 
+  <section class="settings-section">
+    <p class="eyebrow">Optional integration</p>
+    <h2>BoardGameGeek</h2>
+    {% if bgg_configured %}
+      <p><strong>Configured — approval/access not verified.</strong></p>
+      <p class="settings-note">An application token is configured on this server. This does not confirm BGG approval or working API access.</p>
+    {% else %}
+      <p><strong>Disabled — no token configured.</strong></p>
+      <p class="settings-note">Local games and PDFs work without BGG. Integration rollout is on hold pending application approval and token-distribution guidance.</p>
+    {% endif %}
+  </section>
+
   <section class="settings-section build-information">
     <div class="settings-heading">
       <div>

@@ -269,10 +269,9 @@ for self-hosted installations. Retain the existing optional client, association
 storage, matching service, and manual workflow; do not remove stored data or
 rewrite migrations. No token is bundled with the application.
 
-The next integration housekeeping task is to verify all BGG entry points are
-gated by token configuration, hide unavailable game-page controls, and show
-clear integration status in Settings. A configured token must not imply that
-approval or working access has been verified. These UI changes remain pending.
+Integration housekeeping is implemented: BGG actions are gated by token
+configuration, unavailable game-page controls are hidden, and Settings shows
+configuration status without claiming approval or verified working access.
 FGS planning does not require a BGG ID, but moving into Phase 3 remains an
 explicit scope decision rather than an automatic consequence of this pause.
 

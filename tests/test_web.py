@@ -152,10 +152,51 @@ def test_game_edit_explains_unconfigured_bgg_matching(
     response = web_client.get(f"/games/{game_id}/edit")
 
     assert response.status_code == 200
-    assert "BoardGameGeek" in response.text
-    assert "application token" in response.text
+    assert "bgg-editor" not in response.text
+    assert "application token" not in response.text
     assert "Search BoardGameGeek" not in response.text
-    assert "never changes your game folder or PDFs" in response.text
+    assert "Choose a custom image" in response.text
+
+
+@pytest.mark.parametrize("configured", [False, True])
+def test_settings_show_bgg_configuration_without_exposing_token(
+    web_client: TestClient, configured: bool
+) -> None:
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings,
+        bgg_api_token="private-test-token" if configured else None,
+    )
+    response = web_client.get("/settings")
+    assert "private-test-token" not in response.text
+    expected = (
+        "Configured — approval/access not verified."
+        if configured else "Disabled — no token configured."
+    )
+    assert expected in response.text
+
+
+@pytest.mark.parametrize("action", ["find", "select", "retry", "unlink", "lookup"])
+def test_bgg_actions_without_token_do_not_call_client_or_change_state(
+    web_client: TestClient, action: str
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+
+    def forbidden_client(_token: str) -> None:
+        pytest.fail("Disabled integration must not create an API client")
+
+    web_client.app.state.bgg_client_factory = forbidden_client
+    response = web_client.post(
+        f"/games/{game_id}/bgg/{action}",
+        data={"query": "Farkle", "bgg_id": "822", "enabled": "1"},
+        follow_redirects=False,
+    )
+    if action == "find":
+        assert response.status_code == 200
+        assert "bgg-editor" not in response.text
+    else:
+        assert response.status_code == 303
+        assert "not-configured" in response.headers["location"]
+    assert get_bgg_association(web_client.app.state.database, game_id) is None
 
 
 def test_operator_can_search_select_change_and_unlink_bgg_game(

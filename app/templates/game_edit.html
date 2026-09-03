@@ -37,6 +37,7 @@
     {% endif %}
   </section>
 
+  {% if bgg_configured %}
   <section class="edit-panel bgg-editor">
     <p class="eyebrow">Optional enrichment</p>
     <h2>BoardGameGeek</h2>
@@ -125,6 +126,7 @@
     </form>
     <p class="settings-note">BGG matching is optional and never changes your game folder or PDFs. <a href="https://boardgamegeek.com" target="_blank" rel="noopener">Powered by BoardGameGeek</a></p>
   </section>
+  {% endif %}
 
   <section class="edit-panel artwork-editor">
     <p class="eyebrow">Game artwork</p>

@@ -267,6 +267,7 @@ def settings_home(request: Request) -> HTMLResponse:
             "max_category_name_length": MAX_GAME_CATEGORY_NAME_LENGTH,
             "timezone_names": _timezone_names(),
             "build_info": request.app.state.build_info,
+            "bgg_configured": bool(request.app.state.settings.bgg_api_token),
         },
     )
 
@@ -782,6 +783,8 @@ def game_bgg_unlink(request: Request, game_id: int) -> RedirectResponse:
     """Remove BGG state without changing the local game or its files."""
     if get_game(_database(request), game_id) is None:
         raise HTTPException(status_code=404, detail="Game not found")
+    if not request.app.state.settings.bgg_api_token:
+        return _game_edit_redirect(game_id, bgg_error="not-configured")
     delete_bgg_association(_database(request), game_id)
     return _game_edit_redirect(game_id, bgg_status="unlinked")
 
@@ -795,6 +798,8 @@ async def game_bgg_lookup_toggle(
     request: Request, game_id: int
 ) -> RedirectResponse:
     """Enable or disable future BGG lookup while preserving cached state."""
+    if not request.app.state.settings.bgg_api_token:
+        return _game_edit_redirect(game_id, bgg_error="not-configured")
     game = get_game(_database(request), game_id)
     if game is None:
         raise HTTPException(status_code=404, detail="Game not found")
