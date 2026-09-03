@@ -50,6 +50,10 @@ will provide one browsable, searchable place to organize and print them.
 10. **Confirmed:** Work should proceed in small, tested Git commits.
 11. **Confirmed:** Forge GameSheets remains useful from locally cached state
     when optional external services are unavailable.
+12. **Confirmed:** Security is a primary release requirement. Perform an
+    evidence-based OWASP ASVS self-assessment as a future action and before
+    every major release; remind the owner to arrange an independent review
+    at those checkpoints. See [security planning](docs/SECURITY_PLAN.md).
 
 ## 4. Filesystem convention
 
@@ -371,6 +375,13 @@ The complete approved boundary is recorded in
 
 ## 10. Phase 4 — design and advanced workflows
 
+- **Future consideration, owner approval required:** Authentication, roles,
+  and narrowly scoped shareable QR access. Review the plan with the owner
+  before implementation; see [security planning](docs/SECURITY_PLAN.md).
+- **Future consideration, owner approval required:** Web-based creation of
+  game entries and single-PDF uploads as a convenience alongside filesystem
+  bulk loading. Review security and mount permissions before implementation;
+  see [security planning](docs/SECURITY_PLAN.md).
 - **Future idea:** Visual FGS designer.
 - **Future idea:** Multi-document game-night packs.
 - **Future idea:** Advanced layout and print optimization.

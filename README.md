@@ -284,6 +284,24 @@ Phase 1 summary, and
 [browser PDF printing](docs/decisions/001-browser-pdf-printing.md) for the
 print-history decision.
 
+## Development and security
+
+FORGE GAMESHEETS is developed with assistance from OpenAI Codex, guided by a
+maintainer with professional experience in software test management and
+security roles. Development includes automated testing and incremental
+changes, with OWASP ASVS-based security reviews planned for major releases.
+The source is openly available for inspection and contributions.
+
+FORGE is designed for self-hosted use on localhost or a trusted private
+network. For remote access, use a VPN or an appropriately secured,
+authenticated reverse proxy rather than exposing the application directly to
+the Internet. Docker provides isolation, but is not a complete security
+boundary.
+
+Security is a shared responsibility: maintainers work to improve application
+safety, while operators manage secure deployment, updates, access, and library
+content. Testing and review reduce risk but cannot guarantee security.
+
 ## License
 
 Forge GameSheets is available under the [MIT License](LICENSE).
