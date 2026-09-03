@@ -35,13 +35,80 @@ trusted LAN, or an appropriately protected proxy/VPN, not direct public access.
 The reminder is tied to release work, not a scheduled notification. Future
 release checklists should include both the assessment and owner reminder.
 
+The container publication workflow must run tests, lint, a Python dependency
+audit, and a container vulnerability scan before authenticating to the registry
+and publishing an image. Known fixed critical container vulnerabilities block
+publication. High and unfixed critical findings remain visible and require
+owner review; a non-blocking scanner result is not automatic acceptance. Record
+exceptions explicitly rather than maintaining an unexplained ignore list.
+
 Reference: [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/).
+
+## Secondary review and remaining hardening
+
+The 2026-09-03 owner-authorized secondary AI pass is recorded in
+[the review follow-up](SECURITY_REVIEW_FOLLOWUP.md). This is a separate AI review,
+not third-party certification or a substitute for a human review.
+
+Dependency policy: every publication must audit resolved Python dependencies and
+scan the exact runtime image that will be pushed. Production images exclude
+development tools/tests; local builds retain a development target. Do not treat
+version ranges as reproducible builds. Before the next major release, review a
+lock/update strategy, digest-pinned base images, and immutable Action references
+with a deliberate refresh process. Do not freeze old vulnerable dependencies
+merely to obtain repeatability.
+
+Remaining decisions/fixes, in priority order:
+
+1. Rendering concurrency and derived-write/storage budgets are now implemented
+   in the pending change set (see deployment guide). Still review isolated,
+   killable native-parser execution and a per-client rate policy; serialization
+   alone does not stop repeated requests monopolizing the rendering slot.
+2. Authenticated BGG redirects are now rejected in the pending change set,
+   including same-origin redirects. Synthetic transport regression tests verify
+   that no redirect destination is contacted and Authorization is not copied.
+   BGG rollout remains paused; no token-distribution policy has been approved.
+3. Verify an actual protected-proxy deployment when one is used; current tests
+   cover trusted versus untrusted forwarded scheme, not a live TLS perimeter.
+4. Add user-attributed audit events with authentication/roles. Current rotating
+   access/error logs are operational evidence only; never log tokens or bodies.
 
 ## Future login, roles, and QR sharing — review with owner first
 
 Before implementation, revisit this plan with the owner and obtain explicit
 approval for access models, role boundaries, and deployment scope. Reader,
-librarian, and administrator are candidate roles, not a final design.
+Contributor (previously called Librarian), and Admin are proposed account roles;
+their complete permission matrix is not finalized. QR guest access is a fourth
+access category, not an account role: it has no username/password and is granted
+only by possession of a valid resource-scoped sharing link.
+
+### Planned QR guest setting
+
+- **Default: allow QR guest access.** In the future authenticated system, a
+  valid secure QR link allows anonymous viewing of its particular shared
+  resource and approved PDF delivery only. It does not grant Reader access to
+  the library or permission to edit, upload, or generate/regenerate content.
+- **Restrict: require sign-in.** An administrator can disable QR guest access;
+  QR visitors then require an authenticated Reader, Contributor, or Admin with
+  permission to view the resource. There is no shared "Reader" password.
+- Apply the current setting on every shared-page, PDF, preview, and download
+  request, not just when creating a QR code. Disabling guest access must also
+  restrict previously printed secure links and direct file URLs. Previously
+  downloaded files cannot be recalled.
+- After sign-in, return to the intended resource using a validated local
+  destination; do not permit arbitrary redirect URLs. Re-enabling guest access
+  must not revive revoked sharing credentials.
+- The FORGE Reprint page should explain the active access mode and that the
+  administrator may change it later. Keep this notice off the printed copy.
+- Test both modes, role permissions, direct endpoint access, cross-resource
+  attempts, revocation, cache behavior, and setting changes on existing links.
+  Explicitly decide migration of today's numeric links; never treat guessing a
+  resource ID as possession of a secure sharing credential.
+
+This is an approved planning requirement, not an implemented setting. Forge
+currently has no built-in login or QR-only access boundary. External proxy
+authentication may still require sign-in regardless of the future application
+setting; proxy routing must be reviewed without exposing unrelated endpoints.
 
 The owner's preferred QR experience is access without login for the particular
 shared resource. Treat this as deliberate bearer-link sharing, not a general
@@ -49,7 +116,8 @@ authentication bypass:
 
 - Use an unguessable, resource-scoped sharing credential; a sequential resource
   ID alone must not grant anonymous access in an authenticated installation.
-- Anyone possessing or receiving the link/QR may access its approved content.
+- When guest access is allowed, anyone possessing or receiving a valid link/QR
+  may access its approved content.
   The link does not itself make a private network reachable.
 - Authorize every destination, including PDF delivery, previews, originals,
   and generated output. Decide explicitly which variants the share permits.

@@ -7,10 +7,13 @@ a separate host Python environment is optional.
 ## Start the application
 
 ```sh
-docker compose up --build
+./scripts/build
+docker compose up -d
 ```
 
-Open <http://localhost:8000>. Stop the attached service with `Ctrl+C`.
+Open <http://localhost:8000>. Stop the service with `docker compose down`.
+The build script selects the development stage, including test tools; published
+images select the runtime stage without development dependencies or tests.
 
 The Compose service mounts:
 
@@ -21,7 +24,7 @@ Both directories must exist. Their contents are ignored by Git.
 
 ## Run checks
 
-Stop the attached application first, then run:
+From the repository directory, run:
 
 ```sh
 ./scripts/build
@@ -31,6 +34,11 @@ docker compose run --rm app ruff check .
 
 Run focused tests while developing when useful, but run the full suite and lint
 checks before each completed milestone.
+
+The hardened Compose scratch mount may prohibit execution. The two build-script
+tests detect that restriction and skip there; they run on the host/CI where
+their temporary fake command-line tools can execute. Do not weaken production
+mount settings just to run those tests.
 
 ## Database migrations
 

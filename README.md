@@ -244,7 +244,9 @@ Build identity overrides for release tooling are `FORGE_GAMESHEETS_VERSION`,
 `FORGE_GAMESHEETS_REVISION`, and `FORGE_GAMESHEETS_BUILD_DATE`. They affect image
 builds, not the identity of an already-published image.
 
-Run the automated checks in the container:
+The build script selects the development image, which includes test tools.
+Published images use the smaller runtime stage and do not include those tools.
+Run the automated checks in the locally built development container:
 
 ```sh
 docker compose run --rm app pytest
@@ -264,6 +266,12 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
   pages, and 200 inches in either page dimension. Larger source PDFs remain
   available for original viewing and download but are not processed.
 - Game artwork is limited to 25 MB and 40 megapixels before normalization.
+  Submissions have a 26 MiB total request limit (including form overhead), a
+  30-second receive timeout, and at most four concurrent submissions per process.
+- PDF rendering is serialized. Reprints are capped at 250 MiB and previews at
+  1 MiB; their combined managed storage budget is 5 GiB. New rendering requires
+  free space for the maximum output plus 100 MiB of headroom. Existing copies
+  remain usable when those limits prevent new generation.
 - FORGE Reprint creates a marked derived copy but does not edit, combine, or
   replace source PDFs.
 - Game folders must currently be first-level children of the library root.

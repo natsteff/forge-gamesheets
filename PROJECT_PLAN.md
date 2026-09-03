@@ -378,6 +378,12 @@ The complete approved boundary is recorded in
 - **Future consideration, owner approval required:** Authentication, roles,
   and narrowly scoped shareable QR access. Review the plan with the owner
   before implementation; see [security planning](docs/SECURITY_PLAN.md).
+- **Confirmed planning requirement, not implemented:** Include QR guest access
+  alongside the proposed Admin, Contributor (previously Librarian), and Reader
+  account roles. QR guests have no account; a secure sharing link permits only
+  its specific resource. Plan an administrator-controlled QR guest setting,
+  default allow, with an option to require Reader-or-higher sign-in. This default
+  applies only to the future secure sharing design, not today's numeric links.
 - **Future consideration, owner approval required:** Web-based creation of
   game entries and single-PDF uploads as a convenience alongside filesystem
   bulk loading. Review security and mount permissions before implementation;

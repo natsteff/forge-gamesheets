@@ -5,6 +5,10 @@ Baseline: `bec06021e4d5dbdca93ddde0217b310538f6c8d0`, plus the uncommitted
 README, security-plan/agent-guidance, timezone-help, Recent-help, and associated
 test changes present during review. This is not a tagged release assessment.
 
+The original evidence below describes that baseline. Later fixes and the
+secondary review are tracked in [the follow-up](SECURITY_REVIEW_FOLLOWUP.md);
+do not interpret original finding text as a fresh assessment of current code.
+
 ## Scope and conclusion
 
 This is an initial, selected-control assessment using OWASP ASVS 5.0.0, not a

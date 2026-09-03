@@ -68,6 +68,21 @@ curl --retry 10 \
 
 Record the final test count in the release notes.
 
+### Published-container security gate
+
+- [ ] The GitHub publication workflow completes tests and lint before registry
+  login or image publication.
+- [ ] The Python dependency audit reports no known vulnerable installed
+  dependency; any exceptional finding has an explicit owner-approved treatment.
+- [ ] The container scan reports high and critical findings for review.
+- [ ] No fixed critical container vulnerability passes the blocking scan.
+- [ ] Review high findings and unfixed critical findings rather than treating a
+  non-blocking result as evidence that they are harmless.
+- [ ] Record the workflow run and scanner results with the release candidate.
+- [ ] Complete or refresh the applicable OWASP ASVS assessment and remind the
+  owner to arrange an independent review. Do not describe either as
+  certification.
+
 ## 3. Clean localhost installation
 
 Use a disposable checkout and invented or authorized sample PDFs. Do not reuse

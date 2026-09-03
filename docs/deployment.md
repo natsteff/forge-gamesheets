@@ -374,3 +374,54 @@ FORGE_GAMESHEETS_ALLOWED_HOSTS=docker-test.nate,192.168.1.7
 Requests using any other or malformed Host header are rejected. This is
 defense-in-depth against unexpected hostnames; it is not authentication and
 does not make direct Internet exposure appropriate.
+
+## Request limits, proxy trust, and logs
+
+Artwork still has a 25 MiB file limit. All mutating requests are capped at
+26 MiB including multipart overhead, before form parsing, even without a
+Content-Length header. Receiving a request has a 30-second timeout and four
+concurrent submissions are admitted per application process. Oversized requests
+receive 413, timed-out reception 408, and a busy server 503 with Retry-After.
+These ingress limits are separate from the PDF budgets below.
+Protected proxies should also impose suitable ingress limits and timeouts.
+
+When using an HTTPS reverse proxy, set
+`FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS` to the actual proxy IP or trusted network
+as seen by the container. The default `127.0.0.1` does not trust arbitrary LAN
+clients. Do not set `*` for normal LAN deployment. The proxy must replace client
+forwarded headers, preserve the public Host, and prevent direct access around
+its authentication. This controls trusted scheme/client forwarding separately
+from FORGE's allowed Host list. See [Uvicorn proxy settings](https://www.uvicorn.org/settings/).
+End-to-end HTTPS/proxy verification remains deployment-specific.
+
+Uvicorn access/error logs remain available through Docker. Compose uses rotating
+local logs (10 MB per file, three files) to bound ordinary log growth. Access
+logs can contain client addresses and requested URLs; protect log access and
+avoid putting secrets in URLs. No new body, token, or form-value logging is
+introduced. These operational logs are not a user-attributed security audit
+trail; audit-event design belongs with future authentication/roles.
+
+### PDF rendering and derived storage
+
+One preview/reprint render runs at a time per process, with an additional
+advisory file lock preventing concurrent renders by workers sharing the data
+directory. Admission waits at most five seconds in-process; a busy worker lock
+rejects immediately. `.pdf-processing.lock` is a persistent coordination file,
+not a generated PDF; do not delete it while FORGE is running. The supported
+Mac/Linux filesystem must provide reliable advisory file locking.
+
+New output writes are capped at 250 MiB per reprint and 1 MiB per preview. The
+combined `generated/` and `previews/` budget is 5 GiB, including temporary and
+older files. Before rendering, FORGE conservatively requires room for the full
+per-file maximum plus 100 MiB free disk headroom; old output stays in place
+until a replacement passes validation. This means even a small reprint requires
+350 MiB free disk and 250 MiB remaining cache budget to begin. Space is checked
+again before publishing. No files are automatically evicted to meet these caps.
+
+Limit or write failures remove the operation's partial output and preserve
+original PDFs and previous reprints. The reprint page reports failure even when
+an older copy is still available. Existing copies can still be viewed/downloaded.
+These are application safeguards, not a filesystem quota: other applications,
+uploads, and databases can consume space between checks. Use host quotas and
+capacity monitoring for a hard deployment-wide guarantee. These checks do not
+provide a killable native-parser timeout or a per-client rate limit.
