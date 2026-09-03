@@ -458,6 +458,15 @@ h2 { font-size: 1.45rem; }
   font: inherit;
 }
 .metadata-form button { margin-top: 1rem; padding: 0.8rem; border: 0; border-radius: 0.65rem; color: white; background: var(--forge); font: inherit; font-weight: 750; cursor: pointer; }
+.bgg-current-match { display: grid; gap: 0.25rem; margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--paper); }
+.bgg-current-match span,
+.bgg-current-match small { color: var(--muted); }
+.bgg-action-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1rem 0; }
+.bgg-candidates { display: grid; gap: 0.65rem; margin-top: 1.25rem; }
+.bgg-candidate { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem; border: 1px solid var(--line); border-radius: 0.7rem; }
+.bgg-candidate span { display: grid; gap: 0.2rem; }
+.bgg-candidate small { color: var(--muted); }
+.bgg-lookup-toggle { margin-top: 1.5rem; }
 .category-picker {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

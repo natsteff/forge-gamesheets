@@ -1,6 +1,7 @@
 """Tests for the first server-rendered library pages."""
 
 import re
+from dataclasses import replace
 from io import BytesIO
 from pathlib import Path
 
@@ -9,6 +10,8 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.bgg.client import BggGame, BggSearchResult, BggUnavailableError
+from app.bgg.repository import BggMatchState, get_bgg_association
 from app.build_info import BuildInfo
 from app.config import Settings
 from app.library.scanner import ScanIssue, ScanResult
@@ -49,6 +52,33 @@ def _game_ids(client: TestClient) -> list[str]:
                 "SELECT id FROM games ORDER BY title COLLATE NOCASE, title, id"
             )
         ]
+
+
+class FakeBggClient:
+    def __init__(
+        self,
+        *,
+        results: tuple[BggSearchResult, ...] = (),
+        details: BggGame | None = None,
+        error: Exception | None = None,
+    ) -> None:
+        self.results = results
+        self.details = details
+        self.error = error
+        self.searches: list[str] = []
+        self.lookups: list[int] = []
+
+    def search_games(self, name: str) -> tuple[BggSearchResult, ...]:
+        self.searches.append(name)
+        if self.error:
+            raise self.error
+        return self.results
+
+    def get_game(self, bgg_id: int) -> BggGame | None:
+        self.lookups.append(bgg_id)
+        if self.error:
+            raise self.error
+        return self.details
 
 
 def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
@@ -108,7 +138,123 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=4" in response.text
-    assert "/static/styles.css?v=16" in response.text
+    assert "/static/styles.css?v=17" in response.text
+
+
+def test_game_edit_explains_unconfigured_bgg_matching(
+    web_client: TestClient,
+) -> None:
+    game_id = _game_ids(web_client)[1]
+    response = web_client.get(f"/games/{game_id}/edit")
+
+    assert response.status_code == 200
+    assert "BoardGameGeek" in response.text
+    assert "application token" in response.text
+    assert "Search BoardGameGeek" not in response.text
+    assert "never changes your game folder or PDFs" in response.text
+
+
+def test_operator_can_search_select_change_and_unlink_bgg_game(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    client = FakeBggClient(
+        results=(
+            BggSearchResult(822, "Farkle", 1996),
+            BggSearchResult(1234, "Farkle Flip", 2022),
+        ),
+        details=BggGame(822, "Farkle", 1996, None, None),
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    results = web_client.post(
+        f"/games/{game_id}/bgg/find", data={"query": "Farkle"}
+    )
+    assert results.status_code == 200
+    assert "Choose the correct game" in results.text
+    assert "Farkle Flip" in results.text
+    assert "BGG ID 822" in results.text
+
+    selected = web_client.post(
+        f"/games/{game_id}/bgg/select",
+        data={"bgg_id": "822"},
+        follow_redirects=False,
+    )
+    assert selected.status_code == 303
+    assert selected.headers["location"].endswith("bgg_status=linked")
+    association = get_bgg_association(web_client.app.state.database, game_id)
+    assert association is not None
+    assert association.match_state is BggMatchState.MANUAL
+    assert association.bgg_id == 822
+
+    linked_page = web_client.get(selected.headers["location"])
+    assert "BoardGameGeek game linked successfully" in linked_page.text
+    assert "Selected manually" in linked_page.text
+    assert "Unlink BGG game" in linked_page.text
+    assert "Search BoardGameGeek" in linked_page.text
+
+    unlinked = web_client.post(
+        f"/games/{game_id}/bgg/unlink", follow_redirects=False
+    )
+    assert unlinked.status_code == 303
+    assert get_bgg_association(web_client.app.state.database, game_id) is None
+
+
+def test_operator_can_retry_and_disable_bgg_lookup(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    client = FakeBggClient(
+        results=(BggSearchResult(822, "Farkle", 1996),),
+        details=BggGame(822, "Farkle", 1996, None, None),
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    retried = web_client.post(
+        f"/games/{game_id}/bgg/retry", follow_redirects=False
+    )
+    assert retried.headers["location"].endswith("bgg_status=matched")
+    assert client.searches == ["Farkle"]
+
+    disabled = web_client.post(
+        f"/games/{game_id}/bgg/lookup",
+        data={"enabled": "0"},
+        follow_redirects=False,
+    )
+    assert disabled.headers["location"].endswith("bgg_status=lookup-disabled")
+    association = get_bgg_association(web_client.app.state.database, game_id)
+    assert association is not None
+    assert not association.lookup_enabled
+    assert association.bgg_id == 822
+    disabled_page = web_client.get(disabled.headers["location"])
+    assert "Enable BGG lookup for this game" in disabled_page.text
+    assert "Search BoardGameGeek" not in disabled_page.text
+
+
+def test_bgg_search_failure_does_not_affect_local_game(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: FakeBggClient(
+        error=BggUnavailableError("offline")
+    )
+
+    response = web_client.post(
+        f"/games/{game_id}/bgg/find", data={"query": "Farkle"}
+    )
+
+    assert response.status_code == 200
+    assert "could not complete the request" in response.text
+    assert web_client.get(f"/games/{game_id}").status_code == 200
 
 
 def test_pages_include_keyboard_navigation_landmarks(

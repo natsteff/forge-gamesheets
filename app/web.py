@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -10,6 +11,15 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from app.bgg.client import BggApiError, BggClient
+from app.bgg.matching import enrich_game
+from app.bgg.repository import (
+    BggAssociation,
+    BggMatchState,
+    delete_bgg_association,
+    get_bgg_association,
+    save_bgg_association,
+)
 from app.database import Database
 from app.library.artwork import (
     MAX_ARTWORK_BYTES,
@@ -27,6 +37,7 @@ from app.library.files import (
 from app.library.previews import PreviewUnavailable, cached_resource_preview
 from app.library.reconciliation import ReconciliationError, reconcile_scan
 from app.library.repository import (
+    GameDetail,
     IndexedResource,
     create_game_category,
     delete_game_category,
@@ -543,17 +554,7 @@ def game_edit(request: Request, game_id: int) -> HTMLResponse:
     game = get_game(_database(request), game_id)
     if game is None:
         raise HTTPException(status_code=404, detail="Game not found")
-    return templates.TemplateResponse(
-        request=request,
-        name="game_edit.html",
-        context={
-            "game": game,
-            "game_categories": list_game_categories(_database(request)),
-            "selected_category_ids": {
-                category.id for category in game.categories
-            },
-        },
-    )
+    return _game_edit_response(request, game)
 
 
 @router.post("/games/{game_id}/edit", response_class=RedirectResponse)
@@ -655,6 +656,150 @@ def game_artwork_reset(request: Request, game_id: int) -> RedirectResponse:
     reset_game_artwork_override(_database(request), game_id)
     delete_uploaded_artwork(request.app.state.settings.data_path, artwork)
     return RedirectResponse(url=f"/games/{game_id}/edit", status_code=303)
+
+
+@router.post(
+    "/games/{game_id}/bgg/find",
+    response_class=HTMLResponse,
+    name="game_bgg_find",
+)
+async def game_bgg_find(request: Request, game_id: int) -> HTMLResponse:
+    """Search BGG only after an explicit user action and show candidates."""
+    game = get_game(_database(request), game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    client = _bgg_client(request)
+    if client is None:
+        return _game_edit_response(request, game, bgg_error="not-configured")
+    form = await request.form()
+    query = " ".join(str(form.get("query", "")).split())
+    if not query or len(query) > 200:
+        return _game_edit_response(request, game, bgg_error="invalid-query")
+    try:
+        candidates = client.search_games(query)
+    except BggApiError:
+        return _game_edit_response(request, game, bgg_error="lookup-failed")
+    return _game_edit_response(
+        request,
+        game,
+        bgg_candidates=candidates,
+        bgg_query=query,
+        bgg_error="no-results" if not candidates else None,
+    )
+
+
+@router.post(
+    "/games/{game_id}/bgg/select",
+    response_class=RedirectResponse,
+    name="game_bgg_select",
+)
+async def game_bgg_select(request: Request, game_id: int) -> RedirectResponse:
+    """Persist a BGG item explicitly selected by the library operator."""
+    game = get_game(_database(request), game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    client = _bgg_client(request)
+    if client is None:
+        return _game_edit_redirect(game_id, bgg_error="not-configured")
+    form = await request.form()
+    try:
+        bgg_id = int(str(form.get("bgg_id", "")))
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid BGG ID") from None
+    if bgg_id <= 0:
+        raise HTTPException(status_code=422, detail="Invalid BGG ID")
+    try:
+        details = client.get_game(bgg_id)
+    except BggApiError:
+        return _game_edit_redirect(game_id, bgg_error="lookup-failed")
+    if details is None:
+        return _game_edit_redirect(game_id, bgg_error="not-found")
+    existing = get_bgg_association(_database(request), game_id)
+    association = BggAssociation(
+        game_id=game_id,
+        lookup_enabled=existing.lookup_enabled if existing else True,
+        match_state=BggMatchState.MANUAL,
+        source_title=game.detected_title,
+        bgg_id=details.id,
+        match_confidence=1.0,
+        cached_name=details.name,
+        year_published=details.year_published,
+        image_url=details.image_url,
+        thumbnail_url=details.thumbnail_url,
+        last_lookup_at=_utc_timestamp(),
+    )
+    save_bgg_association(_database(request), association)
+    return _game_edit_redirect(game_id, bgg_status="linked")
+
+
+@router.post(
+    "/games/{game_id}/bgg/retry",
+    response_class=RedirectResponse,
+    name="game_bgg_retry",
+)
+def game_bgg_retry(request: Request, game_id: int) -> RedirectResponse:
+    """Retry conservative automatic matching after an explicit request."""
+    game = get_game(_database(request), game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    client = _bgg_client(request)
+    if client is None:
+        return _game_edit_redirect(game_id, bgg_error="not-configured")
+    association = enrich_game(
+        _database(request),
+        client,
+        game_id=game_id,
+        source_title=game.detected_title,
+        force=True,
+    )
+    return _game_edit_redirect(game_id, bgg_status=association.match_state.value)
+
+
+@router.post(
+    "/games/{game_id}/bgg/unlink",
+    response_class=RedirectResponse,
+    name="game_bgg_unlink",
+)
+def game_bgg_unlink(request: Request, game_id: int) -> RedirectResponse:
+    """Remove BGG state without changing the local game or its files."""
+    if get_game(_database(request), game_id) is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    delete_bgg_association(_database(request), game_id)
+    return _game_edit_redirect(game_id, bgg_status="unlinked")
+
+
+@router.post(
+    "/games/{game_id}/bgg/lookup",
+    response_class=RedirectResponse,
+    name="game_bgg_lookup_toggle",
+)
+async def game_bgg_lookup_toggle(
+    request: Request, game_id: int
+) -> RedirectResponse:
+    """Enable or disable future BGG lookup while preserving cached state."""
+    game = get_game(_database(request), game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    form = await request.form()
+    enabled = str(form.get("enabled", "")) == "1"
+    existing = get_bgg_association(_database(request), game_id)
+    association = BggAssociation(
+        game_id=game_id,
+        lookup_enabled=enabled,
+        match_state=existing.match_state if existing else BggMatchState.PENDING,
+        source_title=existing.source_title if existing else game.detected_title,
+        bgg_id=existing.bgg_id if existing else None,
+        match_confidence=existing.match_confidence if existing else None,
+        cached_name=existing.cached_name if existing else None,
+        year_published=existing.year_published if existing else None,
+        image_url=existing.image_url if existing else None,
+        thumbnail_url=existing.thumbnail_url if existing else None,
+        failure_code=existing.failure_code if existing else None,
+        last_lookup_at=existing.last_lookup_at if existing else None,
+    )
+    save_bgg_association(_database(request), association)
+    status = "lookup-enabled" if enabled else "lookup-disabled"
+    return _game_edit_redirect(game_id, bgg_status=status)
 
 
 @router.get(
@@ -886,6 +1031,67 @@ def _settings_redirect(
     return RedirectResponse(
         url=f"/settings?{query}" if query else "/settings", status_code=303
     )
+
+
+def _game_edit_response(
+    request: Request,
+    game: GameDetail,
+    *,
+    bgg_candidates: tuple[object, ...] = (),
+    bgg_query: str | None = None,
+    bgg_error: str | None = None,
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request=request,
+        name="game_edit.html",
+        context={
+            "game": game,
+            "game_categories": list_game_categories(_database(request)),
+            "selected_category_ids": {
+                category.id for category in game.categories
+            },
+            "bgg_association": get_bgg_association(
+                _database(request), game.id
+            ),
+            "bgg_configured": bool(request.app.state.settings.bgg_api_token),
+            "bgg_candidates": bgg_candidates,
+            "bgg_query": bgg_query or game.detected_title,
+            "bgg_status": request.query_params.get("bgg_status"),
+            "bgg_error": bgg_error or request.query_params.get("bgg_error"),
+        },
+    )
+
+
+def _bgg_client(request: Request) -> BggClient | None:
+    token = request.app.state.settings.bgg_api_token
+    if token is None:
+        return None
+    factory = getattr(request.app.state, "bgg_client_factory", BggClient)
+    return factory(token)
+
+
+def _game_edit_redirect(
+    game_id: int,
+    *,
+    bgg_status: str | None = None,
+    bgg_error: str | None = None,
+) -> RedirectResponse:
+    query = urlencode(
+        {
+            key: value
+            for key, value in (
+                ("bgg_status", bgg_status),
+                ("bgg_error", bgg_error),
+            )
+            if value
+        }
+    )
+    suffix = f"?{query}" if query else ""
+    return RedirectResponse(url=f"/games/{game_id}/edit{suffix}", status_code=303)
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _normalized_category_name(value: object) -> str | None:

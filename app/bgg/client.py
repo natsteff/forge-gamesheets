@@ -13,6 +13,7 @@ from xml.etree import ElementTree
 API_ROOT = "https://boardgamegeek.com/xmlapi2"
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 DEFAULT_TIMEOUT_SECONDS = 10.0
+MAX_SEARCH_RESULTS = 50
 THING_TYPES = "boardgame,boardgameexpansion,rpgitem,videogame"
 
 
@@ -78,7 +79,7 @@ class BggClient:
             "search", {"query": query, "type": THING_TYPES}
         )
         results: list[BggSearchResult] = []
-        for item in root.findall("item"):
+        for item in root.findall("item")[:MAX_SEARCH_RESULTS]:
             item_id = _positive_int(item.get("id"))
             primary = _primary_name(item)
             item_name = _value(primary)

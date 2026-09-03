@@ -37,6 +37,95 @@
     {% endif %}
   </section>
 
+  <section class="edit-panel bgg-editor">
+    <p class="eyebrow">Optional enrichment</p>
+    <h2>BoardGameGeek</h2>
+
+    {% if bgg_status == "linked" %}
+      <p class="status-banner" role="status">BoardGameGeek game linked successfully.</p>
+    {% elif bgg_status == "unlinked" %}
+      <p class="status-banner" role="status">BoardGameGeek link removed.</p>
+    {% elif bgg_status == "lookup-enabled" %}
+      <p class="status-banner" role="status">BoardGameGeek lookup enabled.</p>
+    {% elif bgg_status == "lookup-disabled" %}
+      <p class="status-banner" role="status">BoardGameGeek lookup disabled.</p>
+    {% elif bgg_status == "matched" %}
+      <p class="status-banner" role="status">A unique BoardGameGeek match was found.</p>
+    {% elif bgg_status == "ambiguous" %}
+      <p class="status-banner warning" role="status">Several possible matches were found. Search below to choose one.</p>
+    {% elif bgg_status == "unmatched" %}
+      <p class="status-banner warning" role="status">No suitable BoardGameGeek match was found.</p>
+    {% elif bgg_status == "failed" %}
+      <p class="status-banner warning" role="status">BoardGameGeek could not be reached. Your local game was not affected.</p>
+    {% endif %}
+
+    {% if bgg_error == "not-configured" or not bgg_configured %}
+      <p class="status-banner warning" role="status">Add a BoardGameGeek application token to enable matching. Local games and PDFs continue to work without it.</p>
+    {% elif bgg_error == "invalid-query" %}
+      <p class="status-banner warning" role="alert">Enter a game name to search.</p>
+    {% elif bgg_error == "no-results" %}
+      <p class="status-banner warning" role="status">No BoardGameGeek results were found for “{{ bgg_query }}”.</p>
+    {% elif bgg_error == "not-found" %}
+      <p class="status-banner warning" role="status">That BoardGameGeek entry is no longer available.</p>
+    {% elif bgg_error %}
+      <p class="status-banner warning" role="status">BoardGameGeek could not complete the request. Try again later.</p>
+    {% endif %}
+
+    {% if bgg_association and bgg_association.bgg_id %}
+      <div class="bgg-current-match">
+        <strong>{{ bgg_association.cached_name or "BoardGameGeek game" }}</strong>
+        <span>BGG ID {{ bgg_association.bgg_id }}{% if bgg_association.year_published %} · {{ bgg_association.year_published }}{% endif %}</span>
+        <small>{% if bgg_association.match_state == "manual" %}Selected manually{% else %}Matched automatically{% endif %}</small>
+      </div>
+      <div class="bgg-action-row">
+        <form action="{{ url_for('game_bgg_retry', game_id=game.id) }}" method="post">
+          <button class="secondary-button" type="submit">Retry automatic match</button>
+        </form>
+        <form action="{{ url_for('game_bgg_unlink', game_id=game.id) }}" method="post">
+          <button class="danger-button" type="submit">Unlink BGG game</button>
+        </form>
+      </div>
+    {% elif bgg_association %}
+      <p class="edit-source">Match state: {{ bgg_association.match_state.value|capitalize }}</p>
+      {% if bgg_configured and bgg_association.lookup_enabled %}
+        <form action="{{ url_for('game_bgg_retry', game_id=game.id) }}" method="post">
+          <button class="secondary-button" type="submit">Retry automatic match</button>
+        </form>
+      {% endif %}
+    {% endif %}
+
+    {% if bgg_configured and (not bgg_association or bgg_association.lookup_enabled) %}
+      <form class="metadata-form" action="{{ url_for('game_bgg_find', game_id=game.id) }}" method="post">
+        <label for="bgg-query">Find a game on BoardGameGeek</label>
+        <input id="bgg-query" name="query" value="{{ bgg_query }}" maxlength="200" required>
+        <button type="submit">Search BoardGameGeek</button>
+      </form>
+    {% endif %}
+
+    {% if bgg_candidates %}
+      <div class="bgg-candidates" aria-label="BoardGameGeek search results">
+        <h3>Choose the correct game</h3>
+        {% for candidate in bgg_candidates %}
+          <form class="bgg-candidate" action="{{ url_for('game_bgg_select', game_id=game.id) }}" method="post">
+            <input type="hidden" name="bgg_id" value="{{ candidate.id }}">
+            <span>
+              <strong>{{ candidate.name }}</strong>
+              <small>BGG ID {{ candidate.id }}{% if candidate.year_published %} · {{ candidate.year_published }}{% endif %}</small>
+            </span>
+            <button class="secondary-button" type="submit">Select</button>
+          </form>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form class="bgg-lookup-toggle" action="{{ url_for('game_bgg_lookup_toggle', game_id=game.id) }}" method="post">
+      {% set lookup_enabled = not bgg_association or bgg_association.lookup_enabled %}
+      <input type="hidden" name="enabled" value="{% if lookup_enabled %}0{% else %}1{% endif %}">
+      <button class="secondary-button" type="submit">{% if lookup_enabled %}Disable BGG lookup for this game{% else %}Enable BGG lookup for this game{% endif %}</button>
+    </form>
+    <p class="settings-note">BGG matching is optional and never changes your game folder or PDFs. <a href="https://boardgamegeek.com" target="_blank" rel="noopener">Powered by BoardGameGeek</a></p>
+  </section>
+
   <section class="edit-panel artwork-editor">
     <p class="eyebrow">Game artwork</p>
     <h2>Choose a custom image</h2>

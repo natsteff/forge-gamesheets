@@ -91,6 +91,21 @@ def test_get_game_returns_none_for_unknown_id() -> None:
     assert client.get_game(999) is None
 
 
+def test_search_results_are_bounded() -> None:
+    items = "".join(
+        f"<item id='{item_id}'><name value='Game {item_id}'/></item>"
+        for item_id in range(1, 101)
+    )
+    client = BggClient(
+        "token",
+        opener=lambda *_args, **_kwargs: FakeResponse(
+            f"<items>{items}</items>".encode()
+        ),
+    )
+
+    assert len(client.search_games("Game")) == 50
+
+
 @pytest.mark.parametrize(
     ("status", "expected"),
     [
