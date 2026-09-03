@@ -11,6 +11,7 @@ name: forge-gamesheets
 # contains source PDFs and remains read-only inside the container.
 services:
   app:
+    image: ghcr.io/natsteff/forge-gamesheets:${FORGE_GAMESHEETS_IMAGE_TAG:-main}
     build:
       context: .
       args:

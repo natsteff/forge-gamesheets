@@ -158,6 +158,11 @@ revision, and build date. The revision should match:
 git rev-parse --short HEAD
 ```
 
+For a host using the published `ghcr.io/natsteff/forge-gamesheets:main` image,
+update with `docker compose pull` and `docker compose up -d`. Published images
+already contain their revision and build date; no source build is required on
+that host.
+
 ## Add and organize the library
 
 Each first-level directory under the configured library path represents one
