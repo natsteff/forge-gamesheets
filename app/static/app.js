@@ -1,5 +1,50 @@
 const previewToggle = document.querySelector("#preview-toggle");
 
+const siteHeader = document.querySelector(".site-header");
+const menuToggle = document.querySelector("#menu-toggle");
+const primaryNavigation = document.querySelector("#primary-navigation");
+
+if (siteHeader && menuToggle && primaryNavigation) {
+  const mobileNavigation = window.matchMedia("(max-width: 850px)");
+  siteHeader.classList.add("nav-enhanced");
+  menuToggle.hidden = false;
+
+  const closeMenu = () => {
+    siteHeader.classList.remove("menu-open");
+    menuToggle.setAttribute("aria-expanded", "false");
+  };
+
+  menuToggle.addEventListener("click", () => {
+    const menuIsOpen = siteHeader.classList.toggle("menu-open");
+    menuToggle.setAttribute("aria-expanded", String(menuIsOpen));
+  });
+
+  primaryNavigation.addEventListener("click", (event) => {
+    if (event.target.closest("a")) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (siteHeader.classList.contains("menu-open") && !siteHeader.contains(event.target)) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && siteHeader.classList.contains("menu-open")) {
+      closeMenu();
+      menuToggle.focus();
+    }
+  });
+
+  mobileNavigation.addEventListener("change", (event) => {
+    if (!event.matches) {
+      closeMenu();
+    }
+  });
+}
+
 if (previewToggle) {
   const storageKey = "forge-gamesheets-show-previews";
   const storedPreference = window.localStorage.getItem(storageKey);

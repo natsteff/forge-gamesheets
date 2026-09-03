@@ -16,8 +16,8 @@
       sizes="180x180"
       href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
     >
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=17">
-    <script src="{{ url_for('static', path='/app.js') }}?v=4" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=18">
+    <script src="{{ url_for('static', path='/app.js') }}?v=5" defer></script>
   </head>
   <body>
     {% set preferences = application_preferences(request) %}
@@ -30,7 +30,15 @@
           alt="Forge GameSheets"
         >
       </a>
-      <nav class="site-nav" aria-label="Primary navigation">
+      <button
+        class="menu-toggle"
+        id="menu-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="primary-navigation"
+        hidden
+      ><span aria-hidden="true">☰</span> Menu</button>
+      <nav class="site-nav" id="primary-navigation" aria-label="Primary navigation">
         <a href="{{ url_for('library_home') }}"{% if request.url.path == "/" %} aria-current="page"{% endif %}>Library</a>
         <a href="{{ url_for('categories_home') }}"{% if request.url.path.startswith("/categories") %} aria-current="page"{% endif %}>Categories</a>
         <a href="{{ url_for('pinned_home') }}"{% if request.url.path == "/pinned" %} aria-current="page"{% endif %}>Pinned</a>

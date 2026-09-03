@@ -137,8 +137,12 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     )
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
-    assert "/static/app.js?v=4" in response.text
-    assert "/static/styles.css?v=17" in response.text
+    assert "/static/app.js?v=5" in response.text
+    assert "/static/styles.css?v=18" in response.text
+    assert 'id="menu-toggle"' in response.text
+    assert 'aria-expanded="false"' in response.text
+    assert 'aria-controls="primary-navigation"' in response.text
+    assert 'id="primary-navigation"' in response.text
 
 
 def test_game_edit_explains_unconfigured_bgg_matching(
