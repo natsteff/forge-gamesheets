@@ -43,7 +43,53 @@ def test_publish_workflow_embeds_build_identity() -> None:
     assert "FORGE_GAMESHEETS_BUILD_DATE=" in workflow
 
 
+def test_publish_workflow_verifies_before_registry_login_and_push() -> None:
+    workflow = (
+        PROJECT_ROOT / ".github" / "workflows" / "publish-container.yml"
+    ).read_text()
+
+    required_gates = (
+        "run: pytest",
+        "run: ruff check .",
+        '"pip-audit==2.10.1"',
+        "python -m pip_audit --local --skip-editable",
+        "aquasecurity/trivy-action@0.36.0",
+        "severity: CRITICAL",
+        'exit-code: "1"',
+    )
+    for gate in required_gates:
+        assert gate in workflow
+
+    registry_login = workflow.index("Sign in to GitHub Container Registry")
+    blocking_scan = workflow.index("Block fixed critical container vulnerabilities")
+    publish = workflow.index("Publish the verified image")
+    assert blocking_scan < registry_login < publish
+    assert workflow.count("docker/build-push-action@v6") == 1
+    assert "docker push" in workflow[publish:]
+
+
 def test_example_configuration_selects_published_image_channel() -> None:
     example_environment = (PROJECT_ROOT / ".env.example").read_text()
 
     assert "FORGE_GAMESHEETS_IMAGE_TAG=main" in example_environment
+
+
+def test_published_runtime_excludes_development_stage() -> None:
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text()
+    base, development = dockerfile.split("FROM base AS development")
+    assert "pip install --no-cache-dir ." in base
+    assert ".[dev]" not in base
+    assert "COPY tests" not in base
+    assert "COPY tests" in development
+    assert dockerfile.rstrip().endswith("FROM base AS runtime")
+    compose = (PROJECT_ROOT / "compose.yml").read_text()
+    assert "target: ${FORGE_GAMESHEETS_BUILD_TARGET:-runtime}" in compose
+    workflow = (PROJECT_ROOT / ".github/workflows/publish-container.yml").read_text()
+    assert "target: runtime" in workflow
+
+
+def test_proxy_trust_is_explicit_and_not_wildcard() -> None:
+    compose = (PROJECT_ROOT / "compose.yml").read_text()
+    assert (
+        "FORWARDED_ALLOW_IPS: ${FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS:-127.0.0.1}"
+    ) in compose

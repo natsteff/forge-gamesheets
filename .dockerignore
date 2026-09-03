@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+!.env.example
+data
+library
+.venv
+__pycache__
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.DS_Store

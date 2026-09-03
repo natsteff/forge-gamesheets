@@ -20,14 +20,21 @@ services:
     pids_limit: 100
     mem_limit: 1g
     cpus: 2.0
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
     image: ghcr.io/natsteff/forge-gamesheets:${FORGE_GAMESHEETS_IMAGE_TAG:-main}
     build:
       context: .
+      target: ${FORGE_GAMESHEETS_BUILD_TARGET:-runtime}
       args:
         FORGE_GAMESHEETS_VERSION: ${FORGE_GAMESHEETS_VERSION:-development}
         FORGE_GAMESHEETS_REVISION: ${FORGE_GAMESHEETS_REVISION:-}
         FORGE_GAMESHEETS_BUILD_DATE: ${FORGE_GAMESHEETS_BUILD_DATE:-}
     environment:
+      FORWARDED_ALLOW_IPS: ${FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS:-127.0.0.1}
       FORGE_GAMESHEETS_ALLOWED_HOSTS: ${FORGE_GAMESHEETS_ALLOWED_HOSTS:-}
       FORGE_GAMESHEETS_BASE_URL: ${FORGE_GAMESHEETS_BASE_URL:-}
       FORGE_GAMESHEETS_BGG_API_TOKEN: ${FORGE_GAMESHEETS_BGG_API_TOKEN:-}
