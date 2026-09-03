@@ -324,6 +324,9 @@ def test_display_preferences_customize_footer_and_recent(
     assert saved.headers["location"] == "/settings?status=preferences-saved"
     assert "Nate&#39;s Game Vault" in web_client.get("/").text
     assert "Your 12 most recently" in web_client.get("/recent").text
+    settings = web_client.get("/settings")
+    assert '<option value="UTC" selected>UTC</option>' in settings.text
+    assert '<option value="America/Chicago">America/Chicago</option>' in settings.text
 
     web_client.post(
         "/settings/preferences",
@@ -728,6 +731,11 @@ def test_history_uses_configured_timezone(web_client: TestClient) -> None:
     assert "Jan 15, 2026 · 12:30 PM CST" in history.text
     assert "Times shown in America/Chicago" in history.text
     assert 'datetime="2026-01-15T18:30:00.000Z"' in history.text
+    settings = web_client.get("/settings")
+    assert (
+        '<option value="America/Chicago" selected>America/Chicago</option>'
+        in settings.text
+    )
 
 
 def test_successful_resource_use_is_shown_on_recent_page(

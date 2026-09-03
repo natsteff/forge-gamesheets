@@ -34,18 +34,12 @@
       <small>Choose 0 to hide Recent, or show between 1 and {{ max_recent_limit }} resources.</small>
 
       <label for="timezone-name">History time zone</label>
-      <input id="timezone-name" name="timezone_name" value="{{ preferences.timezone_name }}" list="common-timezones" required>
-      <datalist id="common-timezones">
-        <option value="UTC">
-        <option value="America/New_York">
-        <option value="America/Chicago">
-        <option value="America/Denver">
-        <option value="America/Phoenix">
-        <option value="America/Los_Angeles">
-        <option value="America/Anchorage">
-        <option value="Pacific/Honolulu">
-      </datalist>
-      <small>Use a standard region name such as <code>America/Chicago</code>. Daylight-saving changes are applied automatically.</small>
+      <select id="timezone-name" name="timezone_name" required>
+        {% for timezone_name in timezone_names %}
+          <option value="{{ timezone_name }}"{% if timezone_name == preferences.timezone_name %} selected{% endif %}>{{ timezone_name }}</option>
+        {% endfor %}
+      </select>
+      <small>Select the region where this library is used. Daylight-saving changes are applied automatically.</small>
       <button type="submit">Save display preferences</button>
     </form>
     <form action="{{ url_for('settings_footer_reset') }}" method="post">

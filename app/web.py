@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlencode
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -265,6 +265,7 @@ def settings_home(request: Request) -> HTMLResponse:
             "max_footer_length": MAX_FOOTER_LENGTH,
             "max_recent_limit": MAX_RECENT_LIMIT,
             "max_category_name_length": MAX_GAME_CATEGORY_NAME_LENGTH,
+            "timezone_names": _timezone_names(),
             "build_info": request.app.state.build_info,
         },
     )
@@ -1121,6 +1122,25 @@ def _valid_timezone(value: str) -> bool:
     except (ZoneInfoNotFoundError, ValueError):
         return False
     return True
+
+
+def _timezone_names() -> tuple[str, ...]:
+    regions = (
+        "Africa/",
+        "America/",
+        "Antarctica/",
+        "Arctic/",
+        "Asia/",
+        "Atlantic/",
+        "Australia/",
+        "Europe/",
+        "Indian/",
+        "Pacific/",
+    )
+    names = sorted(
+        name for name in available_timezones() if name.startswith(regions)
+    )
+    return ("UTC", *names)
 
 
 def _format_local_timestamp(value: str, timezone_name: str) -> str:
