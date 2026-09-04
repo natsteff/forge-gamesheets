@@ -66,6 +66,9 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (13, "add_application_preferences"),
         (14, "add_bgg_game_associations"),
         (15, "add_display_timezone"),
+        (16, "add_local_accounts_and_sharing"),
+        (17, "add_folder_category_import_setting"),
+        (18, "preserve_bgg_url_slug"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -92,7 +95,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             "SELECT COUNT(*) FROM schema_migrations"
         ).fetchone()[0]
 
-    assert count == 15
+    assert count == 18
 
 
 def test_multi_category_migration_preserves_single_category(database: Database) -> None:

@@ -1,0 +1,15 @@
+{% extends "public_base.html" %}
+{% block title %}Shared resource · Forge GameSheets{% endblock %}
+{% block content %}
+  <section class="settings-section">
+    <p class="eyebrow">Shared resource</p>
+    <h1>{{ resource.title }}</h1>
+    {% if resource.variant %}<p>{{ resource.variant }}</p>{% endif %}
+    <p>This link provides access only to this resource. Use your PDF viewer to print or save it.</p>
+    <div class="reprint-actions">
+      <a class="resource-action primary" href="{{ url_for('shared_original', token=token) }}" target="_blank" rel="noopener noreferrer">View original PDF</a>
+      {% if generated_available %}<a class="resource-action" href="{{ url_for('shared_reprint', token=token) }}" target="_blank" rel="noopener noreferrer">View shared FORGE Reprint</a>{% endif %}
+    </div>
+    {% if not generated_available %}<p>A shared reprint is not currently available. The original PDF remains accessible above.</p>{% endif %}
+  </section>
+{% endblock %}

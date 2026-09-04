@@ -71,3 +71,9 @@ Handle unavailable PDF previews
 Follow [PHASE1_RELEASE_CHECKLIST.md](PHASE1_RELEASE_CHECKLIST.md). Public-history
 consolidation, GitHub publication, and beta tagging happen only after the local
 history has been backed up and verified separately.
+# Documentation verification
+
+The normal test suite includes offline documentation checks. Follow
+[documentation review](DOCUMENTATION_REVIEW.md) for every major update, including
+screenshots, deployment/account critical paths, feature limits, and cross-guide
+consistency. Do not treat passing text checks as visual or security certification.

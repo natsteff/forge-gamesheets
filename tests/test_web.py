@@ -28,7 +28,7 @@ class _ExecutableMarkupProbe(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=5"):
+        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=7"):
             self.unsafe.append(tag)
         for name, value in attrs:
             if name.startswith("on") or (value or "").lower().startswith("javascript:"):
@@ -243,8 +243,8 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     )
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
-    assert "/static/app.js?v=5" in response.text
-    assert "/static/styles.css?v=18" in response.text
+    assert "/static/app.js?v=7" in response.text
+    assert "/static/styles.css?v=26" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'aria-expanded="false"' in response.text
     assert 'aria-controls="primary-navigation"' in response.text
@@ -258,7 +258,7 @@ def test_game_edit_explains_unconfigured_bgg_matching(
     response = web_client.get(f"/games/{game_id}/edit")
 
     assert response.status_code == 200
-    assert "bgg-editor" not in response.text
+    assert "Save manual BGG link" in response.text
     assert "application token" not in response.text
     assert "Search BoardGameGeek" not in response.text
     assert "Choose a custom image" in response.text
@@ -300,7 +300,11 @@ def test_bgg_actions_without_token_do_not_call_client_or_change_state(
     )
     if action == "find":
         assert response.status_code == 200
-        assert "bgg-editor" not in response.text
+        assert "Save manual BGG link" in response.text
+        assert "Search BoardGameGeek" not in response.text
+    elif action == "unlink":
+        assert response.status_code == 303
+        assert "unlinked" in response.headers["location"]
     else:
         assert response.status_code == 303
         assert "not-configured" in response.headers["location"]
@@ -413,7 +417,7 @@ def test_pages_include_keyboard_navigation_landmarks(
     assert 'href="#main-content">Skip to main content' in library.text
     assert '<main class="page-shell" id="main-content" tabindex="-1">' in library.text
     assert re.search(
-        r'href="(?:http://testserver)?/" aria-current="page">Library',
+        r'href="(?:http://testserver)?/games">All games',
         library.text,
     )
     assert re.search(
@@ -452,7 +456,7 @@ def test_quick_access_pages_have_navigation_and_empty_states(
         favorites.text,
     )
     assert re.search(
-        r'href="(?:http://testserver)?/recent" aria-current="page">Recent',
+        r'href="(?:http://testserver)?/recent" aria-current="page">Recently used',
         recent.text,
     )
 
@@ -479,7 +483,7 @@ def test_display_preferences_customize_footer_and_recent(
     )
     home = web_client.get("/")
     assert "Nate&#39;s Game Vault" not in home.text
-    assert ">Recent</a>" not in home.text
+    assert ">Recently used</a>" not in home.text
     assert "Recent is disabled" in web_client.get("/recent").text
 
 
@@ -894,7 +898,7 @@ def test_successful_resource_use_is_shown_on_recent_page(
 
     refreshed_home = web_client.get("/")
     recent = web_client.get("/recent")
-    assert "Recently used" not in refreshed_home.text
+    assert "Recently used" not in refreshed_home.text.split('<main', 1)[1]
     assert "Recently used" in recent.text
     assert "Change how many resources appear here in" in recent.text
     assert 'href="http://testserver/settings#recent-limit"' in recent.text

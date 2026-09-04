@@ -1,5 +1,6 @@
 """HTTP application entry point."""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.access import AccessControl, RedactSharingLinks
 from app.build_info import BuildInfo
 from app.config import Settings
 from app.database import Database
@@ -54,6 +56,7 @@ def create_app(
         lifespan=lifespan,
     )
     application.add_middleware(LimitedRequestBodies)
+    application.add_middleware(AccessControl)
     application.add_middleware(SameOriginMutations)
     application.add_middleware(AllowedHosts)
     application.add_middleware(BrowserSecurityHeaders)
@@ -63,6 +66,15 @@ def create_app(
         name="static",
     )
     application.include_router(web_router)
+    from app.account_web import router as account_router
+
+    application.include_router(account_router)
+    # Match the declared leaf routes, independent of FastAPI's lazy include
+    # wrappers. Unknown/new app routes still default to Admin in AccessControl.
+    application.state.access_routes = [*web_router.routes, *account_router.routes]
+    logger = logging.getLogger("uvicorn.access")
+    if not any(isinstance(item, RedactSharingLinks) for item in logger.filters):
+        logger.addFilter(RedactSharingLinks())
     application.state.build_info = identity
 
     @application.get("/health", tags=["system"])

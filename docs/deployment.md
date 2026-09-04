@@ -5,8 +5,9 @@ location, `/opt/forge-gamesheets`, is a recommendation rather than a
 requirement. Use any location that the Docker operator can manage safely.
 
 Forge GameSheets is beta software. Back up both the PDF library and application
-data before upgrades. Forge has no built-in authentication and must not be
-exposed directly to the public internet or an untrusted network.
+data before upgrades. Local accounts are optional and remain off until explicit
+operator setup. Forge must not be exposed directly to the public internet or an
+untrusted network. See [Accounts and QR sharing](ACCOUNTS.md).
 
 ## Requirements
 
@@ -108,8 +109,9 @@ before starting Forge. Preserve the existing ownership of the library.
 | Trusted private LAN | `0.0.0.0` | Trusted household or isolated test network |
 | Authenticated proxy or VPN | Usually `127.0.0.1` | Remote access protected outside Forge |
 
-Forge has no user accounts, authentication, authorization, rate limiting, or
-built-in TLS. Binding to `0.0.0.0` makes the configured port available on every
+Forge supports opt-in accounts, roles, and login throttling, but has no built-in
+TLS or general per-client traffic limit. Non-local sign-in requires HTTPS through
+a correctly configured proxy. Binding to `0.0.0.0` exposes the port on every
 host interface allowed by the firewall. Use it only on a trusted private LAN.
 Do not forward that port from an internet router.
 
@@ -399,7 +401,10 @@ local logs (10 MB per file, three files) to bound ordinary log growth. Access
 logs can contain client addresses and requested URLs; protect log access and
 avoid putting secrets in URLs. No new body, token, or form-value logging is
 introduced. These operational logs are not a user-attributed security audit
-trail; audit-event design belongs with future authentication/roles.
+trail. Account and sharing operations have a bounded, user-attributed security
+event list when accounts are enabled; it is not a comprehensive content audit.
+Redact `/s/` sharing credentials in proxy logs, including encoded login return
+paths. Application access logs redact these links, but cannot control proxy logs.
 
 ### PDF rendering and derived storage
 

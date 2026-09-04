@@ -12,6 +12,13 @@
     <form class="metadata-form" method="post">
       <label for="game-title">Display title</label>
       <input id="game-title" name="title" value="{{ game.title }}" maxlength="200" required>
+      {% if game.has_override %}
+      <div class="detected-metadata">
+        <h2>Detected from folder</h2>
+        <p>{{ game.detected_title }}</p>
+        <button class="secondary-button" type="submit" form="reset-game-title">Reset to folder name</button>
+      </div>
+      {% endif %}
 
       <fieldset class="category-picker">
         <legend>Game categories</legend>
@@ -27,16 +34,25 @@
     </form>
 
     {% if game.has_override %}
-      <div class="detected-metadata">
-        <h2>Detected from folder</h2>
-        <p>{{ game.detected_title }}</p>
-        <form action="{{ url_for('game_reset', game_id=game.id) }}" method="post">
-          <button class="secondary-button" type="submit">Reset to folder name</button>
-        </form>
-      </div>
+      <form id="reset-game-title" action="{{ url_for('game_reset', game_id=game.id) }}" method="post"></form>
     {% endif %}
   </section>
 
+  <section class="edit-panel bgg-editor artwork-editor">
+    <h2>BoardGameGeek links</h2>
+    <p>Paste the full BGG game URL, including its numeric ID and game name. An ID alone or an incomplete URL is not accepted. No API token is needed; the entry is not API-verified and no metadata is fetched.</p>
+    {% if bgg_status == 'manual-linked' %}<p class="status-banner" role="status">Manual BGG link saved; not API-verified.</p>{% elif bgg_status == 'unlinked' %}<p class="status-banner" role="status">BoardGameGeek link removed.</p>{% endif %}
+    {% include "bgg_links.html" %}
+    {% if bgg_association and bgg_association.bgg_id %}<p>BGG ID {{ bgg_association.bgg_id }}{% if bgg_association.match_state == 'manual' and not bgg_association.last_lookup_at %} · Manually supplied; not API-verified{% endif %}</p>{% endif %}
+    <form class="metadata-form" method="post" action="{{ url_for('game_bgg_manual', game_id=game.id) }}">
+      {% if bgg_error == 'invalid-reference' %}<div id="bgg-reference-error" class="status-banner warning" role="alert"><strong>BGG link not saved.</strong> Enter the full BGG game URL including both ID and game name. Your existing link has not changed.</div>{% endif %}
+      <label for="bgg-reference">Full BGG game URL <span>(eg. https://boardgamegeek.com/boardgame/gameID/game-name)</span></label>
+      <input id="bgg-reference" name="bgg_reference" type="url" maxlength="1000" required value="{{ bgg_association.game_url if bgg_association and bgg_association.bgg_id else '' }}"{% if bgg_error == 'invalid-reference' %} aria-invalid="true" aria-describedby="bgg-reference-error" autofocus{% endif %}>
+      <button type="submit">Save manual BGG link</button>
+    </form>
+    {% if bgg_association and bgg_association.bgg_id %}<form method="post" action="{{ url_for('game_bgg_unlink', game_id=game.id) }}"><button class="danger-button" type="submit">Remove BGG link</button></form>{% endif %}
+    <p>You can visit BGG and upload artwork you have permission to use below. Manual linking leaves local titles and artwork unchanged.</p>
+  </section>
   {% if bgg_configured %}
   <section class="edit-panel bgg-editor">
     <p class="eyebrow">Optional enrichment</p>

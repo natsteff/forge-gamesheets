@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}My account · Forge GameSheets{% endblock %}
+{% block content %}
+  <section class="settings-section">
+    <h1>My account</h1>
+    <p>{{ request.state.user.username }} · {{ request.state.user.role|title }}</p>
+    {% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}
+    <h2>Change passphrase</h2>
+    <p>Use 15–128 characters. Changing your passphrase signs out all your sessions.</p>
+    <form class="metadata-form settings-form" action="{{ url_for('account_password') }}" method="post">
+      <label for="current-password">Current passphrase</label>
+      <input id="current-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+      <label for="password">New passphrase</label>
+      <input id="password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+      <label for="password-confirm">Confirm new passphrase</label>
+      <input id="password-confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+      <button type="submit">Change passphrase and sign out</button>
+    </form>
+  </section>
+{% endblock %}

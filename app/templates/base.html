@@ -16,8 +16,8 @@
       sizes="180x180"
       href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
     >
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=18">
-    <script src="{{ url_for('static', path='/app.js') }}?v=5" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=26">
+    <script src="{{ url_for('static', path='/app.js') }}?v=7" defer></script>
   </head>
   <body>
     {% set preferences = application_preferences(request) %}
@@ -39,13 +39,34 @@
         hidden
       ><span aria-hidden="true">☰</span> Menu</button>
       <nav class="site-nav" id="primary-navigation" aria-label="Primary navigation">
-        <a href="{{ url_for('library_home') }}"{% if request.url.path == "/" %} aria-current="page"{% endif %}>Library</a>
+        <div class="nav-group">
+        <span class="nav-heading">Games</span>
+        <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-games" hidden>Games <span aria-hidden="true">▾</span></button>
+        <div class="nav-group-links" id="nav-games">
+        <a href="{{ url_for('all_games') }}"{% if request.url.path == "/games" %} aria-current="page"{% endif %}>All games</a>
         <a href="{{ url_for('categories_home') }}"{% if request.url.path.startswith("/categories") %} aria-current="page"{% endif %}>Categories</a>
+        {% if request.state.can_contribute %}<a href="{{ url_for('assign_categories') }}">Assign game categories</a>{% endif %}
+        </div></div>
+        <div class="nav-group">
+        <span class="nav-heading">Quick access</span>
+        <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-resources" hidden>Quick access <span aria-hidden="true">▾</span></button>
+        <div class="nav-group-links" id="nav-resources">
         <a href="{{ url_for('pinned_home') }}"{% if request.url.path == "/pinned" %} aria-current="page"{% endif %}>Pinned</a>
         <a href="{{ url_for('favorites_home') }}"{% if request.url.path == "/favorites" %} aria-current="page"{% endif %}>Favorites</a>
-        {% if preferences.recent_limit %}<a href="{{ url_for('recent_home') }}"{% if request.url.path == "/recent" %} aria-current="page"{% endif %}>Recent</a>{% endif %}
+        {% if preferences.recent_limit %}<a href="{{ url_for('recent_home') }}"{% if request.url.path == "/recent" %} aria-current="page"{% endif %}>Recently used</a>{% endif %}
+        </div></div>
         <a href="{{ url_for('activity_history') }}"{% if request.url.path == "/history" %} aria-current="page"{% endif %}>History</a>
-        <a href="{{ url_for('settings_home') }}"{% if request.url.path.startswith("/settings") %} aria-current="page"{% endif %}>Settings</a>
+        <div class="nav-group">
+        <span class="nav-heading">Account</span>
+        <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-account" hidden>Account <span aria-hidden="true">▾</span></button>
+        <div class="nav-group-links" id="nav-account">
+        {% if request.state.can_admin %}<a href="{{ url_for('settings_home') }}"{% if request.url.path == "/settings" %} aria-current="page"{% endif %}>Settings</a>{% endif %}
+        {% if request.state.can_admin and request.state.user %}<a href="{{ url_for('accounts_home') }}"{% if request.url.path == "/settings/users" %} aria-current="page"{% endif %}>Users</a>{% endif %}
+        {% if request.state.user %}
+          <a href="{{ url_for('account_home') }}">My account</a>
+          <form action="{{ url_for('logout_view') }}" method="post"><button class="secondary-button" type="submit">Sign out</button></form>
+        {% endif %}
+        </div></div>
       </nav>
     </header>
     <main class="page-shell" id="main-content" tabindex="-1">

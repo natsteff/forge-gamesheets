@@ -77,6 +77,39 @@
       {% endif %}
 
       <div class="reprint-original">
+        {% if request.state.auth_enabled %}
+          <aside class="reprint-responsibility" aria-label="QR access policy">
+            <strong>QR access</strong>
+            <p>Ordinary reprints use a sign-in-required link. Explicit shared reprints
+            use a secure resource-only link. {% if qr_guests %}Anyone with an active
+            shared QR code or URL can access this resource without signing in.{% else %}
+            Shared QR links currently require Reader-or-higher sign-in.{% endif %}
+            An Admin may change this policy or revoke a link later. Downloaded copies cannot be recalled.</p>
+            <p>For a copy without a FORGE QR code or sharing URL, view or print the original PDF below.</p>
+          </aside>
+          {% if generation_status == 'revoked' %}<p class="status-banner" role="status">Sharing revoked. Previously printed shared links no longer grant access.</p>{% endif %}
+          {% if generation_status == 'shared' %}<p class="status-banner success" role="status">Shared FORGE Reprint created.</p>{% endif %}
+          {% if request.state.can_admin %}
+            <details class="settings-section">
+              <summary>Manage resource sharing</summary>
+              {% if share_url %}
+                <p><a href="{{ share_url }}" rel="noreferrer">Open this resource’s secure sharing link</a></p>
+                <form class="metadata-form" action="{{ url_for('share_revoke', resource_id=resource.id) }}" method="post">
+                  <label for="revoke-password">Your current passphrase</label>
+                  <input id="revoke-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+                  <button class="danger-button" type="submit">Revoke sharing link</button>
+                </form>
+              {% endif %}
+              <form class="metadata-form" action="{{ url_for('share_generate', resource_id=resource.id) }}" method="post">
+                <p>This replaces the current generated copy with a shared QR copy, never the original. Revoking and then creating sharing again produces a new link.</p>
+                <label><input name="acknowledge" type="checkbox" value="1" required> I understand that anyone with this link may access this resource when QR guests are allowed.</label>
+                <label for="share-password">Your current passphrase</label>
+                <input id="share-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+                <button type="submit">Create shared FORGE Reprint</button>
+              </form>
+            </details>
+          {% endif %}
+        {% endif %}
         <h2>Original PDF</h2>
         <p>The original remains available without a Forge mark.</p>
         <div class="reprint-actions">

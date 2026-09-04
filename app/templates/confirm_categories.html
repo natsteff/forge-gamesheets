@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Confirm category changes</h1>
+<p>Apply these settings to <strong>{{ selected|length }} selected games</strong>?</p>
+<p>{{ impact }}</p>
+{% if operation in ['add', 'remove', 'replace'] %}<p>Selected categories: <strong>{{ categories|map(attribute='name')|join(', ') }}</strong></p>{% endif %}
+<ul>{% for game in selected %}<li>{{ game.title }}{% if operation == 'folder' %} — {{ folder_hint(game.relative_path)[1]|join(', ') or 'No valid hints; unchanged' }}{% endif %}</li>{% endfor %}</ul>
+<p>No changes have been made yet.</p>
+<form method="post" action="{{ url_for('assign_categories_apply') }}" class="bulk-category-form">
+{% for key, value in fields %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+<button type="submit" name="confirm" value="yes">Confirm and apply</button>
+<a href="{{ url_for('assign_categories') }}">Cancel — make no changes</a>
+</form>
+{% endblock %}

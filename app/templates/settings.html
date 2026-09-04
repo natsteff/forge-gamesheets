@@ -8,6 +8,15 @@
     <h1>Settings</h1>
     <p>Customize this library and organize the categories available to games.</p>
   </section>
+<section class="settings-section">
+  <h2>Library scanning</h2>
+  <form action="{{ url_for('settings_scanning') }}" method="post">
+    <label><input type="checkbox" name="folder_categories" {% if application_preferences(request).folder_categories %}checked{% endif %}> Import game categories from folder names</label>
+    <p>Use a trailing list such as Yahtzee [Dice, Children]. Missing categories are created automatically. Parentheses remain part of the title. Applies only to newly discovered games on the next scan; existing assignments are unchanged.</p>
+    <button class="primary-button" type="submit">Save scanning preference</button>
+  </form>
+  {% if request.query_params.get('status') == 'scanning-saved' %}<p role="status">Scanning preference saved.</p>{% endif %}
+</section>
 
   {% if status %}
     <p class="status-banner" role="status">Settings saved successfully.</p>
@@ -16,6 +25,18 @@
   {% elif error %}
     <p class="status-banner warning" role="alert">Check the entered value and try again.</p>
   {% endif %}
+
+  <section class="settings-section">
+    <h2>Access control</h2>
+    {% if request.state.auth_enabled %}
+      <p>Authentication is enabled. Library browsing requires sign-in.</p>
+      <a class="resource-action" href="{{ url_for('accounts_home') }}">Manage accounts and QR access</a>
+    {% else %}
+      <p>Trusted-operator mode: anyone who can reach this installation can edit it.
+      Authentication is optional and can only be activated using local Admin setup.
+      Upgrading does not automatically activate it.</p>
+    {% endif %}
+  </section>
 
   <section class="settings-section">
     <div class="settings-heading">

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Assign game categories</h1>
+<p>Select games, choose categories, then choose what to do. You will review and confirm the changes before they are applied. No library files are changed.</p>
+{% if message %}<p role="status">{{ message }}</p>{% endif %}
+<form method="get" class="bulk-category-form">
+  <div class="category-filter-toolbar">
+  <label>Search games <input name="q" value="{{ q }}"></label>
+  <label>Category <select name="category"><option value="">All categories</option><option value="uncategorized" {% if category == 'uncategorized' %}selected{% endif %}>Uncategorized</option>{% for item in categories %}<option value="{{ item.id }}" {% if category == item.id|string %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></label>
+  <label>Sort <select name="sort"><option value="title">Title</option><option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest added</option></select></label>
+  <button type="submit">Show games</button>
+  </div>
+  <label><input type="checkbox" name="preview" value="1" {% if preview %}checked{% endif %}> Preview categories from folder names</label>
+</form>
+{% if preview %}<p>Preview only: applying adds the shown categories, creates missing categories, and preserves existing categories and titles. Empty hints make no changes.</p>{% endif %}
+<p>{{ total }} matching games. Showing up to 500; narrow your filter for larger libraries.</p>
+<form method="post" id="bulk-categories" class="bulk-category-form">
+  {% for key, value in [('q', q), ('category', category), ('sort', sort), ('preview', '1' if preview else '')] %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+  <div class="category-selection-toolbar">
+  <button type="button" id="select-games" hidden>Select all shown</button>
+  <span id="selected-count" aria-live="polite"></span>
+  </div>
+  <div class="category-table-scroll" role="region" aria-label="Games to categorize" tabindex="0">
+  <table class="category-assignment-table{% if preview %} category-assignment-preview{% endif %}">
+    <colgroup><col class="category-col-select"><col class="category-col-game"><col><col class="category-col-added">{% if preview %}<col class="category-col-hints">{% endif %}</colgroup>
+    <thead><tr><th scope="col">Select</th><th scope="col">Game</th><th scope="col">Current categories</th><th scope="col">Added</th>{% if preview %}<th scope="col">Proposed categories (add)</th>{% endif %}</tr></thead>
+    <tbody>{% for game in games %}<tr>
+      <td><input type="checkbox" name="game_ids" value="{{ game.id }}" aria-labelledby="game-label-{{ game.id }}" id="game-select-{{ game.id }}"></td>
+      <th scope="row"><label id="game-label-{{ game.id }}" for="game-select-{{ game.id }}">{{ game.title }}</label>{% if preview %}<small class="category-folder-name">{{ game.relative_path }}</small>{% endif %}</th>
+      <td><span class="category-mobile-label">Current categories</span>{% for item in game.categories %}{{ item.name }}{% if not loop.last %}, {% endif %}{% else %}Uncategorized{% endfor %}</td>
+      <td><span class="category-mobile-label">Added</span><time datetime="{{ game.created_at }}">{{ game.added_display }}</time></td>
+      {% if preview %}<td><span class="category-mobile-label">Proposed categories (add)</span>{{ game.hints|join(', ') or 'No valid category hint' }}</td>{% endif %}
+    </tr>{% else %}<tr><td colspan="{{ 5 if preview else 4 }}">No games match these filters.</td></tr>{% endfor %}</tbody>
+  </table>
+  </div>
+  <fieldset><legend>Categories to apply</legend>{% for item in categories %}<label><input type="checkbox" name="category_ids" value="{{ item.id }}"> {{ item.name }}</label> {% endfor %}</fieldset>
+  <div class="category-operation-toolbar">
+  <label>Operation <select name="operation"><option value="add">Add categories</option><option value="remove">Remove categories</option><option value="replace">Replace categories</option><option value="clear">Clear categories</option>{% if preview %}<option value="folder">Apply folder category hints (add only)</option>{% endif %}</select></label>
+  <button type="submit">Apply to selected games</button>
+  </div>
+  <div id="operation-help">
+    <p>Every operation affects only the checked games above:</p>
+    <ul>
+      <li><strong>Add:</strong> add the checked categories to each selected game, keeping its other categories.</li>
+      <li><strong>Remove:</strong> remove only the checked categories from each selected game; keep all others.</li>
+      <li><strong>Replace:</strong> replace each selected game's entire category list with exactly the checked categories.</li>
+      <li><strong>Clear:</strong> remove all categories from the selected games. Category checkboxes are ignored.</li>
+      {% if preview %}<li><strong>Folder hints:</strong> add each selected game's previewed folder categories, creating missing categories. Category checkboxes are ignored.</li>{% endif %}
+    </ul>
+  </div>
+</form>
+{% endblock %}

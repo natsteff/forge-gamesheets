@@ -30,10 +30,10 @@
               <small>{{ resource.game_title }}{% if resource.variant %} · {{ resource.variant }}{% endif %}</small>
             </span>
           </a>
-          <form action="{{ url_for('resource_pin', resource_id=resource.id) }}" method="post">
+          {% if request.state.can_contribute %}<form action="{{ url_for('resource_pin', resource_id=resource.id) }}" method="post">
             <input type="hidden" name="return_to" value="pinned">
             <button class="favorite-button active" type="submit" aria-label="Unpin {{ resource.title }} from Library" title="Unpin from Library">⌖</button>
-          </form>
+          </form>{% endif %}
         </article>
       {% endfor %}
     </div>

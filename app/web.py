@@ -6,13 +6,14 @@ import re
 from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from app import sharing
 from app.bgg.client import BggApiError, BggClient
 from app.bgg.matching import enrich_game
 from app.bgg.repository import (
@@ -36,6 +37,7 @@ from app.library.files import (
     UnsafeResourcePath,
     resolve_resource_pdf,
 )
+from app.library.game_categories import bulk_apply, folder_hint
 from app.library.previews import PreviewUnavailable, cached_resource_preview
 from app.library.reconciliation import ReconciliationError, reconcile_scan
 from app.library.repository import (
@@ -112,9 +114,7 @@ RESERVED_GAME_CATEGORY_NAMES = frozenset({"all games", "uncategorized"})
 def _template_preferences(request: Request) -> ApplicationPreferences:
     """Expose cached preferences to every base template."""
     if not hasattr(request.state, "application_preferences"):
-        request.state.application_preferences = get_preferences(
-            _database(request)
-        )
+        request.state.application_preferences = get_preferences(_database(request))
     return request.state.application_preferences
 
 
@@ -142,6 +142,173 @@ def library_home(request: Request) -> HTMLResponse:
             "scan_issues": request.app.state.scan_issues,
         },
     )
+
+
+@router.get("/assign-categories", response_class=HTMLResponse, name="assign_categories")
+def assign_categories(request: Request):
+    query = request.query_params.get("q", "")[:200]
+    category = request.query_params.get("category", "")
+    sort = request.query_params.get("sort", "title")
+    preview = request.query_params.get("preview") == "1"
+    with _database(request).connect() as connection:
+        rows = connection.execute(
+            "SELECT g.id,g.relative_path,g.created_at,"
+            "COALESCE(o.title,g.title) AS title "
+            "FROM games g LEFT JOIN game_overrides o ON o.game_id=g.id"
+        ).fetchall()
+        assignments = defaultdict(list)
+        for row in connection.execute(
+            "SELECT a.game_id,c.id,c.name FROM game_category_assignments a "
+            "JOIN game_categories c ON c.id=a.category_id ORDER BY c.name"
+        ):
+            assignments[row["game_id"]].append(dict(row))
+        enabled = connection.execute(
+            "SELECT folder_categories FROM application_preferences WHERE id=1"
+        ).fetchone()[0]
+    timezone_name = get_preferences(_database(request)).timezone_name
+    games = []
+    for row in rows:
+        assigned = assignments[row["id"]]
+        if query.casefold() not in row["title"].casefold():
+            continue
+        if category == "uncategorized" and assigned:
+            continue
+        if (
+            category
+            and category != "uncategorized"
+            and not any(str(item["id"]) == category for item in assigned)
+        ):
+            continue
+        games.append(
+            {
+                **dict(row),
+                "categories": assigned,
+                "hints": folder_hint(row["relative_path"])[1],
+                "added_display": _format_local_timestamp(
+                    row["created_at"], timezone_name
+                ),
+            }
+        )
+    games.sort(
+        key=lambda game: (
+            (game["created_at"], game["id"])
+            if sort == "newest"
+            else (game["title"].casefold(), game["id"])
+        ),
+        reverse=sort == "newest",
+    )
+    return templates.TemplateResponse(
+        request=request,
+        name="assign_categories.html",
+        context={
+            "games": games[:500],
+            "total": len(games),
+            "q": query,
+            "category": category,
+            "sort": sort,
+            "preview": preview,
+            "folder_enabled": enabled,
+            "categories": list_game_categories(_database(request)),
+            "message": request.query_params.get("message", "")[:300],
+        },
+    )
+
+
+@router.post("/assign-categories", name="assign_categories_apply")
+async def assign_categories_apply(request: Request):
+    form = await request.form()
+    operation = str(form.get("operation", ""))
+    try:
+        if form.get("confirm") != "yes":
+            ids = set(int(value) for value in form.getlist("game_ids"))
+            category_ids = set(int(value) for value in form.getlist("category_ids"))
+            if not ids or len(ids) > 500:
+                raise ValueError("Select between 1 and 500 games.")
+            impacts = {
+                "add": "Add the selected categories; keep other categories.",
+                "remove": "Remove only the selected categories; keep other categories.",
+                "replace": (
+                    "Replace ALL existing categories with the selected categories."
+                ),
+                "clear": "Remove ALL categories. Category selections are ignored.",
+                "folder": (
+                    "Add each game's folder hints. Category selections are ignored."
+                ),
+            }
+            if operation not in impacts:
+                raise ValueError("Choose a valid operation.")
+            if operation in {"add", "remove", "replace"} and not category_ids:
+                raise ValueError("Select at least one category.")
+            with _database(request).connect() as connection:
+                selected = [
+                    dict(row)
+                    for row in connection.execute(
+                        "SELECT g.id,COALESCE(o.title,g.title) AS title,"
+                        "g.relative_path "
+                        "FROM games g LEFT JOIN game_overrides o ON o.game_id=g.id"
+                    )
+                    if row["id"] in ids
+                ]
+                categories = [
+                    dict(row)
+                    for row in connection.execute("SELECT id,name FROM game_categories")
+                    if row["id"] in category_ids
+                ]
+            if len(selected) != len(ids) or len(categories) != len(category_ids):
+                raise ValueError("A selected item no longer exists. Reload the page.")
+            return templates.TemplateResponse(
+                request=request,
+                name="confirm_categories.html",
+                context={
+                    "selected": selected,
+                    "categories": categories,
+                    "impact": impacts[operation],
+                    "operation": operation,
+                    "fields": [
+                        (key, str(value))
+                        for key, value in form.multi_items()
+                        if key
+                        in {
+                            "game_ids",
+                            "category_ids",
+                            "operation",
+                            "q",
+                            "category",
+                            "sort",
+                            "preview",
+                        }
+                    ],
+                    "folder_hint": folder_hint,
+                },
+            )
+        if operation == "folder" and form.get("preview") != "1":
+            raise ValueError("Preview folder categories before applying them.")
+        changed = bulk_apply(
+            _database(request),
+            [int(value) for value in form.getlist("game_ids")],
+            [int(value) for value in form.getlist("category_ids")],
+            operation,
+        )
+        message = f"Updated categories for {changed} games."
+    except ValueError as error:
+        message = str(error)
+    params = {
+        key: str(form.get(key, ""))[:200]
+        for key in ("q", "category", "sort", "preview")
+    }
+    params["message"] = message
+    return RedirectResponse("/assign-categories?" + urlencode(params), 303)
+
+
+@router.post("/settings/scanning", name="settings_scanning")
+async def settings_scanning(request: Request):
+    form = await request.form()
+    with _database(request).connect() as connection:
+        connection.execute(
+            "UPDATE application_preferences SET folder_categories=? WHERE id=1",
+            (int(form.get("folder_categories") == "on"),),
+        )
+    return RedirectResponse("/settings?status=scanning-saved", 303)
 
 
 @router.get("/categories", response_class=HTMLResponse, name="categories_home")
@@ -349,9 +516,7 @@ async def settings_category_rename(
     "/settings/categories/{category_id}/delete",
     response_class=RedirectResponse,
 )
-def settings_category_delete(
-    request: Request, category_id: int
-) -> RedirectResponse:
+def settings_category_delete(request: Request, category_id: int) -> RedirectResponse:
     """Delete a category but never its games or files."""
     if not delete_game_category(_database(request), category_id):
         raise HTTPException(status_code=404, detail="Category not found")
@@ -451,9 +616,7 @@ async def resource_pin(request: Request, resource_id: int) -> RedirectResponse:
     target = destinations[destination]
     if result == "limit":
         if destination == "game":
-            target = (
-                f"/games/{resource.game_id}?pin=limit#resource-{resource.id}"
-            )
+            target = f"/games/{resource.game_id}?pin=limit#resource-{resource.id}"
         else:
             target = f"{target}?pin=limit"
     return RedirectResponse(url=target, status_code=303)
@@ -485,9 +648,7 @@ def resource_edit(request: Request, resource_id: int) -> HTMLResponse:
     "/resources/{resource_id}/edit",
     response_class=RedirectResponse,
 )
-async def resource_edit_save(
-    request: Request, resource_id: int
-) -> RedirectResponse:
+async def resource_edit_save(request: Request, resource_id: int) -> RedirectResponse:
     resource = get_resource(_database(request), resource_id)
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -558,6 +719,7 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
         context={
             "game": game,
             "sections": sections,
+            "bgg_association": get_bgg_association(_database(request), game.id),
             "unavailable_resource_ids": unavailable_resource_ids,
             "pin_status": request.query_params.get("pin"),
         },
@@ -774,6 +936,52 @@ def game_bgg_retry(request: Request, game_id: int) -> RedirectResponse:
     return _game_edit_redirect(game_id, bgg_status=association.match_state.value)
 
 
+@router.post("/games/{game_id}/bgg/manual", name="game_bgg_manual")
+async def game_bgg_manual(request: Request, game_id: int):
+    game = get_game(_database(request), game_id)
+    if game is None:
+        raise HTTPException(404, "Game not found")
+    form = await request.form()
+    value = str(form.get("bgg_reference", "")).strip()
+    slug = None
+    try:
+        if len(value) > 1000:
+            raise ValueError
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"https", "http"} or parsed.netloc.lower() not in {
+            "boardgamegeek.com",
+            "www.boardgamegeek.com",
+        }:
+            raise ValueError
+        match = re.fullmatch(
+            r"/boardgame/([0-9]{1,10})/([A-Za-z0-9_-]{1,200})(?:/files)?/?",
+            parsed.path,
+        )
+        if not match:
+            raise ValueError
+        bgg_id = int(match[1])
+        slug = match[2]
+        if slug.lower() in {"files", "images", "forums", "videos", "ratings"}:
+            raise ValueError
+        if bgg_id <= 0:
+            raise ValueError
+    except ValueError:
+        return _game_edit_redirect(game_id, bgg_error="invalid-reference")
+    # Preserve the supplied slug without fetching or guessing BGG metadata.
+    save_bgg_association(
+        _database(request),
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=False,
+            match_state=BggMatchState.MANUAL,
+            source_title=game.title,
+            bgg_id=bgg_id,
+            url_slug=slug,
+        ),
+    )
+    return _game_edit_redirect(game_id, bgg_status="manual-linked")
+
+
 @router.post(
     "/games/{game_id}/bgg/unlink",
     response_class=RedirectResponse,
@@ -783,8 +991,6 @@ def game_bgg_unlink(request: Request, game_id: int) -> RedirectResponse:
     """Remove BGG state without changing the local game or its files."""
     if get_game(_database(request), game_id) is None:
         raise HTTPException(status_code=404, detail="Game not found")
-    if not request.app.state.settings.bgg_api_token:
-        return _game_edit_redirect(game_id, bgg_error="not-configured")
     delete_bgg_association(_database(request), game_id)
     return _game_edit_redirect(game_id, bgg_status="unlinked")
 
@@ -794,9 +1000,7 @@ def game_bgg_unlink(request: Request, game_id: int) -> RedirectResponse:
     response_class=RedirectResponse,
     name="game_bgg_lookup_toggle",
 )
-async def game_bgg_lookup_toggle(
-    request: Request, game_id: int
-) -> RedirectResponse:
+async def game_bgg_lookup_toggle(request: Request, game_id: int) -> RedirectResponse:
     """Enable or disable future BGG lookup while preserving cached state."""
     if not request.app.state.settings.bgg_api_token:
         return _game_edit_redirect(game_id, bgg_error="not-configured")
@@ -848,13 +1052,9 @@ def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
         )
         base_url = request.app.state.settings.base_url
         if base_url:
-            target_url = resource_reprint_url(base_url, resource_id)
-            generated_available = existing_forge_reprint(
-                source,
-                request.app.state.settings.data_path,
-                resource_id=resource_id,
-                target_url=target_url,
-            ) is not None
+            generated_available = (
+                _existing_reprint(request, source, resource_id) is not None
+            )
     except (ResourceFileMissing, UnsafeResourcePath):
         available = False
 
@@ -869,6 +1069,8 @@ def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
             "generated_available": generated_available,
             "generation_status": request.query_params.get("status"),
             "generation_error": request.query_params.get("error"),
+            "share_url": _current_share_url(request, resource_id),
+            "qr_guests": _qr_guests(request),
         },
     )
 
@@ -878,9 +1080,7 @@ def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
     response_class=RedirectResponse,
     name="resource_reprint_generate",
 )
-def resource_reprint_generate(
-    request: Request, resource_id: int
-) -> RedirectResponse:
+def resource_reprint_generate(request: Request, resource_id: int) -> RedirectResponse:
     """Generate a derived Forge-marked copy without changing its source PDF."""
     try:
         _generated_reprint(request, resource_id)
@@ -894,9 +1094,7 @@ def resource_reprint_generate(
     response_class=RedirectResponse,
     name="resource_reprint_regenerate",
 )
-def resource_reprint_regenerate(
-    request: Request, resource_id: int
-) -> RedirectResponse:
+def resource_reprint_regenerate(request: Request, resource_id: int) -> RedirectResponse:
     """Replace a current derived copy and confirm the refresh to the user."""
     try:
         _generated_reprint(request, resource_id, force=True)
@@ -961,9 +1159,7 @@ def resource_preview(request: Request, resource_id: int) -> FileResponse:
 )
 def resource_view(request: Request, resource_id: int) -> FileResponse:
     """Serve an indexed PDF inline for browser viewing and printing."""
-    return _resource_response(
-        request, resource_id, disposition="inline", action="view"
-    )
+    return _resource_response(request, resource_id, disposition="inline", action="view")
 
 
 @router.get(
@@ -1027,16 +1223,7 @@ def _generated_reprint_response(
             request.app.state.settings.library_path,
             resource.relative_path,
         )
-        target_url = resource_reprint_url(
-            request.app.state.settings.base_url,
-            resource_id,
-        )
-        path = existing_forge_reprint(
-            source,
-            request.app.state.settings.data_path,
-            resource_id=resource_id,
-            target_url=target_url,
-        )
+        path = _existing_reprint(request, source, resource_id)
     except ResourceFileMissing as error:
         raise HTTPException(
             status_code=410,
@@ -1060,6 +1247,42 @@ def _generated_reprint_response(
         content_disposition_type=disposition,
         headers={"Cache-Control": "no-store"},
     )
+
+
+def _current_share_url(request: Request, resource_id: int) -> str | None:
+    if not request.state.auth_enabled or not request.app.state.settings.base_url:
+        return None
+    token = sharing.share_token(_database(request), resource_id)
+    if token:
+        return sharing.sharing_url(request.app.state.settings.base_url, token)
+    return None
+
+
+def _qr_guests(request: Request) -> bool:
+    if not request.state.auth_enabled:
+        return False
+    with _database(request).connect() as connection:
+        row = connection.execute(
+            "SELECT qr_guests FROM auth_configuration WHERE id=1"
+        ).fetchone()
+        return bool(row[0])
+
+
+def _existing_reprint(request: Request, source: Path, resource_id: int) -> Path | None:
+    # Both ordinary login-required prints and explicit shared prints are readable
+    # by members. Guests use a separate handler that accepts only the shared URL.
+    normal = resource_reprint_url(request.app.state.settings.base_url, resource_id)
+    for target in (normal, _current_share_url(request, resource_id)):
+        if target:
+            path = existing_forge_reprint(
+                source,
+                request.app.state.settings.data_path,
+                resource_id=resource_id,
+                target_url=target,
+            )
+            if path:
+                return path
+    return None
 
 
 def _reprint_redirect(
@@ -1100,12 +1323,8 @@ def _game_edit_response(
         context={
             "game": game,
             "game_categories": list_game_categories(_database(request)),
-            "selected_category_ids": {
-                category.id for category in game.categories
-            },
-            "bgg_association": get_bgg_association(
-                _database(request), game.id
-            ),
+            "selected_category_ids": {category.id for category in game.categories},
+            "bgg_association": get_bgg_association(_database(request), game.id),
             "bgg_configured": bool(request.app.state.settings.bgg_api_token),
             "bgg_candidates": bgg_candidates,
             "bgg_query": bgg_query or game.detected_title,
@@ -1168,9 +1387,7 @@ def _timezone_names() -> tuple[str, ...]:
         "Indian/",
         "Pacific/",
     )
-    names = sorted(
-        name for name in available_timezones() if name.startswith(regions)
-    )
+    names = sorted(name for name in available_timezones() if name.startswith(regions))
     return ("UTC", *names)
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from dataclasses import dataclass
 from enum import StrEnum
@@ -32,18 +33,23 @@ class BggAssociation:
     thumbnail_url: str | None = None
     failure_code: str | None = None
     last_lookup_at: str | None = None
+    url_slug: str | None = None
+
+    @property
+    def game_url(self) -> str:
+        return f"https://boardgamegeek.com/boardgame/{self.bgg_id}" + (
+            f"/{self.url_slug}" if self.url_slug else ""
+        )
 
 
-def get_bgg_association(
-    database: Database, game_id: int
-) -> BggAssociation | None:
+def get_bgg_association(database: Database, game_id: int) -> BggAssociation | None:
     """Return a game's persistent BGG state when one has been created."""
     with database.connect() as connection:
         row = connection.execute(
             """
             SELECT game_id, lookup_enabled, match_state, bgg_id,
                    match_confidence, cached_name, year_published, image_url,
-                   thumbnail_url, source_title, failure_code, last_lookup_at
+                   thumbnail_url, source_title, failure_code, last_lookup_at, url_slug
             FROM game_bgg_associations WHERE game_id = ?
             """,
             (game_id,),
@@ -51,23 +57,24 @@ def get_bgg_association(
     return _association_from_row(row) if row is not None else None
 
 
-def save_bgg_association(
-    database: Database, association: BggAssociation
-) -> bool:
+def save_bgg_association(database: Database, association: BggAssociation) -> bool:
     """Create or replace validated BGG state for an existing local game."""
     _validate_association(association)
     with database.connect() as connection:
-        if connection.execute(
-            "SELECT 1 FROM games WHERE id = ?", (association.game_id,)
-        ).fetchone() is None:
+        if (
+            connection.execute(
+                "SELECT 1 FROM games WHERE id = ?", (association.game_id,)
+            ).fetchone()
+            is None
+        ):
             return False
         connection.execute(
             """
             INSERT INTO game_bgg_associations (
                 game_id, lookup_enabled, match_state, bgg_id,
                 match_confidence, cached_name, year_published, image_url,
-                thumbnail_url, source_title, failure_code, last_lookup_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                thumbnail_url, source_title, failure_code, last_lookup_at, url_slug
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(game_id) DO UPDATE SET
                 lookup_enabled = excluded.lookup_enabled,
                 match_state = excluded.match_state,
@@ -80,6 +87,9 @@ def save_bgg_association(
                 source_title = excluded.source_title,
                 failure_code = excluded.failure_code,
                 last_lookup_at = excluded.last_lookup_at,
+                url_slug = CASE WHEN excluded.bgg_id = game_bgg_associations.bgg_id
+                    THEN COALESCE(excluded.url_slug, game_bgg_associations.url_slug)
+                    ELSE excluded.url_slug END,
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             """,
             (
@@ -95,6 +105,7 @@ def save_bgg_association(
                 association.source_title,
                 association.failure_code,
                 association.last_lookup_at,
+                association.url_slug,
             ),
         )
     return True
@@ -110,16 +121,24 @@ def delete_bgg_association(database: Database, game_id: int) -> bool:
 
 
 def _validate_association(association: BggAssociation) -> None:
+    if association.url_slug is not None and not re.fullmatch(
+        r"[A-Za-z0-9_-]{1,200}", association.url_slug
+    ):
+        raise ValueError("Invalid BGG URL slug")
     if association.game_id <= 0:
         raise ValueError("Game ID must be positive.")
     if not association.source_title.strip():
         raise ValueError("BGG source title must not be empty.")
     if association.bgg_id is not None and association.bgg_id <= 0:
         raise ValueError("BoardGameGeek ID must be positive.")
-    if association.match_state in {
-        BggMatchState.MATCHED,
-        BggMatchState.MANUAL,
-    } and association.bgg_id is None:
+    if (
+        association.match_state
+        in {
+            BggMatchState.MATCHED,
+            BggMatchState.MANUAL,
+        }
+        and association.bgg_id is None
+    ):
         raise ValueError("A matched BGG association requires a BGG ID.")
     if association.match_confidence is not None and not (
         0.0 <= association.match_confidence <= 1.0
@@ -145,4 +164,5 @@ def _association_from_row(row: sqlite3.Row) -> BggAssociation:
         source_title=row["source_title"],
         failure_code=row["failure_code"],
         last_lookup_at=row["last_lookup_at"],
+        url_slug=row["url_slug"],
     )

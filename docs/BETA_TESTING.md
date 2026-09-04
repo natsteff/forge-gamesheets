@@ -146,3 +146,11 @@ public report. Describe filenames and folder structure with sanitized examples.
 - Did categories and pinned resources reduce the time needed to find documents?
 - Was any action or label confusing?
 - What would prevent you from continuing to use the application?
+# Current-source review additions
+
+For current builds, test optional accounts and QR sharing using [ACCOUNTS.md](ACCOUNTS.md),
+bulk categories and folder hints using [GAME_CATEGORIES.md](GAME_CATEGORIES.md),
+and token-free BGG links using [BGG_MANUAL_LINKS.md](BGG_MANUAL_LINKS.md).
+Check grouped navigation at desktop and mobile widths. Follow the major-update
+[documentation critical path](DOCUMENTATION_REVIEW.md) before release approval.
+Docker Test upgrades remain optional unless a migration/security risk warrants them.

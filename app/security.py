@@ -250,7 +250,9 @@ class BrowserSecurityHeaders:
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(scope=message)
                 headers["X-Content-Type-Options"] = "nosniff"
-                headers["Referrer-Policy"] = "same-origin"
+                headers["Referrer-Policy"] = (
+                    "no-referrer" if scope["path"].startswith("/s/") else "same-origin"
+                )
                 if scope["path"] not in _FRAMEWORK_DOCS:
                     headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
             await send(message)

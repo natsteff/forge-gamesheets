@@ -95,6 +95,12 @@ def _reconcile(
                 """,
                 (game_path, game.name, *artwork_values),
             ).lastrowid
+            if connection.execute(
+                "SELECT folder_categories FROM application_preferences WHERE id=1"
+            ).fetchone()[0]:
+                from app.library.game_categories import import_hint
+
+                import_hint(connection, game_id, game.name, title=True)
             games_added += 1
         else:
             game_id = existing_game["id"]

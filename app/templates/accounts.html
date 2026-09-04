@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Accounts and QR access · Forge GameSheets{% endblock %}
+{% block content %}
+  <h1>Accounts and QR access</h1>
+  {% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}
+  {% if saved %}<p class="status-banner success" role="status">Changes saved.</p>{% endif %}
+  <p>Admins manage access and settings. Contributors edit the shared library. Readers browse and print.</p>
+  <section class="settings-section">
+    <h2>QR guest access</h2>
+    <p>Secure sharing links grant access only to their resource. Ordinary numeric QR links always require sign-in when authentication is enabled.</p>
+    <form class="metadata-form settings-form" action="{{ url_for('qr_policy_save') }}" method="post">
+      <label><input type="checkbox" name="qr_guests" value="1"{% if qr_guests %} checked{% endif %}> Allow secure QR links without sign-in</label>
+      <small>Uncheck to require Reader-or-higher sign-in, including for previously printed links. Downloaded copies cannot be recalled.</small>
+      <label for="policy-password">Your current passphrase</label>
+      <input id="policy-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+      <button type="submit">Save QR access policy</button>
+    </form>
+  </section>
+  <section class="settings-section">
+    <h2>Create account</h2>
+    <form class="metadata-form settings-form" action="{{ url_for('accounts_create') }}" method="post">
+      <label for="new-username">Username</label>
+      <input id="new-username" name="username" autocomplete="off" minlength="3" maxlength="40" required>
+      <label for="new-role">Role</label>
+      <select id="new-role" name="role"><option value="reader">Reader</option><option value="contributor">Contributor</option><option value="admin">Admin</option></select>
+      <label for="new-password">New account passphrase (15–128 characters)</label>
+      <input id="new-password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+      <label for="new-confirm">Confirm new account passphrase</label>
+      <input id="new-confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+      <label for="admin-password">Your current passphrase</label>
+      <input id="admin-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+      <button type="submit">Create account</button>
+    </form>
+  </section>
+  {% for user in users %}
+    <section class="settings-section">
+      <h2>{{ user.username }}</h2>
+      <p>Account #{{ user.id }} · {% if user.enabled %}Enabled{% else %}Disabled{% endif %}</p>
+      <form class="metadata-form settings-form" action="{{ url_for('accounts_update', user_id=user.id) }}" method="post">
+        <label for="role-{{ user.id }}">Role</label>
+        <select id="role-{{ user.id }}" name="role">{% for role in ['reader', 'contributor', 'admin'] %}<option value="{{ role }}"{% if role == user.role %} selected{% endif %}>{{ role|title }}</option>{% endfor %}</select>
+        <label><input type="checkbox" name="enabled" value="1"{% if user.enabled %} checked{% endif %}> Account enabled</label>
+        <label for="update-password-{{ user.id }}">Your current passphrase</label>
+        <input id="update-password-{{ user.id }}" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+        <button type="submit">Save account and invalidate its sessions</button>
+      </form>
+      <details><summary>Reset this account’s passphrase</summary>
+        <form class="metadata-form settings-form" action="{{ url_for('accounts_password', user_id=user.id) }}" method="post">
+          <label for="reset-{{ user.id }}">New passphrase</label>
+          <input id="reset-{{ user.id }}" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+          <label for="reset-confirm-{{ user.id }}">Confirm new passphrase</label>
+          <input id="reset-confirm-{{ user.id }}" name="password_confirm" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+          <label for="reset-admin-{{ user.id }}">Your current passphrase</label>
+          <input id="reset-admin-{{ user.id }}" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+          <button type="submit">Reset passphrase and invalidate sessions</button>
+        </form>
+      </details>
+    </section>
+  {% endfor %}
+  <section class="settings-section">
+    <h2>Recent security events</h2>
+    <p>Latest 30 of up to 1,000 retained events. Actors and targets show current account or resource names, with IDs for reference. Passwords and secret sharing links are never recorded here.</p>
+    <ul>{% for event in events %}<li>{{ event.display_time }} · {{ event.action_label }} · By: {{ event.actor_label }}{% if event.target_id is not none %} · Target: {{ event.target_label }}{% endif %}</li>{% endfor %}</ul>
+  </section>
+{% endblock %}

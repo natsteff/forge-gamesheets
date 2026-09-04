@@ -1,0 +1,8 @@
+<div class="bgg-action-row">
+{% if bgg_association and bgg_association.bgg_id %}
+  <a class="secondary-button" href="{{ bgg_association.game_url }}" target="_blank" rel="noopener noreferrer">View on BGG</a>
+  {% if bgg_association.url_slug %}<a class="secondary-button" href="{{ bgg_association.game_url }}/files" target="_blank" rel="noopener noreferrer">BGG Files</a>{% else %}<span>Save the full BGG game URL to enable the Files shortcut.</span>{% endif %}
+{% else %}
+  <a class="secondary-button" href="https://boardgamegeek.com/geeksearch.php?{{ {'action': 'search', 'q': game.title, 'objecttype': 'boardgame'}|urlencode }}" target="_blank" rel="noopener noreferrer">Search for game at BGG</a>
+{% endif %}
+</div>

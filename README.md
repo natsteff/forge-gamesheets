@@ -28,11 +28,15 @@ a cloud service, or store PDF contents in its database.
 - Optional FORGE Reprint copies with a QR return link and source-rights notice
 - Editable display titles, document metadata, and game artwork
 - Multiple customizable categories per game
+- Bulk category assignment with filtering, selection, and confirmation before changes
+- Optional trailing folder-category hints, such as `Yahtzee [Dice, Children]`
+- Optional local Admin, Contributor, and Reader accounts with revocable QR guest links
+- Token-free manual BGG game URLs, Game/Files links, and external title search
 - All Games, category, and Uncategorized browsing
 - Favorites, up to ten pinned homepage resources, Recent, and use history
 - Configurable library footer, Recent limit, and History time zone
 - Manual rescans with safe partial-scan and missing-file behavior
-- Responsive, keyboard-accessible pages with a compact-screen navigation menu
+- Grouped desktop dropdowns and a compact-screen hamburger menu
 - SQLite migrations that preserve application state across restarts
 - GitHub-published container images with revision and build-date information
 
@@ -43,15 +47,22 @@ The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 All screenshots use an invented demonstration library; no private or
 copyrighted game files are included.
 
+**Screenshot refresh pending:** these images show the earlier UI. Current builds
+include grouped navigation, optional accounts, bulk categories, and manual BGG
+links described below. Replace this gallery before the next publication.
+
 | Library and categories | Game resources |
 | --- | --- |
 | ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
 | **Settings** | **FORGE Reprint** |
-| ![Settings showing library preferences and the History time-zone selector](docs/images/settings.png) | ![FORGE Reprint showing regeneration confirmation, print guidance, and original PDF actions](docs/images/forge-reprint.png) |
+| ![Earlier Settings view with display preferences](docs/images/settings.png) | ![Earlier FORGE Reprint view](docs/images/forge-reprint.png) |
 | **Integration and build details** | **Mobile navigation** |
-| ![Settings showing BGG disabled without a token and the installed build revision and date](docs/images/settings-build.png) | ![Expanded mobile menu with Library highlighted and all navigation links visible](docs/images/mobile-navigation.png) |
+| ![Earlier Settings view showing integration and build information](docs/images/settings-build.png) | ![Earlier ungrouped mobile navigation](docs/images/mobile-navigation.png) |
 
 ## Requirements
+
+Published images only receive source changes after the corresponding commit
+passes the publication checks.
 
 - Docker Desktop or another Docker installation with Compose support
 - A local directory containing the PDF library
@@ -158,7 +169,7 @@ handles bind-mount permissions through its file-sharing layer.
 
 For access from another device on a trusted private LAN, set
 `FORGE_GAMESHEETS_BIND_ADDRESS=0.0.0.0` in `.env`, then open the configured port
-on the Docker host. Forge has no built-in authentication: never expose that
+on the Docker host. Authentication is off until local Admin setup: never expose that
 port directly to the public Internet or an untrusted network. Remote access
 requires an appropriate authenticated proxy, VPN, or network access-control
 layer.
@@ -188,6 +199,43 @@ Optional game artwork can be placed at the top of a game folder using the name
 `icon` or `cover` and a PNG, JPEG, or WebP extension. Artwork can also be
 uploaded through **Edit game entry**.
 
+### Game categories and folder hints
+
+Use **Games → Assign game categories** to search/filter games and add, remove,
+replace, or clear categories for up to 500 selected games per batch. Every action
+shows a confirmation summary before changing data. Admins and Contributors can
+use it; Readers cannot edit categories.
+
+Admins can enable **Settings → Library scanning → Import game categories from
+folder names** (off by default). A folder such as `Yahtzee (Family) [Dice, Children]`
+imports the display title `Yahtzee (Family)` with two categories. Missing categories
+are created; parentheses remain title text. This setting affects newly discovered
+games only. Existing games require the assignment page's explicit folder-hint
+preview and additive application. Rescans preserve manual assignments, and no
+folders or source files are renamed. See [category guidance](docs/GAME_CATEGORIES.md).
+
+### BoardGameGeek links without a token
+
+In **Edit game entry**, paste a full BGG game URL containing both its numeric ID
+and game-name slug. Forge stores the manual association without fetching or
+verifying metadata. Linked games show **View on BGG** and **BGG Files**; unlinked
+games show **Search for game at BGG**, using the local display title in a new tab.
+Bare IDs and incomplete URLs are not accepted. Local titles and artwork stay
+unchanged. See [manual BGG links](docs/BGG_MANUAL_LINKS.md).
+
+You can upload artwork you have permission to use through the existing image
+upload. Manual links do not scrape BGG or automatically download images or PDFs.
+API enrichment remains a separate, optional feature requiring token configuration.
+
+### Navigation
+
+Desktop navigation groups **Games** (All games, Categories, Assign game categories),
+**Quick access** (Pinned, Favorites, Recently used), and **Account** (permitted
+account/settings/user actions), with **History** separate. The logo opens Library
+home. Mobile Menu shows the same groups with visible links. Users is shown only
+to signed-in Admins; editing options follow role permissions. Recently used is
+hidden when its configured limit is zero.
+
 ## Application data and backups
 
 The source PDFs remain in `library/`. The `data/` directory contains the SQLite
@@ -195,24 +243,54 @@ database, uploaded artwork, and regenerable caches. Back up both directories:
 
 - `library/` preserves original PDFs and detected artwork.
 - `data/` preserves titles, categories, favorites, pins, settings, activity,
-  and uploaded artwork.
+  uploaded artwork, accounts, sessions, and QR sharing state. Preserve the hidden
+  `.authentication-required` marker with the rest of this directory.
 
 Stop the application before making a simple filesystem copy of `data/`. See
 [Backup and recovery](docs/BACKUP_AND_RECOVERY.md) before upgrades or migration.
 
 ## Security boundary
 
-FORGE has no authentication or user accounts. The supplied Compose file is
-intended for local beta use and listens only on localhost. Do not expose it to
-the internet or an untrusted network without an intentionally designed access
-and authentication layer.
+FORGE supports optional local Admin, Contributor, and Reader accounts. Existing
+installations remain in trusted-operator mode until the operator explicitly
+creates the first Admin from a local terminal. An upgrade does not activate
+login or change source-library permissions. See [Accounts and QR sharing](docs/ACCOUNTS.md)
+for setup, recovery, permissions, and the effect on previously printed QR codes.
+
+The supplied Compose file listens only on localhost. Non-local sign-in requires
+HTTPS through a correctly configured proxy. Accounts are not a substitute for
+network protection or approval for direct public exposure; do not expose Forge
+directly to the Internet.
 
 The library mount is read-only. Forge GameSheets never edits source PDFs.
+
+- **Trusted-operator mode:** until accounts are activated, anyone who can reach
+  the application can edit it. Restrict network access before starting.
+- **Accounts:** passwords use salted Argon2id hashes, not plaintext. New passwords
+  receive offline common-password screening. Sessions expire and account changes
+  invalidate affected sessions. These controls do not make public exposure safe.
+- **QR sharing:** secure guest links are bearer credentials. Anyone with a link
+  can access that resource while guest sharing is allowed; keep printed copies
+  and links private when appropriate. Admins can revoke links or require Reader
+  sign-in. Old numeric QR links require login after activation. Downloaded copies
+  cannot be revoked.
+- **Host and backups:** the database is not encrypted by Forge. Protect data,
+  backups, activation markers, and BGG tokens. A container is not a complete
+  security boundary; keep the host and images updated.
+- **Content:** PDF/image parsing is not malware scanning. Only add trusted files
+  you are authorized to use. Browser PDF viewers also need updates. PDF upload
+  from the web UI is not implemented; artwork upload is available to editors.
+- **Audit visibility:** Admins can review recent account/sharing security events
+  with actor and target names. This is bounded activity logging, not a complete
+  audit trail. Protect proxy logs as they may contain sharing URLs.
+
+Implementation review and publication safeguards are described separately in
+[Development and security](#development-and-security).
 
 ## Content rights and responsibility
 
 Forge GameSheets is self-hosted software. It does not provide, sell, upload,
-inspect, or verify the PDFs placed in an operator's library. The library
+verify the safety or rights of the PDFs placed in an operator's library. The library
 operator controls those files and is responsible for ensuring that their
 storage, reproduction, use, printing, and distribution are permitted by the
 rights holder, applicable license terms, public-domain status, or applicable
@@ -226,8 +304,11 @@ distribute a source PDF.
 
 QR links point back to the operator's own Forge installation. Depending on its
 network configuration, that link may make a resource reachable from other
-devices. Forge has no built-in authentication, so operators must not expose
-protected resources directly to the public internet or an untrusted network.
+devices. With accounts enabled, numeric QR links require sign-in; an Admin can
+explicitly create a revocable, resource-scoped guest link instead. Anyone with
+that link can access the shared resource while guest access is allowed. Disabling
+guest access requires Reader-or-higher sign-in, but cannot recall downloaded copies.
+Use the original PDF when a copy without a FORGE sharing link is desired.
 
 ## Testing and development
 
@@ -275,12 +356,10 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
 - FORGE Reprint creates a marked derived copy but does not edit, combine, or
   replace source PDFs.
 - Game folders must currently be first-level children of the library root.
-- BoardGameGeek integration is experimental. Its client, saved associations,
-  and manual matching workflow exist, but further development and public
-  rollout are on hold pending application approval and token-distribution
-  guidance. No token is bundled; normal local use does not require BGG.
-  Without a token, BGG game controls are hidden and Settings shows the disabled
-  status. Configuring a token does not itself verify approval or API access.
+- Manual BGG links and external search work without a token. API enrichment is
+  experimental and its rollout remains on hold pending approval and token
+  distribution guidance. No token is bundled. Configuring one does not verify
+  approval or API access; without it, only API controls are unavailable.
 - Automatic BGG scan matching and artwork fallback are not yet implemented.
 - Structured FGS files, an editor, and a renderer remain future work.
 - There is no remote synchronization or cloud backup.
@@ -304,11 +383,24 @@ security roles. Development includes automated testing and incremental
 changes, with OWASP ASVS-based security reviews planned for major releases.
 The source is openly available for inspection and contributions.
 
-FORGE is designed for self-hosted use on localhost or a trusted private
-network. For remote access, use a VPN or an appropriately secured,
-authenticated reverse proxy rather than exposing the application directly to
-the Internet. Docker provides isolation, but is not a complete security
-boundary.
+Before publishing Docker images, [GitHub Actions](.github/workflows/publish-container.yml)
+runs automated tests, code-quality checks, and dependency vulnerability audits.
+Dependency audit findings block publication. Container scans report High and
+Critical findings and block publication for Critical vulnerabilities with an
+available fix. The workflow publishes the same image that passed these checks.
+
+These safeguards complement—not replace—code review, targeted security testing,
+and planned OWASP ASVS-based reviews for major releases. Passing checks is not a
+security certification or a guarantee that no vulnerabilities exist.
+
+Documentation checks run with the test suite to catch broken local references,
+missing screenshot files, and selected stale feature claims. Major updates also
+require a critical-path documentation and screenshot review; automated checks
+cannot establish that instructions or screenshots accurately describe every
+workflow. See [documentation review](docs/DOCUMENTATION_REVIEW.md).
+
+Operator responsibilities and deployment precautions are described in
+[Security boundary](#security-boundary), separate from the development checks above.
 
 Security is a shared responsibility: maintainers work to improve application
 safety, while operators manage secure deployment, updates, access, and library

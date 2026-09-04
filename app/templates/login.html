@@ -1,0 +1,22 @@
+{% extends "public_base.html" %}
+{% block title %}Sign in · Forge GameSheets{% endblock %}
+{% block content %}
+  <section class="settings-section">
+    <h1>Sign in</h1>
+    {% if request.state.auth_enabled %}
+      {% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}
+      <form class="metadata-form settings-form" action="{{ url_for('login_submit') }}" method="post">
+        <input type="hidden" name="next" value="{{ next_path }}">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" maxlength="40" required>
+        <label for="password">Passphrase</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        <button type="submit">Sign in</button>
+      </form>
+      <p>Need access or a password reset? Contact this library’s administrator.</p>
+    {% else %}
+      <p>This installation uses trusted-operator access. Authentication has not been activated.</p>
+      <a href="{{ url_for('library_home') }}">Open library</a>
+    {% endif %}
+  </section>
+{% endblock %}

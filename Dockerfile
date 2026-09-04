@@ -35,6 +35,8 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 FROM base AS development
 USER root
 COPY tests ./tests
+COPY docs ./docs
+COPY PROJECT_PLAN.md ./
 COPY Dockerfile compose.yml .env.example ./
 COPY scripts ./scripts
 COPY .github/workflows ./.github/workflows

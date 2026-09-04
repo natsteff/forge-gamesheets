@@ -210,3 +210,9 @@ Do not publish the prerelease if any of these remain:
 Cosmetic issues may be recorded as known limitations when they do not affect
 data safety, installation, document access, or the constrained Phase 1.5
 workflow.
+# Documentation gate for major updates
+
+- [ ] Run automated documentation checks with pytest.
+- [ ] Complete [critical-path documentation review](DOCUMENTATION_REVIEW.md),
+  refresh screenshots for changed UI, and record candidate revision and gaps.
+- [ ] Keep operator security awareness separate from development review evidence.

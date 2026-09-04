@@ -154,7 +154,7 @@ rather than delaying feature progress beforehand.
   configurable without requiring users to edit tracked Compose configuration.
 - **Confirmed:** Clearly distinguish localhost-only, trusted-LAN, and
   reverse-proxy access models.
-- **Confirmed:** Warn that Forge has no built-in authentication and must not be
+- **Confirmed:** Warn that authentication is off until local setup and Forge must not be
   exposed directly to the public Internet.
 - **Confirmed:** Retain the application health check and verify that container
   health represents a functioning application rather than merely an existing
@@ -162,7 +162,7 @@ rather than delaying feature progress beforehand.
 - **Confirmed:** Add focused checks for runtime identity, writable application
   data, read-only source content, and application health.
 - **Confirmed:** Add concise setup and security guidance sufficient for current
-  testers, including the lack of built-in authentication and the difference
+  testers, including opt-in authentication and the difference
   between localhost-only and trusted-LAN access.
 - **Confirmed:** Do not add a privileged startup process, broad host
   permissions, automatic NAS mounting, bundled TLS, or a larger orchestration
@@ -375,15 +375,47 @@ The complete approved boundary is recorded in
 
 ## 10. Phase 4 — design and advanced workflows
 
-- **Future consideration, owner approval required:** Authentication, roles,
-  and narrowly scoped shareable QR access. Review the plan with the owner
-  before implementation; see [security planning](docs/SECURITY_PLAN.md).
-- **Confirmed planning requirement, not implemented:** Include QR guest access
-  alongside the proposed Admin, Contributor (previously Librarian), and Reader
-  account roles. QR guests have no account; a secure sharing link permits only
-  its specific resource. Plan an administrator-controlled QR guest setting,
-  default allow, with an option to require Reader-or-higher sign-in. This default
-  applies only to the future secure sharing design, not today's numeric links.
+Documentation is release-critical: automated checks run with pytest, and major
+updates require critical-path and screenshot review under
+[documentation review](docs/DOCUMENTATION_REVIEW.md), alongside security review.
+
+### Approved token-free BGG baseline
+
+Implemented locally: Admin/Contributor full BGG game-URL association (ID and slug required),
+canonical Game/Files links, and a title-based external search shortcut for unlinked
+games. No scraping or API requests; local title/artwork remain authoritative.
+Manual associations disable automatic matching until explicitly enabled. API
+enrichment rollout remains separate and subject to approval/token configuration.
+
+### Approved bulk game categorization
+
+Implemented locally, awaiting owner review: Games → Assign game categories for
+Admins/Contributors, with title/category filters, newest/title sorting, selection
+of up to 500 displayed games, and transactional add/remove/replace/clear actions.
+All operations show a pre-apply confirmation summary. Settings → Library scanning provides
+an Admin-only, default-off trailing `[Dice, Children]` folder convention for new
+games. Existing games require preview and explicit additive application; rescans
+preserve manual categories. No filesystem writes or bulk title changes occur.
+
+
+### Approved early access-control milestone
+
+The owner approved moving the small local-account foundation ahead of PDF
+uploads. Implement opt-in local Admin bootstrap/recovery, Admin/Contributor/
+Reader permissions, and resource-scoped QR guest access with an Admin-controlled
+allow/restrict setting. Existing installations remain in trusted-operator mode
+until local setup activates authentication. Once active, library browsing requires
+sign-in; existing numeric QR links require sign-in, while explicitly created
+secure sharing links may allow guests. Content, shared favorites/pins/history,
+and filesystem permissions remain unchanged. No public registration, email
+recovery, external identity provider, PDF upload, or deployment is included.
+See [the access-control design](docs/decisions/004-local-accounts-and-sharing.md).
+
+- **Implemented locally, awaiting owner review:** The approved local-account
+  milestone above, including default-allow secure QR guest policy and optional
+  Reader-or-higher sign-in. No live installation has been activated by this work.
+  See [account operations](docs/ACCOUNTS.md). Broader identity providers, MFA,
+  per-user collections, and PDF uploads still require separate approval.
 - **Future consideration, owner approval required:** Web-based creation of
   game entries and single-PDF uploads as a convenience alongside filesystem
   bulk loading. Review security and mount permissions before implementation;

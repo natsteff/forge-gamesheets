@@ -17,6 +17,7 @@ class ApplicationPreferences:
     footer_text: str
     recent_limit: int
     timezone_name: str
+    folder_categories: bool = False
 
 
 def get_preferences(database: Database) -> ApplicationPreferences:
@@ -24,7 +25,7 @@ def get_preferences(database: Database) -> ApplicationPreferences:
     with database.connect() as connection:
         row = connection.execute(
             """
-            SELECT footer_text, recent_limit, timezone_name
+            SELECT footer_text, recent_limit, timezone_name, folder_categories
             FROM application_preferences WHERE id = 1
             """
         ).fetchone()
@@ -34,6 +35,7 @@ def get_preferences(database: Database) -> ApplicationPreferences:
         footer_text=row["footer_text"],
         recent_limit=row["recent_limit"],
         timezone_name=row["timezone_name"],
+        folder_categories=bool(row["folder_categories"]),
     )
 
 

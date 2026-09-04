@@ -360,6 +360,71 @@ MIGRATIONS = (
             """,
         ),
     ),
+    Migration(
+        version=16,
+        name="add_local_accounts_and_sharing",
+        statements=(
+            """CREATE TABLE auth_configuration (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+                qr_guests INTEGER NOT NULL DEFAULT 1 CHECK (qr_guests IN (0, 1)),
+                share_secret TEXT NOT NULL
+            )""",
+            "INSERT INTO auth_configuration "
+            "VALUES (1, 0, 1, lower(hex(randomblob(32))))",
+            """CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('admin', 'contributor', 'reader')),
+                enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+                created_at INTEGER NOT NULL
+            )""",
+            """CREATE TABLE auth_sessions (
+                token_hash TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at INTEGER NOT NULL,
+                last_seen INTEGER NOT NULL,
+                secure INTEGER NOT NULL CHECK (secure IN (0, 1))
+            )""",
+            "CREATE INDEX auth_sessions_user ON auth_sessions(user_id)",
+            """CREATE TABLE auth_attempts (
+                bucket TEXT PRIMARY KEY, started_at INTEGER NOT NULL,
+                attempts INTEGER NOT NULL
+            )""",
+            """CREATE TABLE resource_shares (
+                resource_id INTEGER PRIMARY KEY
+                    REFERENCES resources(id) ON DELETE CASCADE,
+                nonce TEXT NOT NULL UNIQUE,
+                active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
+            )""",
+            """CREATE TABLE security_events (
+                id INTEGER PRIMARY KEY, occurred_at INTEGER NOT NULL,
+                actor_id INTEGER, action TEXT NOT NULL, target_id INTEGER
+            )""",
+        ),
+    ),
+)
+
+
+MIGRATIONS += (
+    Migration(
+        version=17,
+        name="add_folder_category_import_setting",
+        statements=(
+            "ALTER TABLE application_preferences ADD COLUMN folder_categories "
+            "INTEGER NOT NULL DEFAULT 0 CHECK(folder_categories IN (0,1))",
+        ),
+    ),
+)
+
+
+MIGRATIONS += (
+    Migration(
+        version=18,
+        name="preserve_bgg_url_slug",
+        statements=("ALTER TABLE game_bgg_associations ADD COLUMN url_slug TEXT",),
+    ),
 )
 
 
@@ -426,9 +491,7 @@ def migrate(connection: sqlite3.Connection) -> None:
         _apply_migration(connection, migration)
 
 
-def _apply_migration(
-    connection: sqlite3.Connection, migration: Migration
-) -> None:
+def _apply_migration(connection: sqlite3.Connection, migration: Migration) -> None:
     try:
         connection.execute("BEGIN IMMEDIATE")
         for statement in migration.statements:

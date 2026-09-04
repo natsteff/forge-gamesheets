@@ -23,9 +23,9 @@
       >
       <button type="submit">Search</button>
     </form>
-    <form action="{{ url_for('library_rescan') }}" method="post">
+    {% if request.state.can_contribute %}<form action="{{ url_for('library_rescan') }}" method="post">
       <button class="secondary-button" type="submit">Rescan library</button>
-    </form>
+    </form>{% endif %}
   </section>
 
   {% if scan_status == "complete" %}

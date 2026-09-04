@@ -1,7 +1,9 @@
 # Security priorities and future access/upload planning
 
-Security is a primary release requirement. This document records future work,
-not implemented protections or approval to begin login or upload development.
+Security is a primary release requirement. This document includes remaining work
+and approved milestones. Local accounts and resource-scoped QR sharing are now
+implemented in the working source; see ACCOUNTS.md and the account review reports.
+Future identity providers, MFA, and PDF uploads still require owner approval.
 The current supported deployment boundaries remain unchanged: localhost,
 trusted LAN, or an appropriately protected proxy/VPN, not direct public access.
 
@@ -70,21 +72,23 @@ Remaining decisions/fixes, in priority order:
    BGG rollout remains paused; no token-distribution policy has been approved.
 3. Verify an actual protected-proxy deployment when one is used; current tests
    cover trusted versus untrusted forwarded scheme, not a live TLS perimeter.
-4. Add user-attributed audit events with authentication/roles. Current rotating
+4. Account and sharing operations now record bounded user-attributed events.
+   Comprehensive content-change auditing remains future work. Rotating
    access/error logs are operational evidence only; never log tokens or bodies.
 
-## Future login, roles, and QR sharing — review with owner first
+## Local login, roles, and QR sharing — approved implementation
 
-Before implementation, revisit this plan with the owner and obtain explicit
-approval for access models, role boundaries, and deployment scope. Reader,
-Contributor (previously called Librarian), and Admin are proposed account roles;
-their complete permission matrix is not finalized. QR guest access is a fourth
+The owner approved local implementation and testing, not live activation or
+publication. The implemented permission matrix and migration behavior are in
+[Accounts and QR sharing](ACCOUNTS.md) and [decision 004](decisions/004-local-accounts-and-sharing.md).
+Reader, Contributor (previously called Librarian), and Admin are account roles.
+QR guest access is a fourth
 access category, not an account role: it has no username/password and is granted
 only by possession of a valid resource-scoped sharing link.
 
-### Planned QR guest setting
+### QR guest requirements
 
-- **Default: allow QR guest access.** In the future authenticated system, a
+- **Default: allow QR guest access.** In the opt-in authenticated system, a
   valid secure QR link allows anonymous viewing of its particular shared
   resource and approved PDF delivery only. It does not grant Reader access to
   the library or permission to edit, upload, or generate/regenerate content.
@@ -105,9 +109,8 @@ only by possession of a valid resource-scoped sharing link.
   Explicitly decide migration of today's numeric links; never treat guessing a
   resource ID as possession of a secure sharing credential.
 
-This is an approved planning requirement, not an implemented setting. Forge
-currently has no built-in login or QR-only access boundary. External proxy
-authentication may still require sign-in regardless of the future application
+This implementation is pending owner review and release validation. External proxy
+authentication may still require sign-in regardless of the application
 setting; proxy routing must be reviewed without exposing unrelated endpoints.
 
 The owner's preferred QR experience is access without login for the particular
@@ -133,8 +136,10 @@ authentication bypass:
   enabling this model. Existing numeric `/r/` links are not evidence that secure
   sharing or authentication is already implemented.
 
-The notice and print-choice requirements belong to this future access work;
-this planning update does not change the current interface or link behavior.
+The reprint page now describes the active policy. Admins deliberately create
+secure shared reprints; ordinary numeric links require sign-in after activation.
+The original PDF is the no-FORGE-QR alternative. Further authentication or upload
+work still requires owner review; no public-exposure readiness is claimed.
 
 ## Possible web uploads and new game entries — review with owner first
 
