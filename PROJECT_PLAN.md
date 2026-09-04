@@ -55,6 +55,31 @@ will provide one browsable, searchable place to organize and print them.
     every major release; remind the owner to arrange an independent review
     at those checkpoints. See [security planning](docs/SECURITY_PLAN.md).
 
+### Current execution sequence
+
+This is the authoritative near-term order. Detailed owner testing may identify
+focused corrections, but completed milestones are not repeated merely as gates
+for the next approved feature.
+
+1. **Completed:** Phase 1 library, Phase 1.5 individual FORGE Reprints, bulk
+   game categorization and optional folder-category import, token-free manual
+   BGG links, local accounts/QR sharing, and the initial container deployment.
+2. **Completed:** Basic owner validation of the updated navigation,
+   categorization workflow, account activation, reverse-proxy HTTPS access,
+   and Docker upgrade path. Further exploratory testing remains welcome and
+   may produce focused follow-up fixes.
+3. **Current documentation closeout:** Keep account activation, Nginx Proxy
+   Manager, upgrade, category-hint, screenshot, and security guidance aligned
+   with the shipped behavior.
+4. **Next product milestone:** Implement the Admin-only bulk FORGE Reprint
+   maintenance utility defined in Milestone D and
+   [decision 005](docs/decisions/005-bulk-forge-reprint-maintenance.md).
+5. **Then:** Validate regeneration after application generator changes and
+   public/base-URL changes, including preservation of active sharing behavior.
+6. **Then:** Complete release-candidate regression, documentation/screenshot
+   review, security review, and a clean-install/upgrade walkthrough.
+7. **Then:** Publish the next prerelease and triage external beta feedback.
+
 ## 4. Filesystem convention
 
 The expected basic layout is:
@@ -201,7 +226,53 @@ rather than delaying feature progress beforehand.
 - **Confirmed:** Do not pull the Phase 3 FGS schema, editor, renderer, visual
   designer, or configurable score-sheet generation into this milestone.
 
-#### Milestone D — Deployment documentation and public presentation
+#### Delivered supporting workflows
+
+- **Completed and published:** Games → Assign game categories lets Admins and
+  Contributors filter, sort, select, and transactionally add, remove, replace,
+  or clear categories for up to 500 displayed games, with a confirmation
+  summary before changes are applied.
+- **Completed and published:** Admins may optionally import trailing folder
+  hints such as `[Dice, Children]` for newly discovered games. Existing games
+  require preview and explicit additive application; source folders and files
+  are never renamed.
+- **Completed and published:** Admins and Contributors may associate a complete
+  BGG game URL containing both numeric ID and slug, use canonical Game/Files
+  links, or open a title-based BGG search. This baseline makes no API request
+  and remains separate from later token-backed enrichment.
+- **Completed and published:** Opt-in local Admin/Contributor/Reader accounts,
+  recovery, security events, and revocable resource-scoped QR guest sharing.
+  Existing installations remain open until local Admin setup activates access
+  control. See [account operations](docs/ACCOUNTS.md) and
+  [the access-control design](docs/decisions/004-local-accounts-and-sharing.md).
+
+#### Milestone D — Bulk FORGE Reprint maintenance
+
+- **Confirmed:** Provide an Admin-only Settings utility with three explicit
+  operations: create missing reprints, refresh existing reprints, and create or
+  refresh every eligible reprint.
+- **Confirmed:** Show inventory and confirmation counts before starting,
+  including replacements, new files, skips, and the fact that originals remain
+  untouched.
+- **Confirmed:** Preserve each resource's current sharing policy. Active shared
+  reprints retain their secure target, ordinary reprints retain their normal
+  sign-in target, and revoked shares are never revived.
+- **Confirmed:** Process the work as a durable background job rather than one
+  proxy-sensitive HTTP request. Show persistent progress and per-resource
+  failures, allow safe cancellation after the current file, and define recovery
+  after container interruption.
+- **Confirmed:** Reuse existing rendering locks and file/page/output/free-space/
+  derived-storage limits. Process resources sequentially and isolate failures
+  so one bad PDF does not abort the full batch.
+- **Confirmed:** Centralize individual and bulk QR-target selection in one
+  service so both paths enforce identical sharing behavior.
+- **Confirmed:** Add migrations, service/route/UI tests, interruption and
+  cancellation tests, documentation, backup implications, and security review.
+- **Confirmed:** The detailed implementation baseline and remaining engineering
+  choices are retained in
+  [decision 005](docs/decisions/005-bulk-forge-reprint-maintenance.md).
+
+#### Milestone E — Deployment documentation and public presentation
 
 - **Confirmed:** Add `docs/deployment.md` as the detailed self-hosted beta guide
   while keeping the README concise.
@@ -230,7 +301,7 @@ rather than delaying feature progress beforehand.
 - **Confirmed:** Keep screenshots visually consistent and provide useful alt
   text.
 
-#### Milestone E — Wider external beta launch
+#### Milestone F — Wider external beta launch
 
 - **Confirmed:** Run the full automated test and lint suite, then complete a
   clean-host deployment walkthrough in both localhost-only and trusted-LAN
@@ -244,7 +315,7 @@ rather than delaying feature progress beforehand.
 - **Confirmed:** Provide beta testers with a short testing guide, known
   limitations, security warning, and an obvious way to report defects.
 
-#### Milestone F — External beta feedback triage
+#### Milestone G — External beta feedback triage
 
 - **Confirmed:** Classify reports as setup/documentation, defect, usability,
   compatibility, security, or later-phase enhancement.
@@ -258,11 +329,13 @@ rather than delaying feature progress beforehand.
 
 ## 7. Phase 1.5 — Forge Mark and QR reprints
 
-- **Confirmed roadmap:** Offer optional printable copies with a small Forge Mark,
+- **Completed:** Offer optional printable copies with a small Forge Mark,
   brief reprint instructions, and a QR code.
-- **Confirmed:** QR destinations open a resource page with view/print actions;
+- **Completed:** QR destinations open a resource page with view/print actions;
   scanning must not trigger printing automatically.
-- **Proposed:** Stable application URLs should survive display-title changes.
+- **Completed:** Stable application URLs survive display-title changes.
+- **Next:** Add the bulk maintenance workflow in Milestone D without changing
+  the source-PDF or QR-access boundaries.
 - **Future idea:** Configurable branding/footer placement and access policies.
 
 ## 8. Phase 2 — BoardGameGeek integration
@@ -379,43 +452,7 @@ Documentation is release-critical: automated checks run with pytest, and major
 updates require critical-path and screenshot review under
 [documentation review](docs/DOCUMENTATION_REVIEW.md), alongside security review.
 
-### Approved token-free BGG baseline
-
-Implemented locally: Admin/Contributor full BGG game-URL association (ID and slug required),
-canonical Game/Files links, and a title-based external search shortcut for unlinked
-games. No scraping or API requests; local title/artwork remain authoritative.
-Manual associations disable automatic matching until explicitly enabled. API
-enrichment rollout remains separate and subject to approval/token configuration.
-
-### Approved bulk game categorization
-
-Implemented locally, awaiting owner review: Games → Assign game categories for
-Admins/Contributors, with title/category filters, newest/title sorting, selection
-of up to 500 displayed games, and transactional add/remove/replace/clear actions.
-All operations show a pre-apply confirmation summary. Settings → Library scanning provides
-an Admin-only, default-off trailing `[Dice, Children]` folder convention for new
-games. Existing games require preview and explicit additive application; rescans
-preserve manual categories. No filesystem writes or bulk title changes occur.
-
-
-### Approved early access-control milestone
-
-The owner approved moving the small local-account foundation ahead of PDF
-uploads. Implement opt-in local Admin bootstrap/recovery, Admin/Contributor/
-Reader permissions, and resource-scoped QR guest access with an Admin-controlled
-allow/restrict setting. Existing installations remain in trusted-operator mode
-until local setup activates authentication. Once active, library browsing requires
-sign-in; existing numeric QR links require sign-in, while explicitly created
-secure sharing links may allow guests. Content, shared favorites/pins/history,
-and filesystem permissions remain unchanged. No public registration, email
-recovery, external identity provider, PDF upload, or deployment is included.
-See [the access-control design](docs/decisions/004-local-accounts-and-sharing.md).
-
-- **Implemented locally, awaiting owner review:** The approved local-account
-  milestone above, including default-allow secure QR guest policy and optional
-  Reader-or-higher sign-in. No live installation has been activated by this work.
-  See [account operations](docs/ACCOUNTS.md). Broader identity providers, MFA,
-  per-user collections, and PDF uploads still require separate approval.
+- **Future idea:** Broader identity providers, MFA, and per-user collections.
 - **Future consideration, owner approval required:** Web-based creation of
   game entries and single-PDF uploads as a convenience alongside filesystem
   bulk loading. Review security and mount permissions before implementation;

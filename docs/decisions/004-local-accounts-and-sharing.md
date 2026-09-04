@@ -1,6 +1,6 @@
 # Local accounts and QR guest sharing
 
-Status: owner-approved implementation scope; awaiting validation and owner review.
+Status: implemented and published; basic owner validation completed.
 
 ## Boundaries
 

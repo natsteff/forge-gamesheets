@@ -32,6 +32,8 @@ def test_readme_current_capability_contract():
         "trusted-operator mode",
         "Argon2id",
         "DOCUMENTATION_REVIEW.md",
+        "docker compose exec app python -m app.accounts create-admin",
+        "immediately requires sign-in",
     ):
         assert term in text
     for obsolete in (
@@ -44,6 +46,25 @@ def test_readme_current_capability_contract():
 def test_documentation_review_is_release_requirement():
     for filename in ("PROJECT_PLAN.md", "docs/PHASE1_5_RELEASE_CHECKLIST.md"):
         assert "DOCUMENTATION_REVIEW.md" in (ROOT / filename).read_text()
+
+
+def test_project_plan_retains_bulk_reprint_maintenance_design():
+    plan = (ROOT / "PROJECT_PLAN.md").read_text()
+    decision = (
+        ROOT / "docs/decisions/005-bulk-forge-reprint-maintenance.md"
+    ).read_text()
+    assert "Milestone D — Bulk FORGE Reprint maintenance" in plan
+    assert "docs/decisions/005-bulk-forge-reprint-maintenance.md" in plan
+    for term in (
+        "Create missing reprints",
+        "Refresh existing reprints",
+        "Create or refresh all reprints",
+        "persistent SQLite job",
+        "cancellation stops safely",
+        "revoked share is never revived",
+        "atomic output replacement",
+    ):
+        assert term in decision
 
 
 def test_quick_start_explains_optional_category_import():
@@ -73,3 +94,36 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
             image.verify()
     assert "Screenshot refresh pending" not in gallery
     assert "SCREENSHOTS.md" in gallery
+
+
+def test_settings_explains_how_account_activation_works():
+    template = (ROOT / "app/templates/settings.html").read_text()
+    assert "docker compose exec app python -m app.accounts create-admin" in template
+    assert "immediately require sign-in" in template
+    assert re.search(r"no\s+default password", template, re.IGNORECASE)
+    assert "docs/ACCOUNTS.md" in template
+    assert "remote HTTP sign-in is rejected" in template
+
+
+def test_deployment_covers_proxy_and_upgrade_contract():
+    deployment = (ROOT / "docs/deployment.md").read_text()
+    for term in (
+        "HTTPS with Nginx Proxy Manager",
+        "Websockets Support",
+        "FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS=192.0.2.10",
+        "docker compose exec app env",
+        "An image pull does **not** update `compose.yml`",
+        "HTTPS is working at Nginx but Forge reports HTTP",
+    ):
+        assert term in deployment
+    accounts = (ROOT / "docs/ACCOUNTS.md").read_text()
+    assert "configure the HTTPS reverse proxy" in accounts
+    assert "deployment.md#https-with-nginx-proxy-manager" in accounts
+
+
+def test_category_guide_explains_square_bracket_contexts():
+    guide = (ROOT / "docs/GAME_CATEGORIES.md").read_text()
+    assert "game folder name" in guide
+    assert "PDF filename" in guide
+    assert re.search(r"resource-variant\s+convention", guide)
+    assert "not currently configurable" in guide
