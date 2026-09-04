@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from PIL import Image
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -42,3 +44,32 @@ def test_readme_current_capability_contract():
 def test_documentation_review_is_release_requirement():
     for filename in ("PROJECT_PLAN.md", "docs/PHASE1_5_RELEASE_CHECKLIST.md"):
         assert "DOCUMENTATION_REVIEW.md" in (ROOT / filename).read_text()
+
+
+def test_quick_start_explains_optional_category_import():
+    quick_start = (ROOT / "README.md").read_text().split("## Quick start", 1)[1]
+    quick_start = quick_start.split("## Self-hosted beta configuration", 1)[0]
+    for term in (
+        "Yahtzee [Dice, Children]",
+        "off by default",
+        "Library scanning",
+        "first startup",
+        "Preview categories from folder names",
+    ):
+        assert term in quick_start
+
+
+def test_readme_gallery_images_are_valid_and_cover_current_workflows():
+    text = (ROOT / "README.md").read_text()
+    gallery = text.split("## Screenshots", 1)[1].split("## Requirements", 1)[0]
+    images = set(re.findall(r"docs/images/[\w-]+\.png", gallery))
+    assert len(images) == 10
+    for name in ("users", "assign-categories", "bgg-manual", "desktop-navigation"):
+        assert f"docs/images/{name}.png" in images
+    for path in images:
+        with Image.open(ROOT / path) as image:
+            assert image.format == "PNG"
+            assert image.width >= 320 and image.height >= 300
+            image.verify()
+    assert "Screenshot refresh pending" not in gallery
+    assert "SCREENSHOTS.md" in gallery

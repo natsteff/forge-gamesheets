@@ -44,20 +44,25 @@ The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
 ## Screenshots
 
-All screenshots use an invented demonstration library; no private or
-copyrighted game files are included.
-
-**Screenshot refresh pending:** these images show the earlier UI. Current builds
-include grouped navigation, optional accounts, bulk categories, and manual BGG
-links described below. Replace this gallery before the next publication.
+Screenshots refreshed September 4, 2026, using an invented demonstration library
+and demo accounts. No private library content or third-party game files are
+included. These views show authentication enabled; available controls depend on
+the signed-in role. Click an image to inspect it at full size.
 
 | Library and categories | Game resources |
 | --- | --- |
 | ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
-| **Settings** | **FORGE Reprint** |
-| ![Earlier Settings view with display preferences](docs/images/settings.png) | ![Earlier FORGE Reprint view](docs/images/forge-reprint.png) |
-| **Integration and build details** | **Mobile navigation** |
-| ![Earlier Settings view showing integration and build information](docs/images/settings-build.png) | ![Earlier ungrouped mobile navigation](docs/images/mobile-navigation.png) |
+| **Bulk game categories** | **FORGE Reprint** |
+| ![Selected demo games and categories with bulk operations and explanatory help](docs/images/assign-categories.png) | ![Generated demo reprint ready to view or download, with QR access guidance](docs/images/forge-reprint.png) |
+| **Settings and folder-category import** | **Accounts and QR access** |
+| ![Settings showing optional folder-category import and enabled authentication](docs/images/settings.png) | ![Admin access controls explaining roles and the QR guest policy](docs/images/users.png) |
+| **Manual BoardGameGeek linking** | **Integration and build details** |
+| ![Token-free BGG search button and empty full-game-URL field](docs/images/bgg-manual.png) | ![Settings showing the optional API disabled and a local development build](docs/images/settings-build.png) |
+| **Grouped desktop navigation** | **Mobile navigation** |
+| ![Games dropdown with All games, Categories, and Assign game categories](docs/images/desktop-navigation.png) | <img src="docs/images/mobile-navigation.png" alt="Phone menu with Games, Quick access, History, and Account groups including admin-only Users" width="200"> |
+
+The [screenshot maintenance guide](docs/SCREENSHOTS.md) records the capture
+procedure and review requirements.
 
 ## Requirements
 
@@ -109,6 +114,12 @@ this through file sharing.
    extension in the game folder. You can also upload artwork later through
    **Edit game entry**. No game PDFs or artwork are bundled with FORGE.
 
+   Optional category hints go at the end of the **game folder name**:
+   `Yahtzee [Dice]`, `Yahtzee [Dice, Children]`, or
+   `Yahtzee (Family Favorite) [Dice, Children]`. Commas separate categories;
+   parentheses remain part of the game title. Missing categories are created
+   when hints are applied. PDF filenames do not need the category suffix.
+
 2. Pull the prebuilt image from GitHub Container Registry and start it:
 
    ```sh
@@ -118,6 +129,18 @@ this through file sharing.
 
 3. Open <http://localhost:8000> on that host. For another device on your trusted
    LAN, configure the bind address and host URL as described below.
+
+   Category import is **off by default**. To use hints for future imports, enable
+   **Settings → Library scanning → Import game categories from folder names**
+   before adding new game folders, then select **Rescan library**. With accounts
+   enabled, this setting requires an Admin.
+
+   Games already discovered on the first startup are not retroactively changed
+   by enabling the setting. Use **Games → Assign game categories**, check
+   **Preview categories from folder names**, select **Show games**, then select
+   the games and apply the folder hints after reviewing the confirmation.
+   This adds categories without changing existing titles or removing manual
+   assignments. See [game category guidance](docs/GAME_CATEGORIES.md).
 
 4. Stop the application when needed with `docker compose down`.
 

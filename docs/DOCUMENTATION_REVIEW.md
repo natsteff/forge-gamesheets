@@ -17,6 +17,8 @@ For every major update (including significant beta milestones), review:
 - Deployment HTTPS/proxy boundaries, data permissions, backup/restore, and build identity.
 - Screenshots at desktop and mobile sizes using invented content only. Never
   capture real accounts, library PDFs, credentials, or live guest-share tokens.
+  Follow [the screenshot maintenance checklist](SCREENSHOTS.md), inspect the saved
+  files, and refresh affected images together with their README captions.
 - Consistency among README, deployment/accounts/category/BGG guides, current
   release notes, and the project plan. Historical release documents should be
   explicitly identified as historical instead of silently rewritten as current.
