@@ -53,7 +53,7 @@ def test_publish_workflow_verifies_before_registry_login_and_push() -> None:
         "run: ruff check .",
         '"pip-audit==2.10.1"',
         "python -m pip_audit --local --skip-editable",
-        "aquasecurity/trivy-action@0.36.0",
+        "aquasecurity/trivy-action@v0.36.0",
         "severity: CRITICAL",
         'exit-code: "1"',
     )
@@ -66,6 +66,13 @@ def test_publish_workflow_verifies_before_registry_login_and_push() -> None:
     assert blocking_scan < registry_login < publish
     assert workflow.count("docker/build-push-action@v6") == 1
     assert "docker push" in workflow[publish:]
+
+
+def test_both_container_scans_use_the_verified_release_tag() -> None:
+    workflow = (PROJECT_ROOT / ".github/workflows/publish-container.yml").read_text()
+    # Upstream publishes this release with a v prefix; the bare tag does not exist.
+    assert workflow.count("uses: aquasecurity/trivy-action@v0.36.0") == 2
+    assert "aquasecurity/trivy-action@0.36.0" not in workflow
 
 
 def test_example_configuration_selects_published_image_channel() -> None:
