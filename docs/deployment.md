@@ -83,12 +83,11 @@ Git and remains local to the installation.
 FORGE_GAMESHEETS_BIND_ADDRESS=127.0.0.1
 FORGE_GAMESHEETS_PORT=8000
 FORGE_GAMESHEETS_BASE_URL=
+FORGE_GAMESHEETS_ALLOWED_HOSTS=
+FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS=127.0.0.1
 FORGE_GAMESHEETS_DATA_PATH=./data
 FORGE_GAMESHEETS_LIBRARY_PATH=./library
 FORGE_GAMESHEETS_IMAGE_TAG=main
-FORGE_GAMESHEETS_VERSION=development
-FORGE_GAMESHEETS_REVISION=
-FORGE_GAMESHEETS_BUILD_DATE=
 ```
 
 Host paths may be absolute:
@@ -107,13 +106,65 @@ before starting Forge. Preserve the existing ownership of the library.
 | --- | --- | --- |
 | Localhost only | `127.0.0.1` | Browser or reverse proxy on the Docker host |
 | Trusted private LAN | `0.0.0.0` | Trusted household or isolated test network |
-| Authenticated proxy or VPN | Usually `127.0.0.1` | Remote access protected outside Forge |
+| HTTPS reverse proxy | Usually `127.0.0.1` | Non-local account sign-in through a protected frontend |
 
 Forge supports opt-in accounts, roles, and login throttling, but has no built-in
 TLS or general per-client traffic limit. Non-local sign-in requires HTTPS through
 a correctly configured proxy. Binding to `0.0.0.0` exposes the port on every
 host interface allowed by the firewall. Use it only on a trusted private LAN.
 Do not forward that port from an internet router.
+
+### HTTPS with Nginx Proxy Manager
+
+Forge serves plain HTTP on its container port; do not open that port with an
+`https://` URL. Nginx Proxy Manager (NPM) terminates HTTPS and forwards ordinary
+HTTP to Forge. A private-CA or self-signed certificate is sufficient for a local
+network, but each browser must trust its issuing CA to avoid a certificate warning.
+A publicly trusted certificate is not required for a local-only installation.
+
+Create a Proxy Host in NPM with:
+
+| NPM field | Value |
+| --- | --- |
+| Domain Names | The Forge name, for example `forge.home.arpa` |
+| Scheme | `http` |
+| Forward Hostname / IP | The Docker host address |
+| Forward Port | The configured Forge port, normally `8000` |
+| Access List | Restrict to the intended network/users; do not publish the host to the Internet |
+| Cache Assets | Off |
+| Websockets Support | Off; Forge does not currently use WebSockets |
+| SSL Certificate | A certificate valid for the Forge hostname |
+| Force SSL | On |
+| HSTS | Leave off until HTTPS and certificate trust are verified |
+
+Use the HTTPS hostname in Forge. If NPM is on another host, Forge must listen on
+the LAN interface so NPM can reach it; restrict port 8000 with the host firewall
+to the NPM address when practical:
+
+```dotenv
+FORGE_GAMESHEETS_BIND_ADDRESS=0.0.0.0
+FORGE_GAMESHEETS_PORT=8000
+FORGE_GAMESHEETS_BASE_URL=https://forge.home.arpa
+FORGE_GAMESHEETS_ALLOWED_HOSTS=forge.home.arpa
+FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS=192.0.2.10
+```
+
+Replace the example hostname and IP. `FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS`
+must be the NPM source address **as Forge sees it**, never `*`. When NPM runs on
+the Docker host and reaches `127.0.0.1:8000`, keep the localhost bind and default
+trusted-proxy address instead.
+
+After changing `.env`, recreate Forge, then confirm that Compose passed all three
+runtime values:
+
+```sh
+docker compose up -d --force-recreate
+docker compose exec app env | grep -E 'FORWARDED|BASE_URL|ALLOWED_HOSTS'
+```
+
+Open only the public HTTPS hostname, without `:8000`. Verify the sign-in page from
+another device before activating accounts. If Forge says `Use HTTPS to sign in`,
+see [HTTPS is working at Nginx but Forge reports HTTP](#https-is-working-at-nginx-but-forge-reports-http).
 
 ### Configure FORGE Reprint links
 
@@ -223,21 +274,26 @@ See [Backup and recovery](BACKUP_AND_RECOVERY.md) for restoration guidance.
 
 ## Update an existing installation
 
-Do not store server-specific changes in tracked files such as `compose.yml`.
-Move them to `.env` before updating.
+An image pull does **not** update `compose.yml`, documentation, or `.env.example`.
+Do not store server-specific changes in tracked files such as `compose.yml`;
+they can block the Git update that delivers a new deployment contract. Move
+server settings to `.env` before updating.
 
 ```sh
 cd /opt/forge-gamesheets
 
 git status --short --branch
-docker compose down
 ```
 
-Back up the data directory while Forge is stopped, then update the deployment
-files and pull the published image:
+Resolve any tracked-file changes deliberately before continuing. Do not discard
+unknown changes. Update the deployment files first, review `.env.example` for new
+settings, then stop Forge and back up its complete data directory. Pull and
+recreate from the updated Compose definition:
 
 ```sh
 git pull --ff-only origin main
+docker compose config
+docker compose down
 docker compose pull
 docker compose up -d --force-recreate
 
@@ -252,7 +308,30 @@ PDF, and open one FORGE Reprint after every update. Database migrations run
 automatically; the stopped data backup is the recovery point if an update must
 be abandoned.
 
+When the release adds deployment variables, verify that the resolved Compose
+configuration and running container contain them. A value in `.env` is only an
+input to Compose; an older `compose.yml` may not pass it into the container.
+
 ## Troubleshooting
+
+### HTTPS is working at Nginx but Forge reports HTTP
+
+If the browser reaches `https://` but the sign-in page returns `Use HTTPS to sign
+in`, Nginx is probably forwarding correctly while Forge does not trust its
+forwarded scheme. Confirm the source address in Forge's logs and the running
+environment:
+
+```sh
+docker compose logs --tail=30 app
+docker compose exec app env | grep -E 'FORWARDED|BASE_URL|ALLOWED_HOSTS'
+```
+
+The proxy address in the request log must be covered by `FORWARDED_ALLOW_IPS`.
+If that variable is absent even though it exists in `.env`, update `compose.yml`
+through the normal Git upgrade before recreating the container. Do not compensate
+by trusting `*`. NPM's upstream Scheme remains `http`; Force SSL applies to the
+browser-facing connection. A browser `Not Secure` warning is a separate certificate
+trust problem and does not mean Forge should trust unverified proxy headers.
 
 ### Data directory is not writable
 
@@ -370,7 +449,7 @@ a comma-separated `FORGE_GAMESHEETS_ALLOWED_HOSTS` value in `.env`, without
 schemes, ports, paths, or wildcard characters. For example:
 
 ```dotenv
-FORGE_GAMESHEETS_ALLOWED_HOSTS=docker-test.nate,192.168.1.7
+FORGE_GAMESHEETS_ALLOWED_HOSTS=forge.home.arpa,192.0.2.20
 ```
 
 Requests using any other or malformed Host header are rejected. This is

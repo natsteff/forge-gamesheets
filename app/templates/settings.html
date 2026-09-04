@@ -33,8 +33,15 @@
       <a class="resource-action" href="{{ url_for('accounts_home') }}">Manage accounts and QR access</a>
     {% else %}
       <p>Trusted-operator mode: anyone who can reach this installation can edit it.
-      Authentication is optional and can only be activated using local Admin setup.
-      Upgrading does not automatically activate it.</p>
+      Upgrading does not automatically activate authentication.</p>
+      <p>To create the first Admin and immediately require sign-in, open a terminal
+      on the Docker host, change to this installation's Compose directory, and run:</p>
+      <pre><code>docker compose exec app python -m app.accounts create-admin</code></pre>
+      <p>Enter the Admin username and passphrase at the private prompts. There is no
+      default password or web-based initial setup. See the
+      <a href="https://github.com/natsteff/forge-gamesheets/blob/main/docs/ACCOUNTS.md">accounts setup and recovery guide</a>
+      before enabling accounts on a non-local installation. Configure and test
+      the final HTTPS proxy address first; remote HTTP sign-in is rejected.</p>
     {% endif %}
   </section>
 

@@ -1,20 +1,32 @@
 # Accounts and QR sharing
 
-Local implementation pending owner review. Accounts are optional: upgrading
-does not activate login. Without local setup, everyone who can reach Forge
-continues to have trusted-operator access. Do not expose that mode to untrusted users.
+Accounts are optional: upgrading does not activate login. Without local setup,
+everyone who can reach Forge continues to have trusted-operator access. Do not
+expose that mode to untrusted users.
 
 ## Activate deliberately
 
 Use a terminal **on the host running the intended Forge installation**, in its
-Compose directory. Start the updated build first. On the development Mac:
+Compose directory. Start the current container first:
 
 ```sh
-cd /Users/nate/Documents/Codex/Forge-GameSheets
-./scripts/build && docker compose up -d
+cd /opt/forge-gamesheets
+docker compose up -d
 ```
 
-When ready to require sign-in on that installation, run this **separately**:
+For access from another device, configure the HTTPS reverse proxy and verify that
+the Forge sign-in page loads over its final HTTPS hostname first. Follow the
+[Nginx Proxy Manager example](deployment.md#https-with-nginx-proxy-manager). A
+self-signed/private-CA certificate works when the client trusts that CA. Do not
+activate accounts while relying on direct LAN HTTP access.
+
+Confirm the current Compose file passes the proxy settings into the container:
+
+```sh
+docker compose exec app env | grep -E 'FORWARDED|BASE_URL|ALLOWED_HOSTS'
+```
+
+When HTTPS is working—or when using localhost only—run this **separately**:
 
 ```sh
 docker compose exec app python -m app.accounts create-admin

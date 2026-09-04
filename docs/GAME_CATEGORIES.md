@@ -16,6 +16,14 @@ next scan without a restart. It applies only to newly discovered games.
 - `Yahtzee [Dice, Children]` assigns both categories.
 - `Yahtzee (Nate’s Favorite) [Dice]` preserves the parenthetical title.
 
+Square brackets have two context-specific meanings: a trailing bracketed list
+in a **game folder name** is a game-category hint when this optional importer is
+enabled, while brackets in a **PDF filename** remain the resource-variant
+convention. Operators who already use trailing brackets in folder names for a
+different purpose should adjust those folder names before enabling import, or
+correct any misidentified game through the assignment view. The delimiters are
+not currently configurable; that can be reconsidered if real deployments need it.
+
 Only one trailing square-bracket list is interpreted. Commas separate categories;
 ampersands are literal. Names are trimmed and matched case-insensitively, duplicates
 are ignored, and missing categories are created. Invalid/empty lists, reserved

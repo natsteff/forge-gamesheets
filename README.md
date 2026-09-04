@@ -277,8 +277,39 @@ Stop the application before making a simple filesystem copy of `data/`. See
 FORGE supports optional local Admin, Contributor, and Reader accounts. Existing
 installations remain in trusted-operator mode until the operator explicitly
 creates the first Admin from a local terminal. An upgrade does not activate
-login or change source-library permissions. See [Accounts and QR sharing](docs/ACCOUNTS.md)
-for setup, recovery, permissions, and the effect on previously printed QR codes.
+login or change source-library permissions.
+
+### Enable accounts
+
+If Forge will be opened from another device, configure and test its final HTTPS
+reverse-proxy address **before** enabling accounts. The deployment guide includes
+a tested [Nginx Proxy Manager setup](docs/deployment.md#https-with-nginx-proxy-manager),
+including private/self-signed certificates and trusted forwarded headers. Direct
+LAN HTTP login is deliberately rejected; localhost HTTP remains supported.
+
+Start the current Forge container, then open a terminal **on its Docker host**.
+From the directory containing that installation's `compose.yml`, run:
+
+```sh
+docker compose exec app python -m app.accounts create-admin
+```
+
+Enter the first Admin username and a new 15–128-character passphrase at the
+private prompts. Do not put the passphrase in the command. Successful setup
+immediately requires sign-in for the existing library; it does not change PDFs,
+categories, or other content. Sign in with that Admin, then open **Account →
+Users** to create Contributor or Reader accounts and configure QR guest access.
+There is no default password or web-based initial setup.
+
+Read [Accounts and QR sharing](docs/ACCOUNTS.md) before activation for HTTPS
+requirements, role permissions, recovery, backups, and the effect on previously
+printed QR codes. If the container is not running or has a different Compose
+service name, follow the deployment-specific instructions instead of changing
+the database manually.
+
+For upgrades, `docker compose pull` updates the image only. First update the
+repository deployment files and review new `.env.example` options by following
+the [existing-installation upgrade procedure](docs/deployment.md#update-an-existing-installation).
 
 The supplied Compose file listens only on localhost. Non-local sign-in requires
 HTTPS through a correctly configured proxy. Accounts are not a substitute for
