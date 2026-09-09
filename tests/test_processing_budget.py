@@ -4,7 +4,7 @@ import fcntl
 from io import BytesIO
 from types import SimpleNamespace
 
-import fitz
+import pymupdf as fitz
 import pytest
 from fastapi.testclient import TestClient
 

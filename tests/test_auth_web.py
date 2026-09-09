@@ -1,6 +1,6 @@
 """HTTP permission matrix, QR isolation, and unchanged trusted-operator mode."""
 
-import fitz
+import pymupdf as fitz
 import pytest
 from fastapi.testclient import TestClient
 

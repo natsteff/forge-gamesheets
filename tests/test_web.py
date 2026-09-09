@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 from io import BytesIO
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 import pytest
 from fastapi.testclient import TestClient
 from markupsafe import escape

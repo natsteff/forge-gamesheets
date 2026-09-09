@@ -7,7 +7,7 @@ from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
-import fitz
+import pymupdf as fitz
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
