@@ -6,6 +6,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+_IGNORED_DIRECTORY_NAMES = {"@eadir"}
+
 
 class LibraryScanError(RuntimeError):
     """Raised when the library root itself cannot be scanned."""
@@ -69,7 +71,9 @@ def scan_library(library_path: Path) -> ScanResult:
         (
             entry
             for entry in entries
-            if not entry.is_symlink() and _is_directory(entry)
+            if not entry.is_symlink()
+            and entry.name.casefold() not in _IGNORED_DIRECTORY_NAMES
+            and _is_directory(entry)
         ),
         key=lambda path: _sort_key(path.name),
     )
@@ -113,7 +117,8 @@ def _scan_game(
             (
                 name
                 for name in directory_names
-                if not (current_path / name).is_symlink()
+                if name.casefold() not in _IGNORED_DIRECTORY_NAMES
+                and not (current_path / name).is_symlink()
             ),
             key=_sort_key,
         )
