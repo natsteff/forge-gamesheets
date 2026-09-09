@@ -73,11 +73,12 @@ Shares grant access to the current resource at that entry, not a frozen snapshot
 Changing its source file can change what guests receive. Review or revoke shares
 before replacing content. Guests cannot enumerate other resources or trigger rendering.
 
-There is one derived reprint slot per resource. Ordinary regeneration can replace
-a shared copy with a login-required numeric-link copy; the shared original remains
-available. An Admin can generate the shared copy again. Source/base-URL changes can
-also require regeneration. If rendering fails after explicit sharing approval,
-the share can remain active for the original; revoke it if access is no longer wanted.
+There is one derived reprint slot per resource. Regeneration preserves an active
+shared QR target; it does not silently replace it with a login-required numeric
+link. Revoked shares are never restored, so later regeneration uses the ordinary
+resource URL. Source/base-URL changes can require regeneration. If rendering fails
+after explicit sharing approval, the share can remain active for the original;
+revoke it if access is no longer wanted.
 
 The original PDF is the no-FORGE-QR option. Notices stay on the web page, not the
 printed footer. Treat shared PDFs/URLs as access credentials: anyone receiving

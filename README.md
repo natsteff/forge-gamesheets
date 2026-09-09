@@ -26,6 +26,8 @@ a cloud service, or store PDF contents in its database.
 - Search across game and resource titles
 - Browser viewing, descriptive download filenames, and first-page PDF previews
 - Optional FORGE Reprint copies with a QR return link and source-rights notice
+- Admin bulk maintenance to create missing, refresh existing, or rebuild all
+  eligible FORGE Reprints with durable progress and per-resource results
 - Editable display titles, document metadata, and game artwork
 - Multiple customizable categories per game
 - Bulk category assignment with filtering, selection, and confirmation before changes
@@ -258,6 +260,17 @@ account/settings/user actions), with **History** separate. The logo opens Librar
 home. Mobile Menu shows the same groups with visible links. Users is shown only
 to signed-in Admins; editing options follow role permissions. Recently used is
 hidden when its configured limit is zero.
+
+### Bulk FORGE Reprint maintenance
+
+Admins can open **Settings → Manage FORGE Reprints** to review current, missing,
+stale, and unavailable reprints. Three deliberate operations create only missing
+copies, refresh only existing copies, or create/refresh all eligible indexed PDFs.
+Forge confirms the number of new and replaced files before starting. Work runs
+sequentially as a durable job with progress, safe cancellation after the current
+file, interruption recovery, and individual skip/failure details. Source PDFs are
+never changed. Active shared QR targets are preserved and revoked shares are not
+restored.
 
 ## Application data and backups
 

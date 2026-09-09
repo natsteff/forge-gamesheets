@@ -80,8 +80,30 @@ def test_grouped_navigation_users_visibility(secured, role):
     assert 'aria-controls="nav-games"' in page
     assert 'aria-controls="nav-resources"' in page
     assert 'aria-controls="nav-account"' in page
-    assert (">Users</a>" in page) == (role == "admin")
+    assert ('aria-controls="nav-admin"' in page) == (role == "admin")
+    assert (">FORGE Reprints</a>" in page) == (role == "admin")
+    assert (">User Accounts</a>" in page) == (role == "admin")
     assert ">My account</a>" in page
+    if role == "admin":
+        admin_menu = page.split('id="nav-admin">', 1)[1].split("</div>", 1)[0]
+        account_menu = page.split('id="nav-account">', 1)[1].split("</div>", 1)[0]
+        assert ">Settings</a>" in admin_menu
+        assert ">FORGE Reprints</a>" in admin_menu
+        assert admin_menu.index(">FORGE Reprints</a>") < admin_menu.index(
+            ">Settings</a>"
+        )
+        assert admin_menu.index(">Settings</a>") < admin_menu.index(
+            ">User Accounts</a>"
+        )
+        assert ">My account</a>" not in admin_menu
+        assert ">My account</a>" in account_menu
+        assert ">Settings</a>" not in account_menu
+        assert ">User Accounts</a>" not in account_menu
+        settings = client.get("/settings").text
+        accounts_page = client.get("/settings/users").text
+        assert "QR guest access" in settings
+        assert "QR guest access" not in accounts_page
+        assert "<h1>User Accounts</h1>" in accounts_page
 
 
 def test_bulk_category_page_and_confirmation(secured):
@@ -248,6 +270,7 @@ def test_every_mutation_requires_correct_role(secured, role):
                 .replace("{game_id}", "1")
                 .replace("{category_id}", "1")
                 .replace("{user_id}", "1")
+                .replace("{job_id}", "1")
             )
             assert client.post(path, follow_redirects=False).status_code == 403, path
 
@@ -380,6 +403,7 @@ def test_shared_generation_is_explicit_and_original_unchanged(secured):
         response.status_code == 200 and "Shared FORGE Reprint created" in response.text
     )
     token = sharing.share_token(db, 1)
+    assert client.post("/resources/1/forge-reprint/regenerate").status_code == 200
     client.post("/logout")
     pdf = client.get("/s/" + token + "/reprint")
     assert pdf.status_code == 200
@@ -401,7 +425,13 @@ def test_marker_with_missing_admin_fails_closed(secured):
 def test_sensitive_get_routes_and_unknown_routes_are_not_public(secured, role):
     client, _, _ = secured
     signin(client, role)
-    for path in ["/settings", "/settings/users", "/docs", "/openapi.json"]:
+    for path in [
+        "/settings",
+        "/settings/users",
+        "/settings/reprints",
+        "/docs",
+        "/openapi.json",
+    ]:
         response = client.get(path)
         assert response.status_code == 403
         assert response.headers["cache-control"] == "no-store"

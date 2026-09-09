@@ -428,6 +428,48 @@ MIGRATIONS += (
 )
 
 
+MIGRATIONS += (
+    Migration(
+        version=19,
+        name="add_reprint_maintenance_jobs",
+        statements=(
+            """CREATE TABLE reprint_jobs (
+                id INTEGER PRIMARY KEY,
+                operation TEXT NOT NULL CHECK (operation IN (
+                    'create_missing', 'refresh_existing', 'create_or_refresh_all'
+                )),
+                status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN (
+                    'queued', 'running', 'completed', 'cancelled', 'interrupted'
+                )),
+                cancel_requested INTEGER NOT NULL DEFAULT 0
+                    CHECK (cancel_requested IN (0, 1)),
+                created_at TEXT NOT NULL DEFAULT (
+                    strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                ),
+                started_at TEXT,
+                finished_at TEXT
+            )""",
+            """CREATE UNIQUE INDEX reprint_jobs_one_active
+                ON reprint_jobs((1)) WHERE status IN ('queued', 'running')""",
+            """CREATE TABLE reprint_job_items (
+                id INTEGER PRIMARY KEY,
+                job_id INTEGER NOT NULL
+                    REFERENCES reprint_jobs(id) ON DELETE CASCADE,
+                resource_id INTEGER NOT NULL,
+                action TEXT NOT NULL CHECK (action IN ('create', 'refresh')),
+                status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN (
+                    'queued', 'running', 'completed', 'skipped', 'failed'
+                )),
+                detail TEXT,
+                UNIQUE(job_id, resource_id)
+            )""",
+            """CREATE INDEX reprint_job_items_job_status
+                ON reprint_job_items(job_id, status, id)""",
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Database:
     """A SQLite database stored beneath the configured data directory."""

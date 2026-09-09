@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Reprint job · Forge GameSheets{% endblock %}
+
+{% block head %}{% if job.status in ('queued', 'running') %}<meta http-equiv="refresh" content="1">{% endif %}{% endblock %}
+
+{% block content %}
+  <section class="page-intro compact-intro">
+    <p class="eyebrow">Bulk operation</p>
+    <h1>{{ job.label }}</h1>
+    <p>Status: <strong>{{ job.status }}</strong></p>
+  </section>
+  <section class="settings-section">
+    <dl class="maintenance-summary">
+      <div><dt>Completed</dt><dd>{{ job.counts.get('completed', 0) }}</dd></div>
+      <div><dt>Remaining</dt><dd>{{ job.counts.get('queued', 0) + job.counts.get('running', 0) }}</dd></div>
+      <div><dt>Skipped</dt><dd>{{ job.counts.get('skipped', 0) }}</dd></div>
+      <div><dt>Failed</dt><dd>{{ job.counts.get('failed', 0) }}</dd></div>
+    </dl>
+    <div class="reprint-actions">
+      {% if job.status in ('queued', 'running') %}
+        <form action="{{ url_for('reprint_maintenance_cancel', job_id=job.id) }}" method="post"><button class="danger-button" type="submit">Cancel after current file</button></form>
+      {% elif job.status == 'interrupted' %}
+        <form action="{{ url_for('reprint_maintenance_resume', job_id=job.id) }}" method="post"><button class="primary-button" type="submit">Resume remaining work</button></form>
+      {% endif %}
+      <a class="resource-action" href="{{ url_for('reprint_maintenance') }}">Back to maintenance</a>
+    </div>
+  </section>
+  {% if job.failures %}
+    <section class="settings-section">
+      <h2>Skipped and failed resources</h2>
+      <ul class="maintenance-errors">
+        {% for item in job.failures %}<li><strong>{{ item.game_title or 'Unavailable game' }} — {{ item.title or ('Resource #' ~ item.resource_id) }}</strong><span>{{ item.detail }}</span></li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+{% endblock %}

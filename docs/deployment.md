@@ -183,6 +183,14 @@ Use HTTPS when an authenticated HTTPS proxy provides access. Changing this
 address makes existing generated copies stale; generate them again so their QR
 codes use the new destination.
 
+After changing the public address or installing a release with a new reprint
+generator, open **Settings → Manage FORGE Reprints**. Use **Refresh existing
+reprints** to update only stored copies or **Create or refresh all reprints** to
+cover every eligible PDF. The operation continues independently of the browser
+request and reports skipped or failed resources individually. Only one bulk job
+runs at a time. If the container stops during a job, the job is marked interrupted
+at startup and an Admin may resume its remaining items.
+
 ## Pull and start the published image
 
 The recommended Docker-host workflow pulls the image published from GitHub:

@@ -100,6 +100,38 @@ def test_browser_security_headers(web_client, path):
     assert "unsafe-eval" not in CONTENT_SECURITY_POLICY
 
 
+def test_reprint_maintenance_explains_operations_and_requires_base_url(web_client):
+    page = web_client.get("/settings/reprints")
+    assert page.status_code == 200
+    assert "Create missing reprints" in page.text
+    assert "Refresh existing reprints" in page.text
+    assert "Create or refresh all reprints" in page.text
+    assert "Source PDFs are never changed" in page.text
+    assert web_client.post(
+        "/settings/reprints/start", data={"operation": "create_missing"}
+    ).status_code == 409
+
+
+def test_action_buttons_use_shared_theme_tokens_and_components(web_client):
+    styles = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
+    for token in (
+        "--action-primary-background",
+        "--action-secondary-background",
+        "--action-danger-background",
+        "--action-focus-ring",
+    ):
+        assert token in styles
+    assert "--action-primary-background: var(--forge-dark);" in styles
+    assert "--action-primary-border: var(--forge-dark);" in styles
+    assert "--action-secondary-border: var(--forge-dark);" in styles
+    settings = web_client.get("/settings").text
+    assert 'class="primary-button"' in settings
+    assert "Manage FORGE Reprints" not in settings
+    assert "Manage accounts and QR access" not in settings
+    maintenance = web_client.get("/settings/reprints").text
+    assert '<button class="primary-button"' in maintenance
+
+
 def test_security_headers_preserve_original_pdf_delivery(web_client):
     with web_client.app.state.database.connect() as connection:
         resource_id = connection.execute("SELECT id FROM resources LIMIT 1").fetchone()[
@@ -244,7 +276,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=7" in response.text
-    assert "/static/styles.css?v=26" in response.text
+    assert "/static/styles.css?v=29" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'aria-expanded="false"' in response.text
     assert 'aria-controls="primary-navigation"' in response.text

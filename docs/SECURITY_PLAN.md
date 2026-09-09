@@ -141,6 +141,20 @@ secure shared reprints; ordinary numeric links require sign-in after activation.
 The original PDF is the no-FORGE-QR alternative. Further authentication or upload
 work still requires owner review; no public-exposure readiness is claimed.
 
+### Bulk reprint maintenance
+
+Bulk FORGE Reprint maintenance is Admin-only and uses the same validated source,
+generated-path, rendering-lock, storage-budget, and QR-target services as the
+individual workflow. Only one persistent job may be queued or running. Items are
+processed sequentially, and cancellation takes effect after the current file so
+an atomic output replacement is never interrupted deliberately. Active sharing
+targets are preserved; revoked credentials are not stored in jobs or restored.
+
+Job pages expose resource titles and bounded failure descriptions only to Admins.
+They do not store bearer URLs, source contents, or filesystem paths. Unexpected
+errors use a generic message. Database and generated-output backups should be
+taken while Forge is stopped so job state and derived files are consistent.
+
 ## Possible web uploads and new game entries — review with owner first
 
 Consider a convenient web workflow to add a single PDF to an existing game or

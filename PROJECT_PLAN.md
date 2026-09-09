@@ -71,8 +71,8 @@ for the next approved feature.
 3. **Current documentation closeout:** Keep account activation, Nginx Proxy
    Manager, upgrade, category-hint, screenshot, and security guidance aligned
    with the shipped behavior.
-4. **Next product milestone:** Implement the Admin-only bulk FORGE Reprint
-   maintenance utility defined in Milestone D and
+4. **Implemented locally; owner validation next:** The Admin-only bulk FORGE
+   Reprint maintenance utility defined in Milestone D and
    [decision 005](docs/decisions/005-bulk-forge-reprint-maintenance.md).
 5. **Then:** Validate regeneration after application generator changes and
    public/base-URL changes, including preservation of active sharing behavior.
@@ -248,6 +248,8 @@ rather than delaying feature progress beforehand.
 
 #### Milestone D — Bulk FORGE Reprint maintenance
 
+**Implemented locally; awaiting owner validation.**
+
 - **Confirmed:** Provide an Admin-only Settings utility with three explicit
   operations: create missing reprints, refresh existing reprints, and create or
   refresh every eligible reprint.
@@ -334,8 +336,8 @@ rather than delaying feature progress beforehand.
 - **Completed:** QR destinations open a resource page with view/print actions;
   scanning must not trigger printing automatically.
 - **Completed:** Stable application URLs survive display-title changes.
-- **Next:** Add the bulk maintenance workflow in Milestone D without changing
-  the source-PDF or QR-access boundaries.
+- **Implemented locally; owner validation next:** Bulk maintenance follows
+  Milestone D without changing the source-PDF or QR-access boundaries.
 - **Future idea:** Configurable branding/footer placement and access policies.
 
 ## 8. Phase 2 — BoardGameGeek integration

@@ -14,6 +14,7 @@ from app.config import Settings
 from app.database import Database
 from app.library.cache import cleanup_managed_files
 from app.library.reconciliation import ReconciliationError, reconcile_scan
+from app.library.reprint_maintenance import interrupt_active_jobs
 from app.library.scanner import scan_library
 from app.security import (
     AllowedHosts,
@@ -35,6 +36,7 @@ def create_app(
         validated = configured.validated()
         database = Database.in_data_directory(validated.data_path)
         database.initialize()
+        interrupt_active_jobs(database)
         scan_result = scan_library(validated.library_path)
         application.state.scan_issues = scan_result.issues
         try:
@@ -67,11 +69,17 @@ def create_app(
     )
     application.include_router(web_router)
     from app.account_web import router as account_router
+    from app.reprint_web import router as reprint_router
 
     application.include_router(account_router)
+    application.include_router(reprint_router)
     # Match the declared leaf routes, independent of FastAPI's lazy include
     # wrappers. Unknown/new app routes still default to Admin in AccessControl.
-    application.state.access_routes = [*web_router.routes, *account_router.routes]
+    application.state.access_routes = [
+        *web_router.routes,
+        *account_router.routes,
+        *reprint_router.routes,
+    ]
     logger = logging.getLogger("uvicorn.access")
     if not any(isinstance(item, RedactSharingLinks) for item in logger.filters):
         logger.addFilter(RedactSharingLinks())

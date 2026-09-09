@@ -18,9 +18,12 @@ The configured `data/` directory contains:
   pins, Recent state, and history
 - Uploaded game artwork
 - Generated preview and artwork caches
+- Generated FORGE Reprints and durable bulk-maintenance job history
 
-The caches can be regenerated, but the database and uploaded artwork cannot.
-Back up the entire directory together.
+The generated files and caches can be regenerated, but the database and uploaded
+artwork cannot. The database also records bulk-job progress; stop Forge before a
+filesystem copy so the database and generated outputs represent one consistent
+point in time. Back up the entire directory together.
 
 ### Git repository
 

@@ -49,6 +49,8 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "game_category_assignments",
         "application_preferences",
         "game_bgg_associations",
+        "reprint_jobs",
+        "reprint_job_items",
     } <= tables
     assert [tuple(row) for row in migrations] == [
         (1, "create_library_index"),
@@ -69,6 +71,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (16, "add_local_accounts_and_sharing"),
         (17, "add_folder_category_import_setting"),
         (18, "preserve_bgg_url_slug"),
+        (19, "add_reprint_maintenance_jobs"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -95,7 +98,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             "SELECT COUNT(*) FROM schema_migrations"
         ).fetchone()[0]
 
-    assert count == 18
+    assert count == 19
 
 
 def test_multi_category_migration_preserves_single_category(database: Database) -> None:

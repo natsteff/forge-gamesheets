@@ -16,8 +16,9 @@
       sizes="180x180"
       href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
     >
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=26">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=29">
     <script src="{{ url_for('static', path='/app.js') }}?v=7" defer></script>
+    {% block head %}{% endblock %}
   </head>
   <body>
     {% set preferences = application_preferences(request) %}
@@ -56,17 +57,25 @@
         {% if preferences.recent_limit %}<a href="{{ url_for('recent_home') }}"{% if request.url.path == "/recent" %} aria-current="page"{% endif %}>Recently used</a>{% endif %}
         </div></div>
         <a href="{{ url_for('activity_history') }}"{% if request.url.path == "/history" %} aria-current="page"{% endif %}>History</a>
+        {% if request.state.can_admin %}
+        <div class="nav-group">
+        <span class="nav-heading">Admin</span>
+        <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-admin" hidden>Admin <span aria-hidden="true">▾</span></button>
+        <div class="nav-group-links" id="nav-admin">
+        <a href="{{ url_for('reprint_maintenance') }}"{% if request.url.path.startswith("/settings/reprints") %} aria-current="page"{% endif %}>FORGE Reprints</a>
+        <a href="{{ url_for('settings_home') }}"{% if request.url.path == "/settings" %} aria-current="page"{% endif %}>Settings</a>
+        {% if request.state.user %}<a href="{{ url_for('accounts_home') }}"{% if request.url.path == "/settings/users" %} aria-current="page"{% endif %}>User Accounts</a>{% endif %}
+        </div></div>
+        {% endif %}
+        {% if request.state.user %}
         <div class="nav-group">
         <span class="nav-heading">Account</span>
         <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-account" hidden>Account <span aria-hidden="true">▾</span></button>
         <div class="nav-group-links" id="nav-account">
-        {% if request.state.can_admin %}<a href="{{ url_for('settings_home') }}"{% if request.url.path == "/settings" %} aria-current="page"{% endif %}>Settings</a>{% endif %}
-        {% if request.state.can_admin and request.state.user %}<a href="{{ url_for('accounts_home') }}"{% if request.url.path == "/settings/users" %} aria-current="page"{% endif %}>Users</a>{% endif %}
-        {% if request.state.user %}
-          <a href="{{ url_for('account_home') }}">My account</a>
-          <form action="{{ url_for('logout_view') }}" method="post"><button class="secondary-button" type="submit">Sign out</button></form>
-        {% endif %}
+        <a href="{{ url_for('account_home') }}">My account</a>
+        <form action="{{ url_for('logout_view') }}" method="post"><button class="secondary-button" type="submit">Sign out</button></form>
         </div></div>
+        {% endif %}
       </nav>
     </header>
     <main class="page-shell" id="main-content" tabindex="-1">

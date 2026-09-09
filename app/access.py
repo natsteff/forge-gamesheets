@@ -80,6 +80,12 @@ ADMIN_ROUTES = {
     "qr_policy_save",
     "share_generate",
     "share_revoke",
+    "reprint_maintenance",
+    "reprint_maintenance_confirm",
+    "reprint_maintenance_start",
+    "reprint_maintenance_job",
+    "reprint_maintenance_cancel",
+    "reprint_maintenance_resume",
 }
 PUBLIC_ROUTES = {
     "health",

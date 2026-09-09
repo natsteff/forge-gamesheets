@@ -68,11 +68,14 @@ from app.library.repository import (
     set_resource_favorite,
     toggle_resource_pin,
 )
+from app.library.reprint_targets import (
+    preferred_reprint_target,
+    readable_reprint_targets,
+)
 from app.library.reprints import (
     ReprintGenerationError,
     existing_forge_reprint,
     generate_forge_reprint,
-    resource_reprint_url,
 )
 from app.library.scanner import LibraryScanError, ScanIssue, scan_library
 from app.preferences import (
@@ -421,6 +424,14 @@ def recent_home(request: Request) -> HTMLResponse:
 @router.get("/settings", response_class=HTMLResponse, name="settings_home")
 def settings_home(request: Request) -> HTMLResponse:
     """Show the limited Phase 1 application settings."""
+    qr_guests = False
+    if request.state.auth_enabled:
+        with _database(request).connect() as connection:
+            qr_guests = bool(
+                connection.execute(
+                    "SELECT qr_guests FROM auth_configuration WHERE id=1"
+                ).fetchone()[0]
+            )
     return templates.TemplateResponse(
         request=request,
         name="settings.html",
@@ -435,6 +446,7 @@ def settings_home(request: Request) -> HTMLResponse:
             "timezone_names": _timezone_names(),
             "build_info": request.app.state.build_info,
             "bgg_configured": bool(request.app.state.settings.bgg_api_token),
+            "qr_guests": qr_guests,
         },
     )
 
@@ -1189,7 +1201,8 @@ def _generated_reprint(
             request.app.state.settings.library_path,
             resource.relative_path,
         )
-        target_url = resource_reprint_url(
+        target_url = preferred_reprint_target(
+            _database(request),
             request.app.state.settings.base_url,
             resource_id,
         )
@@ -1271,17 +1284,17 @@ def _qr_guests(request: Request) -> bool:
 def _existing_reprint(request: Request, source: Path, resource_id: int) -> Path | None:
     # Both ordinary login-required prints and explicit shared prints are readable
     # by members. Guests use a separate handler that accepts only the shared URL.
-    normal = resource_reprint_url(request.app.state.settings.base_url, resource_id)
-    for target in (normal, _current_share_url(request, resource_id)):
-        if target:
-            path = existing_forge_reprint(
-                source,
-                request.app.state.settings.data_path,
-                resource_id=resource_id,
-                target_url=target,
-            )
-            if path:
-                return path
+    for target in readable_reprint_targets(
+        _database(request), request.app.state.settings.base_url, resource_id
+    ):
+        path = existing_forge_reprint(
+            source,
+            request.app.state.settings.data_path,
+            resource_id=resource_id,
+            target_url=target,
+        )
+        if path:
+            return path
     return None
 
 

@@ -18,20 +18,35 @@
   {% if request.query_params.get('status') == 'scanning-saved' %}<p role="status">Scanning preference saved.</p>{% endif %}
 </section>
 
-  {% if status %}
+  {% if status == "qr-access-saved" %}
+    <p class="status-banner" role="status">QR access setting saved successfully.</p>
+  {% elif status %}
     <p class="status-banner" role="status">Settings saved successfully.</p>
   {% elif error == "duplicate-category" %}
     <p class="status-banner warning" role="alert">That category name is already in use.</p>
+  {% elif error == "qr-access" %}
+    <p class="status-banner warning" role="alert">{{ request.query_params.get('detail', 'Check your current passphrase and try again.') }}</p>
   {% elif error %}
     <p class="status-banner warning" role="alert">Check the entered value and try again.</p>
   {% endif %}
 
+  {% if request.state.auth_enabled %}
+  <section class="settings-section">
+    <h2>QR guest access</h2>
+    <p>Secure sharing links grant access only to their resource. Ordinary numeric QR links always require sign-in when authentication is enabled.</p>
+    <form class="metadata-form settings-form" action="{{ url_for('qr_policy_save') }}" method="post">
+      <label><input type="checkbox" name="qr_guests" value="1"{% if qr_guests %} checked{% endif %}> Allow secure QR links without sign-in</label>
+      <small>Uncheck to require Reader-or-higher sign-in, including for previously printed links. Downloaded copies cannot be recalled.</small>
+      <label for="policy-password">Your current passphrase</label>
+      <input id="policy-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+      <button type="submit">Save QR access policy</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if not request.state.auth_enabled %}
   <section class="settings-section">
     <h2>Access control</h2>
-    {% if request.state.auth_enabled %}
-      <p>Authentication is enabled. Library browsing requires sign-in.</p>
-      <a class="resource-action" href="{{ url_for('accounts_home') }}">Manage accounts and QR access</a>
-    {% else %}
       <p>Trusted-operator mode: anyone who can reach this installation can edit it.
       Upgrading does not automatically activate authentication.</p>
       <p>To create the first Admin and immediately require sign-in, open a terminal
@@ -42,8 +57,8 @@
       <a href="https://github.com/natsteff/forge-gamesheets/blob/main/docs/ACCOUNTS.md">accounts setup and recovery guide</a>
       before enabling accounts on a non-local installation. Configure and test
       the final HTTPS proxy address first; remote HTTP sign-in is rejected.</p>
-    {% endif %}
   </section>
+  {% endif %}
 
   <section class="settings-section">
     <div class="settings-heading">

@@ -15,6 +15,7 @@ from app.library.files import (
     resolve_resource_pdf,
 )
 from app.library.repository import get_game, get_resource
+from app.library.reprint_targets import preferred_reprint_target
 from app.library.reprints import (
     ReprintGenerationError,
     existing_forge_reprint,
@@ -167,9 +168,6 @@ def _users_page(request, error=None, status=200):
         users = connection.execute(
             "SELECT id, username, role, enabled FROM users ORDER BY username"
         ).fetchall()
-        policy = connection.execute(
-            "SELECT qr_guests FROM auth_configuration WHERE id=1"
-        ).fetchone()[0]
         events = connection.execute(
             "SELECT e.*, actor.username AS actor_name, target.username AS target_name, "
             "r.title AS resource_title, g.title AS game_title "
@@ -219,7 +217,6 @@ def _users_page(request, error=None, status=200):
         name="accounts.html",
         context={
             "users": users,
-            "qr_guests": bool(policy),
             "events": events,
             "error": error,
             "saved": request.query_params.get("saved") == "1",
@@ -304,8 +301,11 @@ async def qr_policy_save(request: Request):
             form.get("qr_guests") == "1",
         )
     except accounts.AccountError as error:
-        return _users_page(request, str(error), 400)
-    return RedirectResponse("/settings/users?saved=1", 303)
+        return RedirectResponse(
+            "/settings?" + urlencode({"error": "qr-access", "detail": str(error)}),
+            303,
+        )
+    return RedirectResponse("/settings?status=qr-access-saved", 303)
 
 
 @router.post("/resources/{resource_id}/share", name="share_generate")
@@ -325,7 +325,7 @@ async def share_generate(request: Request, resource_id: int):
         if resource is None:
             raise HTTPException(404, "Resource not found.")
         source = resolve_resource_pdf(settings.library_path, resource.relative_path)
-        token = await run_in_threadpool(
+        await run_in_threadpool(
             sharing.create_share, _db(request), request.state.user, resource_id
         )
         await run_in_threadpool(
@@ -333,7 +333,9 @@ async def share_generate(request: Request, resource_id: int):
             source,
             settings.data_path,
             resource_id=resource_id,
-            target_url=sharing.sharing_url(settings.base_url, token),
+            target_url=preferred_reprint_target(
+                _db(request), settings.base_url, resource_id
+            ),
             force=True,
         )
     except accounts.AccountError as error:

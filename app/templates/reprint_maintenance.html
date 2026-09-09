@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Reprint maintenance · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <section class="page-intro compact-intro">
+    <p class="eyebrow">Admin utility</p>
+    <h1>FORGE Reprint maintenance</h1>
+    <p>Create or refresh stored printable copies in bulk. Source PDFs are never changed.</p>
+  </section>
+
+  {% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}
+  {% if not generation_enabled %}
+    <p class="status-banner warning" role="alert">Configure FORGE_GAMESHEETS_BASE_URL before running reprint maintenance.</p>
+  {% endif %}
+
+  <section class="settings-section">
+    <h2>Library inventory</h2>
+    <dl class="maintenance-summary">
+      <div><dt>Indexed PDFs</dt><dd>{{ inventory.total }}</dd></div>
+      <div><dt>Current reprints</dt><dd>{{ inventory.current }}</dd></div>
+      <div><dt>Missing reprints</dt><dd>{{ inventory.missing }}</dd></div>
+      <div><dt>Stale reprints</dt><dd>{{ inventory.stale }}</dd></div>
+      <div><dt>Unavailable</dt><dd>{{ inventory.unavailable }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="settings-section">
+    <h2>Choose an operation</h2>
+    <form class="maintenance-options" action="{{ url_for('reprint_maintenance_confirm') }}" method="post">
+      <label><input type="radio" name="operation" value="create_missing" checked> <strong>Create missing reprints</strong><span>Create only where no stored copy exists.</span></label>
+      <label><input type="radio" name="operation" value="refresh_existing"> <strong>Refresh existing reprints</strong><span>Replace stored copies without creating new ones.</span></label>
+      <label><input type="radio" name="operation" value="create_or_refresh_all"> <strong>Create or refresh all reprints</strong><span>Process every eligible indexed PDF.</span></label>
+      <button class="primary-button" type="submit" {% if not generation_enabled %}disabled{% endif %}>Review operation</button>
+    </form>
+  </section>
+
+  {% if latest_job %}
+    <section class="settings-section">
+      <h2>Latest job</h2>
+      <p>{{ latest_job.label }} — <strong>{{ latest_job.status }}</strong></p>
+      <a class="resource-action" href="{{ url_for('reprint_maintenance_job', job_id=latest_job.id) }}">View progress and results</a>
+    </section>
+  {% endif %}
+{% endblock %}

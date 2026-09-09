@@ -1,6 +1,6 @@
 # Bulk FORGE Reprint maintenance
 
-Status: owner-approved design baseline; next product milestone.
+Status: implemented locally; awaiting owner validation.
 
 ## Purpose and placement
 

@@ -1,21 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Accounts and QR access · Forge GameSheets{% endblock %}
+{% block title %}User Accounts · Forge GameSheets{% endblock %}
 {% block content %}
-  <h1>Accounts and QR access</h1>
+  <h1>User Accounts</h1>
   {% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}
   {% if saved %}<p class="status-banner success" role="status">Changes saved.</p>{% endif %}
   <p>Admins manage access and settings. Contributors edit the shared library. Readers browse and print.</p>
-  <section class="settings-section">
-    <h2>QR guest access</h2>
-    <p>Secure sharing links grant access only to their resource. Ordinary numeric QR links always require sign-in when authentication is enabled.</p>
-    <form class="metadata-form settings-form" action="{{ url_for('qr_policy_save') }}" method="post">
-      <label><input type="checkbox" name="qr_guests" value="1"{% if qr_guests %} checked{% endif %}> Allow secure QR links without sign-in</label>
-      <small>Uncheck to require Reader-or-higher sign-in, including for previously printed links. Downloaded copies cannot be recalled.</small>
-      <label for="policy-password">Your current passphrase</label>
-      <input id="policy-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
-      <button type="submit">Save QR access policy</button>
-    </form>
-  </section>
   <section class="settings-section">
     <h2>Create account</h2>
     <form class="metadata-form settings-form" action="{{ url_for('accounts_create') }}" method="post">
