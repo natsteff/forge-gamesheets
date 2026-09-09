@@ -241,6 +241,12 @@ game-sheets/
         └── Yahtzee - Score Sheet Large Print.pdf
 ```
 
+PDFs directly at the library root are ignored. For a collection that has not
+yet been organized by game, create a normal first-level staging folder such as
+`Unsorted/` and place the PDFs there. Forge treats **Unsorted** as an ordinary
+game folder; it has no reserved or special behavior. Move each PDF to its proper
+game folder and rescan as the collection is organized.
+
 Start Forge after copying files, or select **Rescan library**. Files with
 unrecognized names remain accessible and can receive display-title and document
 type overrides in the interface. Forge does not rename or modify source PDFs.

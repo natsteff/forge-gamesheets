@@ -459,6 +459,11 @@ updates require critical-path and screenshot review under
   game entries and single-PDF uploads as a convenience alongside filesystem
   bulk loading. Review security and mount permissions before implementation;
   see [security planning](docs/SECURITY_PLAN.md).
+- **Future idea:** Add a read-only **Unsorted documents** presentation that can
+  identify and filter resources from a configurable staging folder while
+  leaving it as an ordinary first-level game folder on disk. Do not reserve the
+  literal `Unsorted` name, move source files, or require a writable library as
+  part of this work.
 - **Future idea:** Visual FGS designer.
 - **Future idea:** Multi-document game-night packs.
 - **Future idea:** Advanced layout and print optimization.

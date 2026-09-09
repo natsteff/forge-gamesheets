@@ -218,6 +218,13 @@ nested beneath that game directory. The preferred filename is:
 <Game Name> - <Document Type> [optional variant].pdf
 ```
 
+PDFs placed directly in `library/` are ignored because every resource must
+belong to a first-level game folder. If you have unidentified or unorganized
+documents, place them in a normal staging folder such as `library/Unsorted/`.
+Forge displays **Unsorted** like any other game; move the files into their
+proper game folders and select **Rescan library** when you are ready. The name
+`Unsorted` is a convention, not a reserved folder with special behavior.
+
 Names do not need to be perfect. Unrecognized PDFs remain accessible under
 Other, and display metadata can be corrected in the interface without renaming
 the source file. Select **Rescan library** after changing library contents.
