@@ -276,11 +276,21 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=7" in response.text
-    assert "/static/styles.css?v=29" in response.text
+    assert "/static/styles.css?v=30" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'aria-expanded="false"' in response.text
     assert 'aria-controls="primary-navigation"' in response.text
     assert 'id="primary-navigation"' in response.text
+
+
+def test_site_header_stays_visible_while_mobile_page_scrolls() -> None:
+    stylesheet = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
+    mobile_styles = stylesheet.split("@media (max-width: 850px) {", 1)[1]
+    site_header = mobile_styles.split(".site-header {", 1)[1].split("}", 1)[0]
+
+    assert "position: sticky;" in site_header
+    assert "top: 0;" in site_header
+    assert "z-index: 30;" in site_header
 
 
 def test_game_edit_explains_unconfigured_bgg_matching(

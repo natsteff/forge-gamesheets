@@ -673,7 +673,12 @@ button:disabled,
 .build-information dd { margin: 0; }
 
 @media (max-width: 850px) {
-  .site-header { flex-wrap: wrap; }
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    flex-wrap: wrap;
+  }
   .site-nav { flex-wrap: wrap; }
   .site-header.nav-enhanced .menu-toggle {
     display: inline-flex;
