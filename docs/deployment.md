@@ -184,7 +184,7 @@ address makes existing generated copies stale; generate them again so their QR
 codes use the new destination.
 
 After changing the public address or installing a release with a new reprint
-generator, open **Settings → Manage FORGE Reprints**. Use **Refresh existing
+generator, open **Admin → FORGE Reprints**. Use **Refresh existing
 reprints** to update only stored copies or **Create or refresh all reprints** to
 cover every eligible PDF. The operation continues independently of the browser
 request and reports skipped or failed resources individually. Only one bulk job

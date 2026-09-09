@@ -110,6 +110,18 @@ scanned PDF, and an unusually narrow page when available.
 Report the general page size and PDF characteristics when a layout fails, but
 do not submit copyrighted source files without permission.
 
+## Test 7a — bulk FORGE Reprint maintenance
+
+1. As an Admin, open **Admin → FORGE Reprints** and compare the inventory counts
+   with the test library.
+2. Review each operation before starting it: create missing, refresh existing,
+   and create or refresh all eligible reprints.
+3. Run an operation and confirm progress updates, completion totals, and any
+   per-resource skip or failure details are understandable.
+4. Confirm cancellation stops after the current resource and an interrupted job
+   can resume its remaining resources.
+5. Confirm source PDFs remain unchanged and active shared QR targets are preserved.
+
 ## Test 8 — responsive and keyboard use
 
 1. Resize the browser to phone, tablet, and desktop widths.

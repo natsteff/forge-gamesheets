@@ -36,7 +36,8 @@ Enter a username and a new 15–128-character passphrase at the prompts. No defa
 password or public setup URL exists. Passwords are not command-line arguments.
 Successful setup immediately protects the existing shared library; it does not
 move PDFs, change library permissions, or assign existing content to one owner.
-Sign in, then use **Settings → Accounts and QR access** to add accounts.
+Sign in, then use **Admin → User Accounts** to add accounts. Configure whether
+secure QR links allow guest access under **Admin → Settings → QR guest access**.
 
 Non-local sign-in requires HTTPS through a correctly configured trusted proxy.
 Localhost HTTP is supported for development. Establish HTTPS before activating
@@ -108,10 +109,11 @@ to solve login problems.
 
 ## Security limits and review
 
-Navigation groups Games, Quick access, and Account into desktop dropdowns, with
-History separate. The mobile Menu shows the same groups with directly visible
-links. Admins with accounts enabled can open Users from Account; the Settings
-shortcut remains available. Readers and Contributors do not see Users or Settings.
+Navigation groups Games, Quick access, Admin, and Account into desktop dropdowns,
+with History separate. The mobile Menu shows the same permitted groups with
+directly visible links. Admins can open FORGE Reprints, Settings, and User Accounts
+from Admin. Account contains personal account actions. Readers and Contributors
+do not see the Admin menu.
 
 Passphrases use Argon2id; sessions are random opaque cookies with server-side
 digests, a 30-minute idle timeout and 12-hour absolute lifetime. HTTPS cookies

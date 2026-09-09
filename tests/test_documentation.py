@@ -84,8 +84,14 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
     text = (ROOT / "README.md").read_text()
     gallery = text.split("## Screenshots", 1)[1].split("## Requirements", 1)[0]
     images = set(re.findall(r"docs/images/[\w-]+\.png", gallery))
-    assert len(images) == 10
-    for name in ("users", "assign-categories", "bgg-manual", "desktop-navigation"):
+    assert len(images) == 11
+    for name in (
+        "users",
+        "assign-categories",
+        "bgg-manual",
+        "desktop-navigation",
+        "reprint-maintenance",
+    ):
         assert f"docs/images/{name}.png" in images
     for path in images:
         with Image.open(ROOT / path) as image:

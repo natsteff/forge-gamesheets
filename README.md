@@ -46,7 +46,7 @@ The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
 ## Screenshots
 
-Screenshots refreshed September 4, 2026, using an invented demonstration library
+Screenshots refreshed September 8, 2026, using an invented demonstration library
 and demo accounts. No private library content or third-party game files are
 included. These views show authentication enabled; available controls depend on
 the signed-in role. Click an image to inspect it at full size.
@@ -56,12 +56,14 @@ the signed-in role. Click an image to inspect it at full size.
 | ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
 | **Bulk game categories** | **FORGE Reprint** |
 | ![Selected demo games and categories with bulk operations and explanatory help](docs/images/assign-categories.png) | ![Generated demo reprint ready to view or download, with QR access guidance](docs/images/forge-reprint.png) |
-| **Settings and folder-category import** | **Accounts and QR access** |
-| ![Settings showing optional folder-category import and enabled authentication](docs/images/settings.png) | ![Admin access controls explaining roles and the QR guest policy](docs/images/users.png) |
-| **Manual BoardGameGeek linking** | **Integration and build details** |
-| ![Token-free BGG search button and empty full-game-URL field](docs/images/bgg-manual.png) | ![Settings showing the optional API disabled and a local development build](docs/images/settings-build.png) |
-| **Grouped desktop navigation** | **Mobile navigation** |
-| ![Games dropdown with All games, Categories, and Assign game categories](docs/images/desktop-navigation.png) | <img src="docs/images/mobile-navigation.png" alt="Phone menu with Games, Quick access, History, and Account groups including admin-only Users" width="200"> |
+| **Bulk FORGE Reprint maintenance** | **Settings and QR access** |
+| ![Admin utility showing current, missing, stale, and unavailable reprints with bulk operation choices](docs/images/reprint-maintenance.png) | ![Settings showing folder-category import and QR guest access](docs/images/settings.png) |
+| **User Accounts** | **Manual BoardGameGeek linking** |
+| ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Token-free BGG search button and empty full-game-URL field](docs/images/bgg-manual.png) |
+| **Integration and build details** | **Grouped desktop navigation** |
+| ![Settings showing the optional API disabled and a local development build](docs/images/settings-build.png) | ![Admin dropdown with FORGE Reprints, Settings, and User Accounts](docs/images/desktop-navigation.png) |
+| **Mobile navigation** | |
+| <img src="docs/images/mobile-navigation.png" alt="Phone menu with Games, Quick access, History, Admin, and Account groups" width="200"> | |
 
 The [screenshot maintenance guide](docs/SCREENSHOTS.md) records the capture
 procedure and review requirements.
@@ -255,15 +257,15 @@ API enrichment remains a separate, optional feature requiring token configuratio
 ### Navigation
 
 Desktop navigation groups **Games** (All games, Categories, Assign game categories),
-**Quick access** (Pinned, Favorites, Recently used), and **Account** (permitted
-account/settings/user actions), with **History** separate. The logo opens Library
-home. Mobile Menu shows the same groups with visible links. Users is shown only
-to signed-in Admins; editing options follow role permissions. Recently used is
-hidden when its configured limit is zero.
+**Quick access** (Pinned, Favorites, Recently used), **Admin** (FORGE Reprints,
+Settings, User Accounts), and **Account** (My account and Sign out), with
+**History** separate. The logo opens Library home. Mobile Menu shows the same
+permitted groups with visible links. Admin is shown only to Admins; editing options
+follow role permissions. Recently used is hidden when its configured limit is zero.
 
 ### Bulk FORGE Reprint maintenance
 
-Admins can open **Settings → Manage FORGE Reprints** to review current, missing,
+Admins can open **Admin → FORGE Reprints** to review current, missing,
 stale, and unavailable reprints. Three deliberate operations create only missing
 copies, refresh only existing copies, or create/refresh all eligible indexed PDFs.
 Forge confirms the number of new and replaced files before starting. Work runs
@@ -310,8 +312,9 @@ docker compose exec app python -m app.accounts create-admin
 Enter the first Admin username and a new 15–128-character passphrase at the
 private prompts. Do not put the passphrase in the command. Successful setup
 immediately requires sign-in for the existing library; it does not change PDFs,
-categories, or other content. Sign in with that Admin, then open **Account →
-Users** to create Contributor or Reader accounts and configure QR guest access.
+categories, or other content. Sign in with that Admin, then open **Admin → User
+Accounts** to create Contributor or Reader accounts. Configure QR guest access in
+**Admin → Settings**.
 There is no default password or web-based initial setup.
 
 Read [Accounts and QR sharing](docs/ACCOUNTS.md) before activation for HTTPS
