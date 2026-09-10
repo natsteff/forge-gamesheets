@@ -25,3 +25,10 @@ Read `PROJECT_PLAN.md` before making product or architecture changes.
 
 Run the narrow relevant tests, then the full test suite and lint checks when
 available. Summarize what changed, what was verified, and any remaining gap.
+Always state whether the result can be reviewed in the local development
+environment. When it can, provide the exact command to launch or open that
+environment. Also report the build identifier the reviewer should expect to
+see, clearly distinguishing an
+uncommitted local revision from a committed container build. If the change is
+not yet available in Docker Test, say so explicitly and give the remaining
+steps needed to publish it.

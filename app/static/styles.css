@@ -6,6 +6,16 @@
   --line: #ded8cb;
   --forge: #b94f2b;
   --forge-dark: #78331e;
+  --focus-outline: #1f6f8b;
+  --status-background: #f3eadc;
+  --status-border: #d7c6ad;
+  --status-text: #58442f;
+  --status-success-background: #edf6ed;
+  --status-success-border: #8eb68e;
+  --status-success-text: #285b2d;
+  --status-warning-background: #fff0ea;
+  --status-warning-border: #d79c87;
+  --status-warning-text: #682c1c;
   --action-primary-background: var(--forge-dark);
   --action-primary-border: var(--forge-dark);
   --action-primary-text: #fff;
@@ -15,7 +25,7 @@
   --action-danger-background: #fff7f4;
   --action-danger-border: #a33d28;
   --action-danger-text: #862e1c;
-  --action-focus-ring: rgb(120 51 30 / 20%);
+  --action-focus-ring: var(--focus-outline);
   --shadow: 0 16px 40px rgb(65 49 32 / 9%);
 }
 
@@ -35,7 +45,7 @@ body {
 
 a { color: inherit; }
 :focus-visible {
-  outline: 3px solid #1f6f8b;
+  outline: 3px solid var(--focus-outline);
   outline-offset: 3px;
 }
 .skip-link {
@@ -240,6 +250,47 @@ button:disabled,
   cursor: not-allowed;
 }
 
+input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: 0;
+  accent-color: var(--forge-dark);
+  cursor: pointer;
+}
+.checkbox-option {
+  display: grid;
+  grid-template-columns: 1.2rem minmax(0, 1fr);
+  gap: 0.25rem 0.7rem;
+  align-items: start;
+  max-width: 680px;
+  margin: 1rem 0;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--paper);
+  cursor: pointer;
+}
+.checkbox-option input[type="checkbox"] {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-top: 0.15rem;
+}
+.checkbox-option span { grid-column: 2; }
+.checkbox-option strong { display: block; }
+.checkbox-option small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+.checkbox-option:has(input:focus-visible) {
+  outline: 3px solid var(--focus-outline);
+  outline-offset: 2px;
+}
+.checkbox-option input:focus-visible { outline: none; }
+
 .library-tools {
   display: flex;
   align-items: center;
@@ -264,13 +315,14 @@ button:disabled,
 .status-banner {
   margin-bottom: 1.25rem;
   padding: 0.7rem 0.85rem;
-  border: 1px solid #d7c6ad;
+  border: 1px solid var(--status-border);
   border-radius: 0.65rem;
-  color: #58442f;
-  background: #f3eadc;
+  color: var(--status-text);
+  background: var(--status-background);
   font-size: 0.85rem;
 }
-.status-banner.warning { border-color: #d79c87; color: #682c1c; background: #fff0ea; }
+.status-banner.success { border-color: var(--status-success-border); color: var(--status-success-text); background: var(--status-success-background); }
+.status-banner.warning { border-color: var(--status-warning-border); color: var(--status-warning-text); background: var(--status-warning-background); }
 .status-banner.warning p { margin: 0.25rem 0; }
 .status-banner.warning ul { margin: 0.5rem 0 0; padding-left: 1.25rem; }
 .status-banner.warning code { overflow-wrap: anywhere; }
@@ -520,9 +572,9 @@ button:disabled,
 .reprint-generate { margin-block: 1.5rem; }
 .reprint-generate .resource-action { cursor: pointer; }
 .reprint-print-tip { max-width: 36rem; color: var(--muted); font-size: 0.88rem; }
-.reprint-print-tip strong { color: var(--text); }
-.reprint-responsibility { max-width: 36rem; margin-block: 1.25rem; padding: 1rem; border-left: 3px solid var(--line); background: var(--background); color: var(--muted); font-size: 0.86rem; }
-.reprint-responsibility strong { color: var(--text); }
+.reprint-print-tip strong { color: var(--ink); }
+.reprint-responsibility { max-width: 36rem; margin-block: 1.25rem; padding: 1rem; border-left: 3px solid var(--line); background: var(--paper); color: var(--muted); font-size: 0.86rem; }
+.reprint-responsibility strong { color: var(--ink); }
 .reprint-responsibility p { margin: 0.35rem 0 0; }
 .reprint-original { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
 .reprint-original h2 { margin-bottom: 0.25rem; font-size: 1.25rem; }
@@ -557,6 +609,7 @@ button:disabled,
 .metadata-form { display: grid; gap: 0.55rem; }
 .metadata-form label { margin-top: 0.65rem; font-weight: 750; }
 .metadata-form label span { color: var(--muted); font-weight: 400; }
+.metadata-form label.checkbox-option > span { color: var(--ink); }
 .metadata-form input,
 .metadata-form select {
   width: 100%;

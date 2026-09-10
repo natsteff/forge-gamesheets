@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>{% block title %}Forge GameSheets{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=19">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=32">
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="site-header">
       <img class="brand-wordmark" src="{{ url_for('static', path='/brand/forge-wordmark.png') }}" alt="Forge GameSheets">
     </header>
-    <main class="page-shell" id="main-content">{% block content %}{% endblock %}</main>
+    <main class="page-shell" id="main-content" tabindex="-1">{% block content %}{% endblock %}</main>
   </body>
 </html>

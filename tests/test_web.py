@@ -119,13 +119,20 @@ def test_action_buttons_use_shared_theme_tokens_and_components(web_client):
         "--action-secondary-background",
         "--action-danger-background",
         "--action-focus-ring",
+        "--focus-outline",
+        "--status-success-background",
+        "--status-warning-background",
     ):
         assert token in styles
     assert "--action-primary-background: var(--forge-dark);" in styles
     assert "--action-primary-border: var(--forge-dark);" in styles
     assert "--action-secondary-border: var(--forge-dark);" in styles
+    assert "--action-focus-ring: var(--focus-outline);" in styles
+    assert "var(--text)" not in styles
+    assert "var(--background)" not in styles
     settings = web_client.get("/settings").text
     assert 'class="primary-button"' in settings
+    assert settings.count('class="checkbox-option"') >= 1
     assert "Manage FORGE Reprints" not in settings
     assert "Manage accounts and QR access" not in settings
     maintenance = web_client.get("/settings/reprints").text
@@ -276,7 +283,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=7" in response.text
-    assert "/static/styles.css?v=30" in response.text
+    assert "/static/styles.css?v=32" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'aria-expanded="false"' in response.text
     assert 'aria-controls="primary-navigation"' in response.text

@@ -28,7 +28,10 @@
       <form class="metadata-form settings-form" action="{{ url_for('accounts_update', user_id=user.id) }}" method="post">
         <label for="role-{{ user.id }}">Role</label>
         <select id="role-{{ user.id }}" name="role">{% for role in ['reader', 'contributor', 'admin'] %}<option value="{{ role }}"{% if role == user.role %} selected{% endif %}>{{ role|title }}</option>{% endfor %}</select>
-        <label><input type="checkbox" name="enabled" value="1"{% if user.enabled %} checked{% endif %}> Account enabled</label>
+        <label class="checkbox-option">
+          <input type="checkbox" name="enabled" value="1"{% if user.enabled %} checked{% endif %}>
+          <span><strong>Account enabled</strong><small>Uncheck to prevent this account from signing in and invalidate its current sessions when you save.</small></span>
+        </label>
         <label for="update-password-{{ user.id }}">Your current passphrase</label>
         <input id="update-password-{{ user.id }}" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
         <button type="submit">Save account and invalidate its sessions</button>

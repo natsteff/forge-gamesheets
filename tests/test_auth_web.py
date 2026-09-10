@@ -102,8 +102,10 @@ def test_grouped_navigation_users_visibility(secured, role):
         settings = client.get("/settings").text
         accounts_page = client.get("/settings/users").text
         assert "QR guest access" in settings
+        assert 'class="checkbox-option"' in settings
         assert "QR guest access" not in accounts_page
         assert "<h1>User Accounts</h1>" in accounts_page
+        assert 'class="checkbox-option"' in accounts_page
 
 
 def test_bulk_category_page_and_confirmation(secured):

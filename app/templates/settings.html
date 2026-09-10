@@ -11,17 +11,19 @@
 <section class="settings-section">
   <h2>Library scanning</h2>
   <form action="{{ url_for('settings_scanning') }}" method="post">
-    <label><input type="checkbox" name="folder_categories" {% if application_preferences(request).folder_categories %}checked{% endif %}> Import game categories from folder names</label>
-    <p>Use a trailing list such as Yahtzee [Dice, Children]. Missing categories are created automatically. Parentheses remain part of the title. Applies only to newly discovered games on the next scan; existing assignments are unchanged.</p>
+    <label class="checkbox-option">
+      <input type="checkbox" name="folder_categories" {% if application_preferences(request).folder_categories %}checked{% endif %}>
+      <span><strong>Import game categories from folder names</strong><small>Use a trailing list such as Yahtzee [Dice, Children]. Missing categories are created automatically. Parentheses remain part of the title. Applies only to newly discovered games on the next scan; existing assignments are unchanged.</small></span>
+    </label>
     <button class="primary-button" type="submit">Save scanning preference</button>
   </form>
-  {% if request.query_params.get('status') == 'scanning-saved' %}<p role="status">Scanning preference saved.</p>{% endif %}
+  {% if request.query_params.get('status') == 'scanning-saved' %}<p class="status-banner success" role="status">Scanning preference saved.</p>{% endif %}
 </section>
 
   {% if status == "qr-access-saved" %}
-    <p class="status-banner" role="status">QR access setting saved successfully.</p>
+    <p class="status-banner success" role="status">QR access setting saved successfully.</p>
   {% elif status %}
-    <p class="status-banner" role="status">Settings saved successfully.</p>
+    <p class="status-banner success" role="status">Settings saved successfully.</p>
   {% elif error == "duplicate-category" %}
     <p class="status-banner warning" role="alert">That category name is already in use.</p>
   {% elif error == "qr-access" %}
@@ -35,8 +37,10 @@
     <h2>QR guest access</h2>
     <p>Secure sharing links grant access only to their resource. Ordinary numeric QR links always require sign-in when authentication is enabled.</p>
     <form class="metadata-form settings-form" action="{{ url_for('qr_policy_save') }}" method="post">
-      <label><input type="checkbox" name="qr_guests" value="1"{% if qr_guests %} checked{% endif %}> Allow secure QR links without sign-in</label>
-      <small>Uncheck to require Reader-or-higher sign-in, including for previously printed links. Downloaded copies cannot be recalled.</small>
+      <label class="checkbox-option">
+        <input type="checkbox" name="qr_guests" value="1"{% if qr_guests %} checked{% endif %}>
+        <span><strong>Allow secure QR links without sign-in</strong><small>Uncheck to require Reader-or-higher sign-in, including for previously printed links. Downloaded copies cannot be recalled.</small></span>
+      </label>
       <label for="policy-password">Your current passphrase</label>
       <input id="policy-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
       <button type="submit">Save QR access policy</button>

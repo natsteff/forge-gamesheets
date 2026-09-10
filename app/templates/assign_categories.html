@@ -2,7 +2,7 @@
 {% block content %}
 <h1>Assign game categories</h1>
 <p>Select games, choose categories, then choose what to do. You will review and confirm the changes before they are applied. No library files are changed.</p>
-{% if message %}<p role="status">{{ message }}</p>{% endif %}
+{% if message %}<p class="status-banner success" role="status">{{ message }}</p>{% endif %}
 <form method="get" class="bulk-category-form">
   <div class="category-filter-toolbar">
   <label>Search games <input name="q" value="{{ q }}"></label>
