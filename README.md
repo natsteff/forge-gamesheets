@@ -229,9 +229,14 @@ Names do not need to be perfect. Unrecognized PDFs remain accessible under
 Other, and display metadata can be corrected in the interface without renaming
 the source file. Select **Rescan library** after changing library contents.
 
-Optional game artwork can be placed at the top of a game folder using the name
-`icon` or `cover` and a PNG, JPEG, or WebP extension. Artwork can also be
-uploaded through **Edit game entry**.
+The preferred artwork method is a square 1024 × 1024 WebP placed at the top of a
+game folder using the name `icon.webp` (or `cover.webp`). PNG and JPEG are also
+supported. Non-square artwork is center-cropped, and Forge creates an optimized
+512 × 512 WebP display cache without changing the library source. Artwork can also be
+uploaded through **Edit game entry**. A web upload is normalized into the writable
+application-data directory and overrides detected folder artwork; it is not
+written back to the read-only library. Include uploaded artwork in application-data
+backups. Removing an upload restores any detected folder artwork.
 
 ### Game categories and folder hints
 

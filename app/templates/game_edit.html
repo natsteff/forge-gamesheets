@@ -174,14 +174,19 @@
   <section class="edit-panel artwork-editor">
     <p class="eyebrow">Game artwork</p>
     <h2>Choose a custom image</h2>
-    <p>PNG, JPEG, or WebP up to 25 MB. The image is center-cropped to a square.</p>
+    <div class="artwork-guidance">
+      <h3>Recommended: keep artwork with the game</h3>
+      <p>For the best balance of quality and storage, use a square <strong>1024 × 1024 WebP</strong> named <code>icon.webp</code> at the top level of the game’s library folder, then rescan. PNG and JPEG are also supported, and <code>cover</code> may be used instead of <code>icon</code>. Forge creates an optimized WebP display cache without changing the source image.</p>
+    </div>
+    <p><strong>Web upload alternative:</strong> Uploading here stores an app-managed copy in Forge’s writable data folder, not in the read-only library. It overrides detected folder artwork and must be included with application-data backups. Use this when you cannot add an image to the source library.</p>
+    <p>PNG, JPEG, or WebP up to 25 MB and 40 megapixels. All artwork is center-cropped when it is not already square. Uploaded images are saved as 1024 × 1024 WebP; detected library artwork is cached at 512 × 512 for display.</p>
     {% if game.has_artwork %}
       <img class="artwork-preview" src="{{ url_for('game_artwork', game_id=game.id) }}" alt="Current artwork for {{ game.title }}">
     {% endif %}
     <form class="metadata-form" action="{{ url_for('game_artwork_upload', game_id=game.id) }}" method="post" enctype="multipart/form-data">
       <label for="artwork-file">Artwork image</label>
       <input id="artwork-file" name="artwork_file" type="file" accept="image/png,image/jpeg,image/webp" required>
-      <button type="submit">Upload artwork</button>
+      <button type="submit">Upload app-managed artwork</button>
     </form>
     {% if game.has_uploaded_artwork %}
       <form action="{{ url_for('game_artwork_reset', game_id=game.id) }}" method="post">

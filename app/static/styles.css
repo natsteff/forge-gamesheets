@@ -647,6 +647,16 @@ input[type="checkbox"] {
 .bgg-candidate span { display: grid; gap: 0.2rem; }
 .bgg-candidate small { color: var(--muted); }
 .bgg-lookup-toggle { margin-top: 1.5rem; }
+.artwork-guidance {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--status-success-border);
+  border-radius: 0.8rem;
+  background: var(--status-success-background);
+}
+.artwork-guidance h3 { margin: 0 0 0.35rem; color: var(--status-success-text); }
+.artwork-guidance p { margin: 0; }
+.artwork-guidance code { overflow-wrap: anywhere; }
 .category-picker {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -315,6 +315,12 @@ def test_game_edit_explains_unconfigured_bgg_matching(
     assert "application token" not in response.text
     assert "Search BoardGameGeek" not in response.text
     assert "Choose a custom image" in response.text
+    assert "Recommended: keep artwork with the game" in response.text
+    assert "1024 × 1024 WebP" in response.text
+    assert "center-cropped" in response.text
+    assert "cached at 512 × 512" in response.text
+    assert "Upload app-managed artwork" in response.text
+    assert "not in the read-only library" in response.text
 
 
 @pytest.mark.parametrize("configured", [False, True])
