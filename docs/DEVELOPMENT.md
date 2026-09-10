@@ -14,6 +14,8 @@ docker compose up -d
 Open <http://localhost:8000>. Stop the service with `docker compose down`.
 The build script selects the development stage, including test tools; published
 images select the runtime stage without development dependencies or tests.
+Local build information includes the current time zone and adds `-dirty` to the
+revision whenever the image contains uncommitted working-copy changes.
 
 The Compose service mounts:
 

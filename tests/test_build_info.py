@@ -34,3 +34,9 @@ def test_build_info_reads_release_values(monkeypatch: pytest.MonkeyPatch) -> Non
         build_date="2026-09-01",
     )
     assert build.display_version == "Version 0.2.0-beta.1"
+
+
+def test_build_info_labels_local_development_build() -> None:
+    build = BuildInfo(version="local-development", revision="abc1234-dirty")
+
+    assert build.display_version == "Local development build"

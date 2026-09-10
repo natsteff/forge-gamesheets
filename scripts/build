@@ -6,11 +6,18 @@ project_directory=$(dirname -- "$script_directory")
 
 cd "$project_directory"
 
-FORGE_GAMESHEETS_REVISION=${FORGE_GAMESHEETS_REVISION:-$(git rev-parse --short HEAD)}
-FORGE_GAMESHEETS_BUILD_DATE=${FORGE_GAMESHEETS_BUILD_DATE:-$(date -u +%F)}
+if [ -z "${FORGE_GAMESHEETS_REVISION:-}" ]; then
+    FORGE_GAMESHEETS_REVISION=$(git rev-parse --short HEAD)
+    if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+        FORGE_GAMESHEETS_REVISION="${FORGE_GAMESHEETS_REVISION}-dirty"
+    fi
+fi
+FORGE_GAMESHEETS_BUILD_DATE=${FORGE_GAMESHEETS_BUILD_DATE:-$(date '+%Y-%m-%d %H:%M:%S %Z')}
+FORGE_GAMESHEETS_VERSION=${FORGE_GAMESHEETS_VERSION:-local-development}
 
 export FORGE_GAMESHEETS_REVISION
 export FORGE_GAMESHEETS_BUILD_DATE
+export FORGE_GAMESHEETS_VERSION
 FORGE_GAMESHEETS_BUILD_TARGET=${FORGE_GAMESHEETS_BUILD_TARGET:-development}
 export FORGE_GAMESHEETS_BUILD_TARGET
 

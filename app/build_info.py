@@ -26,6 +26,8 @@ class BuildInfo:
     @property
     def display_version(self) -> str:
         """Return a concise operator-facing version label."""
+        if self.version.casefold() == "local-development":
+            return "Local development build"
         if self.version.casefold() == "development":
             return "Development build"
         return f"Version {self.version}"

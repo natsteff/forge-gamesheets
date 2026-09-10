@@ -391,7 +391,8 @@ Use the original PDF when a copy without a FORGE sharing link is desired.
 
 Developers working from local source (including on macOS) build instead of
 pulling the published image. The project build command automatically embeds
-the checked-out Git revision and current UTC date:
+the checked-out Git revision, a `-dirty` marker when local changes are present,
+and the current local build time and time zone:
 
 ```sh
 ./scripts/build
