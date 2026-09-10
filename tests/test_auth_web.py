@@ -1,5 +1,7 @@
 """HTTP permission matrix, QR isolation, and unchanged trusted-operator mode."""
 
+import re
+
 import pymupdf as fitz
 import pytest
 from fastapi.testclient import TestClient
@@ -84,6 +86,7 @@ def test_grouped_navigation_users_visibility(secured, role):
     assert (">FORGE Reprints</a>" in page) == (role == "admin")
     assert (">User Accounts</a>" in page) == (role == "admin")
     assert ">My account</a>" in page
+    assert "Your place at the table" in client.get("/account").text
     if role == "admin":
         admin_menu = page.split('id="nav-admin">', 1)[1].split("</div>", 1)[0]
         account_menu = page.split('id="nav-account">', 1)[1].split("</div>", 1)[0]
@@ -104,6 +107,7 @@ def test_grouped_navigation_users_visibility(secured, role):
         assert "QR guest access" in settings
         assert 'class="checkbox-option"' in settings
         assert "QR guest access" not in accounts_page
+        assert "Choose your crew" in accounts_page
         assert "<h1>User Accounts</h1>" in accounts_page
         assert 'class="checkbox-option"' in accounts_page
 
@@ -113,6 +117,10 @@ def test_bulk_category_page_and_confirmation(secured):
     signin(client, "contributor")
     page = client.get("/assign-categories?q=First&preview=1")
     assert page.status_code == 200
+    assert "Organize in bulk" in page.text
+    assert re.search(
+        r'<a href="[^"]*/assign-categories" aria-current="page">', page.text
+    )
     assert 'name="game_ids" value="1"' in page.text
     assert 'name="game_ids" value="2"' not in page.text
     assert "Preview only" in page.text

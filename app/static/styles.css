@@ -751,22 +751,46 @@ input[type="checkbox"] {
   .site-header.nav-enhanced .menu-toggle span { font-size: 1.2rem; line-height: 1; }
   .site-header.nav-enhanced .site-nav {
     width: 100%;
+    max-height: calc(100dvh - 5rem);
     margin-left: 0;
     padding: 0 0 0.75rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     flex-direction: column;
     gap: 0;
   }
   .site-header.nav-enhanced:not(.menu-open) .site-nav { display: none; }
   .site-header.nav-enhanced.menu-open .site-nav { display: flex; }
-  .site-header.nav-enhanced .site-nav a {
+  .site-header.nav-enhanced .nav-heading {
+    padding: 1rem 0.75rem 0.35rem;
+    color: var(--ink);
+    font-size: 0.82rem;
+  }
+  .site-header.nav-enhanced .nav-group-links {
+    margin-left: 0.75rem;
+    padding-left: 0.65rem;
+    border-left: 2px solid var(--status-border);
+  }
+  .site-header.nav-enhanced .nav-group-links a {
     min-height: 2.75rem;
     padding: 0.65rem 0.75rem;
     border-top: 1px solid var(--line);
     font-size: 0.95rem;
   }
+  .site-header.nav-enhanced .nav-group-links > :first-child { border-top: 0; }
+  .site-header.nav-enhanced .site-nav > a {
+    min-height: 2.75rem;
+    margin-top: 0.65rem;
+    padding: 0.8rem 0.75rem;
+    color: var(--forge-dark);
+    font-size: 0.95rem;
+    font-weight: 750;
+  }
+  .site-header.nav-enhanced .nav-group-links form { padding: 0.35rem 0.75rem 0; }
   .site-header.nav-enhanced .site-nav a[aria-current="page"] {
-    color: var(--surface);
-    background: var(--forge-dark);
+    color: var(--forge-dark);
+    background: var(--status-background);
+    box-shadow: inset 3px 0 var(--forge-dark);
     text-decoration: none;
   }
 }

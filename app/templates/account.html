@@ -2,6 +2,7 @@
 {% block title %}My account · Forge GameSheets{% endblock %}
 {% block content %}
   <section class="settings-section">
+    <p class="eyebrow">Your place at the table</p>
     <h1>My account</h1>
     <p>{{ request.state.user.username }} · {{ request.state.user.role|title }}</p>
     {% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}

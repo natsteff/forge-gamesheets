@@ -28,7 +28,7 @@ class _ExecutableMarkupProbe(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=7"):
+        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=8"):
             self.unsafe.append(tag)
         for name, value in attrs:
             if name.startswith("on") or (value or "").lower().startswith("javascript:"):
@@ -282,9 +282,10 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     )
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
-    assert "/static/app.js?v=7" in response.text
-    assert "/static/styles.css?v=32" in response.text
+    assert "/static/app.js?v=8" in response.text
+    assert "/static/styles.css?v=37" in response.text
     assert 'id="menu-toggle"' in response.text
+    assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text
     assert 'aria-controls="primary-navigation"' in response.text
     assert 'id="primary-navigation"' in response.text
@@ -298,6 +299,9 @@ def test_site_header_stays_visible_while_mobile_page_scrolls() -> None:
     assert "position: sticky;" in site_header
     assert "top: 0;" in site_header
     assert "z-index: 30;" in site_header
+    assert "max-height: calc(100dvh - 5rem);" in mobile_styles
+    assert ".nav-group-links" in mobile_styles
+    assert "border-left: 2px solid var(--status-border);" in mobile_styles
 
 
 def test_game_edit_explains_unconfigured_bgg_matching(

@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Assign game categories</h1>
-<p>Select games, choose categories, then choose what to do. You will review and confirm the changes before they are applied. No library files are changed.</p>
+<section class="page-intro compact-intro">
+  <p class="eyebrow">Organize in bulk</p>
+  <h1>Assign game categories</h1>
+  <p>Select games, choose categories, then choose what to do. You will review and confirm the changes before they are applied. No library files are changed.</p>
+</section>
 {% if message %}<p class="status-banner success" role="status">{{ message }}</p>{% endif %}
 <form method="get" class="bulk-category-form">
   <div class="category-filter-toolbar">

@@ -16,8 +16,8 @@
       sizes="180x180"
       href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
     >
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=32">
-    <script src="{{ url_for('static', path='/app.js') }}?v=7" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=37">
+    <script src="{{ url_for('static', path='/app.js') }}?v=8" defer></script>
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -38,7 +38,7 @@
         aria-expanded="false"
         aria-controls="primary-navigation"
         hidden
-      ><span aria-hidden="true">☰</span> Menu</button>
+      ><span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label">Menu</span></button>
       <nav class="site-nav" id="primary-navigation" aria-label="Primary navigation">
         <div class="nav-group">
         <span class="nav-heading">Games</span>
@@ -46,7 +46,7 @@
         <div class="nav-group-links" id="nav-games">
         <a href="{{ url_for('all_games') }}"{% if request.url.path == "/games" %} aria-current="page"{% endif %}>All games</a>
         <a href="{{ url_for('categories_home') }}"{% if request.url.path.startswith("/categories") %} aria-current="page"{% endif %}>Categories</a>
-        {% if request.state.can_contribute %}<a href="{{ url_for('assign_categories') }}">Assign game categories</a>{% endif %}
+        {% if request.state.can_contribute %}<a href="{{ url_for('assign_categories') }}"{% if request.url.path == "/assign-categories" %} aria-current="page"{% endif %}>Assign game categories</a>{% endif %}
         </div></div>
         <div class="nav-group">
         <span class="nav-heading">Quick access</span>
@@ -72,7 +72,7 @@
         <span class="nav-heading">Account</span>
         <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-account" hidden>Account <span aria-hidden="true">▾</span></button>
         <div class="nav-group-links" id="nav-account">
-        <a href="{{ url_for('account_home') }}">My account</a>
+        <a href="{{ url_for('account_home') }}"{% if request.url.path == "/account" %} aria-current="page"{% endif %}>My account</a>
         <form action="{{ url_for('logout_view') }}" method="post"><button class="secondary-button" type="submit">Sign out</button></form>
         </div></div>
         {% endif %}

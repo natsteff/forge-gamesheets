@@ -23,6 +23,8 @@ const primaryNavigation = document.querySelector("#primary-navigation");
 
 if (siteHeader && menuToggle && primaryNavigation) {
   const mobileNavigation = window.matchMedia("(max-width: 850px)");
+  const menuIcon = menuToggle.querySelector(".menu-toggle-icon");
+  const menuLabel = menuToggle.querySelector(".menu-toggle-label");
   siteHeader.classList.add("nav-enhanced");
   menuToggle.hidden = false;
   const groups = [...primaryNavigation.querySelectorAll(".nav-group")];
@@ -60,11 +62,15 @@ if (siteHeader && menuToggle && primaryNavigation) {
   const closeMenu = () => {
     siteHeader.classList.remove("menu-open");
     menuToggle.setAttribute("aria-expanded", "false");
+    menuIcon.textContent = "☰";
+    menuLabel.textContent = "Menu";
   };
 
   menuToggle.addEventListener("click", () => {
     const menuIsOpen = siteHeader.classList.toggle("menu-open");
     menuToggle.setAttribute("aria-expanded", String(menuIsOpen));
+    menuIcon.textContent = menuIsOpen ? "×" : "☰";
+    menuLabel.textContent = menuIsOpen ? "Close" : "Menu";
   });
 
   primaryNavigation.addEventListener("click", (event) => {
