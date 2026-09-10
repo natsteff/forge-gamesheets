@@ -248,7 +248,16 @@ games only. Existing games require the assignment page's explicit folder-hint
 preview and additive application. Rescans preserve manual assignments, and no
 folders or source files are renamed. See [category guidance](docs/GAME_CATEGORIES.md).
 
-### BoardGameGeek links without a token
+### Game resource links and BoardGameGeek
+
+Each game entry can store one optional **Official Resource Link** and one
+**Alternate Resource Link**, each with its own description. Add or remove them
+through **Edit game entry**. Saved links appear as quick-launch actions on the
+game page and open in a new tab. Forge accepts complete HTTP or HTTPS addresses
+and stores them as application metadata; it does not visit, import, or scan the
+destination.
+
+#### BoardGameGeek links without a token
 
 In **Edit game entry**, paste a full BGG game URL containing both its numeric ID
 and game-name slug. Forge stores the manual association without fetching or

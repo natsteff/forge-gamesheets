@@ -33,6 +33,13 @@ verification. Account disabling, role changes, password changes, and recovery
 invalidate sessions. Never allow deletion/demotion/disablement of the last
 enabled Admin. Admin operations require current-password confirmation.
 
+Session expiry is an Admin-controlled library policy. Standard sessions default
+to 12 hours of inactivity and a 7-day maximum. Login may offer a per-device
+remembered choice, defaulting to a 30-day maximum with no inactivity limit.
+Admins may disable that choice or explicitly set a limit to Never; browsers may
+still discard persistent cookies independently. Policy reductions are enforced
+against existing server-side sessions on their next request.
+
 Authentication requires HTTPS for non-local deployments to protect credentials
 in transit; a trusted LAN alone does not encrypt HTTP. Keep the existing
 network/container protections. Authentication is not approval for direct public

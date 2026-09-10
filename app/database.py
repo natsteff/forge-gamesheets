@@ -470,6 +470,52 @@ MIGRATIONS += (
 )
 
 
+MIGRATIONS += (
+    Migration(
+        version=20,
+        name="add_configurable_session_policies",
+        statements=(
+            "ALTER TABLE auth_configuration ADD COLUMN standard_idle_seconds "
+            "INTEGER DEFAULT 43200 CHECK (standard_idle_seconds IS NULL OR "
+            "standard_idle_seconds > 0)",
+            "ALTER TABLE auth_configuration ADD COLUMN standard_absolute_seconds "
+            "INTEGER DEFAULT 604800 CHECK (standard_absolute_seconds IS NULL OR "
+            "standard_absolute_seconds > 0)",
+            "ALTER TABLE auth_configuration ADD COLUMN remembered_enabled "
+            "INTEGER NOT NULL DEFAULT 1 CHECK (remembered_enabled IN (0, 1))",
+            "ALTER TABLE auth_configuration ADD COLUMN remembered_idle_seconds "
+            "INTEGER DEFAULT NULL CHECK (remembered_idle_seconds IS NULL OR "
+            "remembered_idle_seconds > 0)",
+            "ALTER TABLE auth_configuration ADD COLUMN remembered_absolute_seconds "
+            "INTEGER DEFAULT 2592000 CHECK (remembered_absolute_seconds IS NULL OR "
+            "remembered_absolute_seconds > 0)",
+            "ALTER TABLE auth_sessions ADD COLUMN remembered INTEGER NOT NULL "
+            "DEFAULT 0 CHECK (remembered IN (0, 1))",
+        ),
+    ),
+)
+
+
+MIGRATIONS += (
+    Migration(
+        version=21,
+        name="add_game_resource_links",
+        statements=(
+            """CREATE TABLE game_resource_links (
+                id INTEGER PRIMARY KEY,
+                game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL CHECK (kind IN ('official', 'alternate')),
+                description TEXT NOT NULL,
+                url TEXT NOT NULL,
+                display_order INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(game_id, kind)
+            )""",
+            "CREATE INDEX game_resource_links_game ON game_resource_links(game_id)",
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Database:
     """A SQLite database stored beneath the configured data directory."""

@@ -25,8 +25,23 @@ from app.database import Database
 PASSWORDS = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
 _DUMMY_HASH = PASSWORDS.hash(secrets.token_urlsafe(24))
 SESSION_COOKIE = "forge_session"
-SESSION_ABSOLUTE = 12 * 60 * 60
-SESSION_IDLE = 30 * 60
+STANDARD_IDLE_DEFAULT = 12 * 60 * 60
+STANDARD_ABSOLUTE_DEFAULT = 7 * 24 * 60 * 60
+REMEMBERED_ABSOLUTE_DEFAULT = 30 * 24 * 60 * 60
+PERSISTENT_COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60
+SESSION_DURATION_OPTIONS = frozenset(
+    {
+        30 * 60,
+        60 * 60,
+        4 * 60 * 60,
+        12 * 60 * 60,
+        24 * 60 * 60,
+        7 * 24 * 60 * 60,
+        14 * 24 * 60 * 60,
+        30 * 24 * 60 * 60,
+        90 * 24 * 60 * 60,
+    }
+)
 AUTH_MARKER = ".authentication-required"
 ROLES = {"reader": 1, "contributor": 2, "admin": 3}
 
@@ -48,6 +63,83 @@ class User:
     id: int
     username: str
     role: str
+
+
+@dataclass(frozen=True)
+class SessionPolicy:
+    standard_idle: int | None
+    standard_absolute: int | None
+    remembered_enabled: bool
+    remembered_idle: int | None
+    remembered_absolute: int | None
+
+
+def session_policy(database: Database) -> SessionPolicy:
+    with database.connect() as connection:
+        row = connection.execute(
+            "SELECT standard_idle_seconds, standard_absolute_seconds, "
+            "remembered_enabled, remembered_idle_seconds, "
+            "remembered_absolute_seconds FROM auth_configuration WHERE id=1"
+        ).fetchone()
+    if row is None:
+        raise AuthUnavailable("Authentication needs local administrator recovery.")
+    return SessionPolicy(row[0], row[1], bool(row[2]), row[3], row[4])
+
+
+def session_cookie_max_age(database: Database, remembered: bool) -> int:
+    policy = session_policy(database)
+    duration = (
+        policy.remembered_absolute
+        if remembered and policy.remembered_enabled
+        else policy.standard_absolute
+    )
+    return duration or PERSISTENT_COOKIE_MAX_AGE
+
+
+def _parse_duration(value: str, label: str) -> int | None:
+    if value == "never":
+        return None
+    try:
+        duration = int(value)
+    except ValueError as error:
+        raise AccountError(f"Choose a valid {label}.") from error
+    if duration not in SESSION_DURATION_OPTIONS:
+        raise AccountError(f"Choose a valid {label}.")
+    return duration
+
+
+def update_session_policy(
+    database: Database,
+    actor: User,
+    *,
+    standard_idle: str,
+    standard_absolute: str,
+    remembered_enabled: bool,
+    remembered_idle: str,
+    remembered_absolute: str,
+):
+    values = (
+        _parse_duration(standard_idle, "standard inactivity limit"),
+        _parse_duration(standard_absolute, "standard maximum duration"),
+        int(remembered_enabled),
+        _parse_duration(remembered_idle, "remembered inactivity limit"),
+        _parse_duration(remembered_absolute, "remembered maximum duration"),
+    )
+    with database.connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            _require_admin(connection, actor)
+            connection.execute(
+                "UPDATE auth_configuration SET standard_idle_seconds=?, "
+                "standard_absolute_seconds=?, remembered_enabled=?, "
+                "remembered_idle_seconds=?, remembered_absolute_seconds=? WHERE id=1",
+                values,
+            )
+            _event(connection, "session_policy_updated", actor.id)
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
 
 
 def digest(value: str) -> str:
@@ -147,7 +239,8 @@ def bootstrap_admin(database: Database, username: str, password: str, *, recover
                         "Missing account state. Use local recover-admin."
                     )
                 connection.execute(
-                    "INSERT INTO auth_configuration VALUES (1, 1, 1, ?)",
+                    "INSERT INTO auth_configuration "
+                    "(id, enabled, qr_guests, share_secret) VALUES (1, 1, 1, ?)",
                     (secrets.token_hex(32),),
                 )
             if not recover and (
@@ -230,7 +323,12 @@ def throttle(database: Database, username: str, peer: str, *, confirmation_user=
 
 
 def login(
-    database: Database, username: str, password: str, peer: str, secure: bool
+    database: Database,
+    username: str,
+    password: str,
+    peer: str,
+    secure: bool,
+    remembered: bool = False,
 ) -> str:
     username = username.strip().lower()[:128]
     throttle(database, username, peer)
@@ -246,6 +344,8 @@ def login(
             _event(connection, "login_failed")
             raise AccountError("Username or password is incorrect.")
         now = int(time.time())
+        policy = session_policy(database)
+        remembered = remembered and policy.remembered_enabled
         token = secrets.token_urlsafe(32)
         connection.execute("BEGIN IMMEDIATE")
         try:
@@ -254,10 +354,6 @@ def login(
             ).fetchone()
             if not current["enabled"] or current["password_hash"] != encoded:
                 raise AccountError("Username or password is incorrect.")
-            connection.execute(
-                "DELETE FROM auth_sessions WHERE created_at <= ? OR last_seen <= ?",
-                (now - SESSION_ABSOLUTE, now - SESSION_IDLE),
-            )
             # At most ten concurrent sessions for an account.
             connection.execute(
                 "DELETE FROM auth_sessions WHERE user_id=? AND token_hash NOT IN "
@@ -266,8 +362,10 @@ def login(
                 (row["id"], row["id"]),
             )
             connection.execute(
-                "INSERT INTO auth_sessions VALUES (?, ?, ?, ?, ?)",
-                (digest(token), row["id"], now, now, int(secure)),
+                "INSERT INTO auth_sessions "
+                "(token_hash, user_id, created_at, last_seen, secure, remembered) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (digest(token), row["id"], now, now, int(secure), int(remembered)),
             )
             _event(connection, "login", row["id"])
             connection.commit()
@@ -284,16 +382,31 @@ def session_user(database: Database, token: str | None, *, secure: bool) -> User
     with database.connect() as connection:
         row = connection.execute(
             """SELECT u.id, u.username, u.role, u.enabled,
-            s.created_at, s.last_seen, s.secure
-            FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE token_hash=?""",
+            s.created_at, s.last_seen, s.secure, s.remembered,
+            c.standard_idle_seconds, c.standard_absolute_seconds,
+            c.remembered_enabled, c.remembered_idle_seconds,
+            c.remembered_absolute_seconds
+            FROM auth_sessions s JOIN users u ON u.id=s.user_id
+            CROSS JOIN auth_configuration c WHERE token_hash=?""",
             (digest(token),),
         ).fetchone()
         if not row:
             return None
+        use_remembered = row["remembered"] and row["remembered_enabled"]
+        idle = (
+            row["remembered_idle_seconds"]
+            if use_remembered
+            else row["standard_idle_seconds"]
+        )
+        absolute = (
+            row["remembered_absolute_seconds"]
+            if use_remembered
+            else row["standard_absolute_seconds"]
+        )
         if (
             not row["enabled"]
-            or row["created_at"] <= now - SESSION_ABSOLUTE
-            or row["last_seen"] <= now - SESSION_IDLE
+            or (absolute is not None and row["created_at"] <= now - absolute)
+            or (idle is not None and row["last_seen"] <= now - idle)
             or (row["secure"] and not secure)
         ):
             connection.execute(

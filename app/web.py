@@ -13,7 +13,7 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app import sharing
+from app import accounts, sharing
 from app.bgg.client import BggApiError, BggClient
 from app.bgg.matching import enrich_game
 from app.bgg.repository import (
@@ -38,6 +38,11 @@ from app.library.files import (
     resolve_resource_pdf,
 )
 from app.library.game_categories import bulk_apply, folder_hint
+from app.library.game_links import (
+    GameLinkError,
+    list_game_resource_links,
+    save_game_resource_links,
+)
 from app.library.previews import PreviewUnavailable, cached_resource_preview
 from app.library.reconciliation import ReconciliationError, reconcile_scan
 from app.library.repository import (
@@ -425,6 +430,7 @@ def recent_home(request: Request) -> HTMLResponse:
 def settings_home(request: Request) -> HTMLResponse:
     """Show the limited Phase 1 application settings."""
     qr_guests = False
+    session_policy = None
     if request.state.auth_enabled:
         with _database(request).connect() as connection:
             qr_guests = bool(
@@ -432,6 +438,7 @@ def settings_home(request: Request) -> HTMLResponse:
                     "SELECT qr_guests FROM auth_configuration WHERE id=1"
                 ).fetchone()[0]
             )
+        session_policy = accounts.session_policy(_database(request))
     return templates.TemplateResponse(
         request=request,
         name="settings.html",
@@ -447,6 +454,18 @@ def settings_home(request: Request) -> HTMLResponse:
             "build_info": request.app.state.build_info,
             "bgg_configured": bool(request.app.state.settings.bgg_api_token),
             "qr_guests": qr_guests,
+            "session_policy": session_policy,
+            "session_duration_options": (
+                (1800, "30 minutes"),
+                (3600, "1 hour"),
+                (14400, "4 hours"),
+                (43200, "12 hours"),
+                (86400, "1 day"),
+                (604800, "7 days"),
+                (1209600, "14 days"),
+                (2592000, "30 days"),
+                (7776000, "90 days"),
+            ),
         },
     )
 
@@ -732,6 +751,9 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
             "game": game,
             "sections": sections,
             "bgg_association": get_bgg_association(_database(request), game.id),
+            "game_resource_links": list_game_resource_links(
+                _database(request), game.id
+            ),
             "unavailable_resource_ids": unavailable_resource_ids,
             "pin_status": request.query_params.get("pin"),
         },
@@ -772,6 +794,40 @@ async def game_edit_save(request: Request, game_id: int) -> RedirectResponse:
     save_game_title_override(_database(request), game_id, title=title)
     save_game_categories(_database(request), game_id, category_ids=category_ids)
     return RedirectResponse(url=f"/games/{game_id}", status_code=303)
+
+
+@router.post(
+    "/games/{game_id}/links",
+    response_class=RedirectResponse,
+    name="game_links_save",
+)
+async def game_links_save(request: Request, game_id: int) -> RedirectResponse:
+    game = get_game(_database(request), game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    form = await request.form()
+    try:
+        save_game_resource_links(
+            _database(request),
+            game_id,
+            {
+                "official": (
+                    str(form.get("official_description", "")),
+                    str(form.get("official_url", "")),
+                ),
+                "alternate": (
+                    str(form.get("alternate_description", "")),
+                    str(form.get("alternate_url", "")),
+                ),
+            },
+        )
+    except GameLinkError:
+        return RedirectResponse(
+            url=f"/games/{game_id}/edit?links_error=invalid", status_code=303
+        )
+    return RedirectResponse(
+        url=f"/games/{game_id}/edit?links_status=saved", status_code=303
+    )
 
 
 @router.post(
@@ -1338,6 +1394,12 @@ def _game_edit_response(
             "game_categories": list_game_categories(_database(request)),
             "selected_category_ids": {category.id for category in game.categories},
             "bgg_association": get_bgg_association(_database(request), game.id),
+            "game_resource_links": {
+                link.kind: link
+                for link in list_game_resource_links(_database(request), game.id)
+            },
+            "links_status": request.query_params.get("links_status"),
+            "links_error": request.query_params.get("links_error"),
             "bgg_configured": bool(request.app.state.settings.bgg_api_token),
             "bgg_candidates": bgg_candidates,
             "bgg_query": bgg_query or game.detected_title,

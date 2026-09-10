@@ -39,10 +39,37 @@
   </section>
 
   <section class="edit-panel bgg-editor artwork-editor">
-    <h2>BoardGameGeek links</h2>
+    <p class="eyebrow">Useful destinations</p>
+    <h2>Game Resource Links</h2>
+    <p>Add optional official and alternate websites for this game. Both a description and complete web address are required for a populated link.</p>
+    {% if links_status == 'saved' %}<p class="status-banner" role="status">Game resource links saved.</p>{% endif %}
+    {% if links_error %}<p class="status-banner warning" role="alert">Links were not saved. Enter both a description and a valid HTTP or HTTPS address for each populated link.</p>{% endif %}
+    <form class="metadata-form" method="post" action="{{ url_for('game_links_save', game_id=game.id) }}">
+      {% set official = game_resource_links.get('official') %}
+      {% set alternate = game_resource_links.get('alternate') %}
+      <fieldset class="game-link-field-group">
+        <legend class="visually-hidden">Official resource</legend>
+        <h3>Official resource</h3>
+        <label for="official-description">Description</label>
+        <input id="official-description" name="official_description" maxlength="120" value="{{ official.description if official else '' }}" placeholder="Publisher resources">
+        <label for="official-url">Web address</label>
+        <input id="official-url" name="official_url" type="url" maxlength="1000" value="{{ official.url if official else '' }}" placeholder="https://example.com/game/resources">
+      </fieldset>
+      <fieldset class="game-link-field-group">
+        <legend class="visually-hidden">Alternate resource</legend>
+        <h3>Alternate resource</h3>
+        <label for="alternate-description">Description</label>
+        <input id="alternate-description" name="alternate_description" maxlength="120" value="{{ alternate.description if alternate else '' }}" placeholder="Community resources">
+        <label for="alternate-url">Web address</label>
+        <input id="alternate-url" name="alternate_url" type="url" maxlength="1000" value="{{ alternate.url if alternate else '' }}" placeholder="https://example.com/game-aids">
+      </fieldset>
+      <button type="submit">Save game resource links</button>
+    </form>
+
+    <h3>BoardGameGeek links</h3>
     <p>Paste the full BGG game URL, including its numeric ID and game name. An ID alone or an incomplete URL is not accepted. No API token is needed; the entry is not API-verified and no metadata is fetched.</p>
     {% if bgg_status == 'manual-linked' %}<p class="status-banner" role="status">Manual BGG link saved; not API-verified.</p>{% elif bgg_status == 'unlinked' %}<p class="status-banner" role="status">BoardGameGeek link removed.</p>{% endif %}
-    {% include "bgg_links.html" %}
+    <div class="bgg-action-row">{% include "bgg_links.html" %}</div>
     {% if bgg_association and bgg_association.bgg_id %}<p>BGG ID {{ bgg_association.bgg_id }}{% if bgg_association.match_state == 'manual' and not bgg_association.last_lookup_at %} · Manually supplied; not API-verified{% endif %}</p>{% endif %}
     <form class="metadata-form" method="post" action="{{ url_for('game_bgg_manual', game_id=game.id) }}">
       {% if bgg_error == 'invalid-reference' %}<div id="bgg-reference-error" class="status-banner warning" role="alert"><strong>BGG link not saved.</strong> Enter the full BGG game URL including both ID and game name. Your existing link has not changed.</div>{% endif %}

@@ -116,7 +116,12 @@ from Admin. Account contains personal account actions. Readers and Contributors
 do not see the Admin menu.
 
 Passphrases use Argon2id; sessions are random opaque cookies with server-side
-digests, a 30-minute idle timeout and 12-hour absolute lifetime. HTTPS cookies
+digests. By default, standard sessions have a 12-hour inactivity limit and a
+7-day maximum; a person may opt into a 30-day remembered session on a trusted
+device, with no inactivity limit. Admins can change these limits under Settings,
+disable the remembered option, or explicitly select Never. Shorter policies
+apply to existing sessions on their next request. A browser or operating system
+may still discard a cookie before a server-side Never limit. HTTPS cookies
 are Secure; all session cookies are HttpOnly and SameSite Strict. Public login
 attempts have 15-minute limits (10 per username, 30 per client address, 100
 installation-wide). Signed-in password confirmations have a separate budget of

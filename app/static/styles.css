@@ -621,6 +621,23 @@ input[type="checkbox"] {
   font: inherit;
 }
 .metadata-form button { margin-top: 1rem; }
+.game-link-field-group {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--paper);
+}
+.game-link-field-group h3 {
+  margin: 0;
+  color: var(--forge-dark);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 750;
+}
+.metadata-form .game-link-field-group label { margin-top: 0.45rem; }
 .bgg-current-match { display: grid; gap: 0.25rem; margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--paper); }
 .bgg-current-match span,
 .bgg-current-match small { color: var(--muted); }

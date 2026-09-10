@@ -1,0 +1,9 @@
+<div class="game-resource-links">
+  <h2>Game Resource Links</h2>
+  <div class="bgg-action-row">
+    {% for link in game_resource_links %}
+      <a class="secondary-button" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.description }}</a>
+    {% endfor %}
+    {% include "bgg_links.html" %}
+  </div>
+</div>

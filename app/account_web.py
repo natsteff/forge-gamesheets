@@ -67,12 +67,17 @@ async def _confirm(request, form):
 def login_form(request: Request):
     if request.state.auth_enabled:
         _require_login_transport(request)
+    policy = (
+        accounts.session_policy(_db(request)) if request.state.auth_enabled else None
+    )
     return templates.TemplateResponse(
         request=request,
         name="login.html",
         context={
             "next_path": safe_next(request.query_params.get("next", "/")),
             "error": None,
+            "remembered_allowed": bool(policy and policy.remembered_enabled),
+            "remembered": False,
         },
     )
 
@@ -83,6 +88,7 @@ async def login_submit(request: Request):
     _require_login_transport(request)
     form = await request.form()
     next_path = safe_next(str(form.get("next", "/")))
+    remembered = form.get("remembered") == "1"
     try:
         token = await run_in_threadpool(
             accounts.login,
@@ -91,12 +97,20 @@ async def login_submit(request: Request):
             str(form.get("password", "")),
             _peer(request),
             request.url.scheme == "https",
+            remembered,
         )
     except accounts.AccountError as error:
         response = templates.TemplateResponse(
             request=request,
             name="login.html",
-            context={"next_path": next_path, "error": str(error)},
+            context={
+                "next_path": next_path,
+                "error": str(error),
+                "remembered_allowed": accounts.session_policy(
+                    _db(request)
+                ).remembered_enabled,
+                "remembered": remembered,
+            },
             status_code=429 if isinstance(error, accounts.LoginThrottled) else 400,
         )
         if isinstance(error, accounts.LoginThrottled):
@@ -110,7 +124,7 @@ async def login_submit(request: Request):
     response.set_cookie(
         accounts.SESSION_COOKIE,
         token,
-        max_age=accounts.SESSION_ABSOLUTE,
+        max_age=accounts.session_cookie_max_age(_db(request), remembered),
         httponly=True,
         secure=request.url.scheme == "https",
         samesite="strict",
@@ -306,6 +320,29 @@ async def qr_policy_save(request: Request):
             303,
         )
     return RedirectResponse("/settings?status=qr-access-saved", 303)
+
+
+@router.post("/settings/session-policy", name="session_policy_save")
+async def session_policy_save(request: Request):
+    form = await request.form()
+    try:
+        await _confirm(request, form)
+        await run_in_threadpool(
+            accounts.update_session_policy,
+            _db(request),
+            request.state.user,
+            standard_idle=str(form.get("standard_idle", "")),
+            standard_absolute=str(form.get("standard_absolute", "")),
+            remembered_enabled=form.get("remembered_enabled") == "1",
+            remembered_idle=str(form.get("remembered_idle", "")),
+            remembered_absolute=str(form.get("remembered_absolute", "")),
+        )
+    except accounts.AccountError as error:
+        return RedirectResponse(
+            "/settings?" + urlencode({"error": "session-policy", "detail": str(error)}),
+            303,
+        )
+    return RedirectResponse("/settings?status=session-policy-saved", 303)
 
 
 @router.post("/resources/{resource_id}/share", name="share_generate")

@@ -141,13 +141,73 @@ def test_hashes_and_sessions_do_not_store_plain_credentials(database, admin):
 
 @pytest.mark.parametrize(
     "field,age",
-    [("created_at", accounts.SESSION_ABSOLUTE), ("last_seen", accounts.SESSION_IDLE)],
+    [
+        ("created_at", accounts.STANDARD_ABSOLUTE_DEFAULT),
+        ("last_seen", accounts.STANDARD_IDLE_DEFAULT),
+    ],
 )
 def test_session_expiry(database, admin, field, age):
     token = accounts.login(database, "admin", PASSWORD, "test", True)
     with database.connect() as connection:
         connection.execute(f"UPDATE auth_sessions SET {field}={field}-?", (age,))
     assert accounts.session_user(database, token, secure=True) is None
+
+
+def test_session_policy_defaults_and_remembered_session(database, admin):
+    policy = accounts.session_policy(database)
+    assert policy == accounts.SessionPolicy(
+        standard_idle=12 * 60 * 60,
+        standard_absolute=7 * 24 * 60 * 60,
+        remembered_enabled=True,
+        remembered_idle=None,
+        remembered_absolute=30 * 24 * 60 * 60,
+    )
+    token = accounts.login(database, "admin", PASSWORD, "test", True, True)
+    with database.connect() as connection:
+        row = connection.execute(
+            "SELECT remembered FROM auth_sessions WHERE token_hash=?",
+            (accounts.digest(token),),
+        ).fetchone()
+        connection.execute(
+            "UPDATE auth_sessions SET last_seen=last_seen-? WHERE token_hash=?",
+            (20 * 24 * 60 * 60, accounts.digest(token)),
+        )
+    assert row[0] == 1
+    assert accounts.session_user(database, token, secure=True) == admin
+
+
+def test_policy_reduction_and_disabling_remembered_apply_to_existing_session(
+    database, admin
+):
+    token = accounts.login(database, "admin", PASSWORD, "test", True, True)
+    with database.connect() as connection:
+        connection.execute(
+            "UPDATE auth_sessions SET last_seen=last_seen-7200 WHERE token_hash=?",
+            (accounts.digest(token),),
+        )
+    accounts.update_session_policy(
+        database,
+        admin,
+        standard_idle="3600",
+        standard_absolute="604800",
+        remembered_enabled=False,
+        remembered_idle="never",
+        remembered_absolute="2592000",
+    )
+    assert accounts.session_user(database, token, secure=True) is None
+
+
+def test_session_policy_rejects_unapproved_duration(database, admin):
+    with pytest.raises(accounts.AccountError, match="valid standard"):
+        accounts.update_session_policy(
+            database,
+            admin,
+            standard_idle="12345",
+            standard_absolute="604800",
+            remembered_enabled=True,
+            remembered_idle="never",
+            remembered_absolute="2592000",
+        )
 
 
 def test_secure_session_cannot_be_used_over_http(database, admin):

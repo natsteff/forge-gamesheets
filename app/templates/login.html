@@ -11,6 +11,12 @@
         <input id="username" name="username" autocomplete="username" maxlength="40" required>
         <label for="password">Passphrase</label>
         <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        {% if remembered_allowed %}
+        <label class="checkbox-option">
+          <input type="checkbox" name="remembered" value="1"{% if remembered %} checked{% endif %}>
+          <span><strong>Keep me signed in on this device</strong><small>Use only on a device you trust. Your administrator controls how long remembered sessions last.</small></span>
+        </label>
+        {% endif %}
         <button type="submit">Sign in</button>
       </form>
       <p>Need access or a password reset? Contact this library’s administrator.</p>

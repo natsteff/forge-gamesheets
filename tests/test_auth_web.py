@@ -251,6 +251,50 @@ def test_manual_bgg_without_token(secured):
     assert "Search for game at BGG" in client.get("/games/1").text
 
 
+def test_contributor_manages_game_resource_links(secured):
+    client, db, _ = secured
+    signin(client, "contributor")
+    edit = client.get("/games/1/edit")
+    assert "Game Resource Links" in edit.text
+    assert "Official resource" in edit.text
+    assert "Alternate resource" in edit.text
+    saved = client.post(
+        "/games/1/links",
+        data={
+            "official_description": "Publisher downloads",
+            "official_url": "https://publisher.example/first",
+            "alternate_description": "Fan reference",
+            "alternate_url": "https://community.example/first",
+        },
+        follow_redirects=False,
+    )
+    assert saved.status_code == 303
+    assert saved.headers["location"].endswith("links_status=saved")
+    page = client.get("/games/1").text
+    assert "Publisher downloads" in page and "(Official)" not in page
+    assert "Fan reference" in page and "(Alternate)" not in page
+    assert 'href="https://publisher.example/first"' in page
+    assert 'rel="noopener noreferrer"' in page
+    with db.connect() as connection:
+        assert (
+            connection.execute(
+                "SELECT count(*) FROM game_resource_links WHERE game_id=1"
+            ).fetchone()[0]
+            == 2
+        )
+
+    rejected = client.post(
+        "/games/1/links",
+        data={
+            "official_description": "Unsafe",
+            "official_url": "javascript:alert(1)",
+        },
+        follow_redirects=False,
+    )
+    assert rejected.headers["location"].endswith("links_error=invalid")
+    assert "Publisher downloads" in client.get("/games/1").text
+
+
 def test_all_declared_routes_have_explicit_policy(secured):
     client, _, _ = secured
     names = {route.name for route in client.app.state.access_routes}
@@ -483,6 +527,68 @@ def test_signin_rotates_session_and_account_password_invalidates_it(secured):
     )
     assert response.status_code == 303
     assert accounts.session_user(db, current, secure=True) is None
+
+
+def test_remembered_login_and_admin_session_policy(secured):
+    client, db, _ = secured
+    login_page = client.get("/login")
+    assert "Keep me signed in on this device" in login_page.text
+    response = client.post(
+        "/login",
+        data={"username": "admin", "password": PASSWORD, "remembered": "1"},
+        follow_redirects=False,
+    )
+    assert (
+        f"Max-Age={accounts.REMEMBERED_ABSOLUTE_DEFAULT}"
+        in response.headers["set-cookie"]
+    )
+    token = client.cookies.get(accounts.SESSION_COOKIE)
+    with db.connect() as connection:
+        assert connection.execute(
+            "SELECT remembered FROM auth_sessions WHERE token_hash=?",
+            (accounts.digest(token),),
+        ).fetchone()[0]
+
+    saved = client.post(
+        "/settings/session-policy",
+        data={
+            "standard_idle": "3600",
+            "standard_absolute": "604800",
+            "remembered_idle": "never",
+            "remembered_absolute": "7776000",
+            "current_password": PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert saved.status_code == 303
+    assert saved.headers["location"] == "/settings?status=session-policy-saved"
+    policy = accounts.session_policy(db)
+    assert policy.standard_idle == 3600
+    assert policy.remembered_enabled is False
+    assert policy.remembered_absolute == 7776000
+    client.cookies.clear()
+    assert "Keep me signed in on this device" not in client.get("/login").text
+
+
+def test_session_policy_requires_current_password(secured):
+    client, db, _ = secured
+    signin(client, "admin")
+    original = accounts.session_policy(db)
+    response = client.post(
+        "/settings/session-policy",
+        data={
+            "standard_idle": "3600",
+            "standard_absolute": "604800",
+            "remembered_enabled": "1",
+            "remembered_idle": "never",
+            "remembered_absolute": "2592000",
+            "current_password": "wrong password here",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert "error=session-policy" in response.headers["location"]
+    assert accounts.session_policy(db) == original
 
 
 def test_share_requires_acknowledgement_and_revokes_direct_pdf(secured):

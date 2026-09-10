@@ -22,17 +22,45 @@
 
   {% if status == "qr-access-saved" %}
     <p class="status-banner success" role="status">QR access setting saved successfully.</p>
+  {% elif status == "session-policy-saved" %}
+    <p class="status-banner success" role="status">Sign-in policy saved successfully.</p>
   {% elif status %}
     <p class="status-banner success" role="status">Settings saved successfully.</p>
   {% elif error == "duplicate-category" %}
     <p class="status-banner warning" role="alert">That category name is already in use.</p>
-  {% elif error == "qr-access" %}
+  {% elif error in ("qr-access", "session-policy") %}
     <p class="status-banner warning" role="alert">{{ request.query_params.get('detail', 'Check your current passphrase and try again.') }}</p>
   {% elif error %}
     <p class="status-banner warning" role="alert">Check the entered value and try again.</p>
   {% endif %}
 
   {% if request.state.auth_enabled %}
+  <section class="settings-section">
+    <h2>Sign-in duration</h2>
+    <p>Set library-wide limits. Shortening a limit takes effect for existing sessions the next time they access Forge.</p>
+    <form class="metadata-form settings-form" action="{{ url_for('session_policy_save') }}" method="post">
+      {% for field, label, selected in (
+        ('standard_idle', 'Standard session inactivity limit', session_policy.standard_idle),
+        ('standard_absolute', 'Standard session maximum duration', session_policy.standard_absolute),
+        ('remembered_idle', 'Remembered session inactivity limit', session_policy.remembered_idle),
+        ('remembered_absolute', 'Remembered session maximum duration', session_policy.remembered_absolute)
+      ) %}
+        <label for="{{ field }}">{{ label }}</label>
+        <select id="{{ field }}" name="{{ field }}" required>
+          {% for value, option_label in session_duration_options %}<option value="{{ value }}"{% if selected == value %} selected{% endif %}>{{ option_label }}</option>{% endfor %}
+          <option value="never"{% if selected is none %} selected{% endif %}>Never</option>
+        </select>
+      {% endfor %}
+      <label class="checkbox-option">
+        <input type="checkbox" name="remembered_enabled" value="1"{% if session_policy.remembered_enabled %} checked{% endif %}>
+        <span><strong>Offer “Keep me signed in” at login</strong><small>People choose this per device. Leave it off on shared devices.</small></span>
+      </label>
+      <label for="session-policy-password">Your current passphrase</label>
+      <input id="session-policy-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
+      <button type="submit">Save sign-in policy</button>
+    </form>
+  </section>
+
   <section class="settings-section">
     <h2>QR guest access</h2>
     <p>Secure sharing links grant access only to their resource. Ordinary numeric QR links always require sign-in when authentication is enabled.</p>
