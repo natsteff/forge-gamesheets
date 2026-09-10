@@ -119,12 +119,26 @@ def test_deployment_covers_proxy_and_upgrade_contract():
         "FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS=192.0.2.10",
         "docker compose exec app env",
         "An image pull does **not** update `compose.yml`",
+        "Confirm that the downloaded image reports the intended revision",
+        "sha-<revision>",
         "HTTPS is working at Nginx but Forge reports HTTP",
     ):
         assert term in deployment
     accounts = (ROOT / "docs/ACCOUNTS.md").read_text()
     assert "configure the HTTPS reverse proxy" in accounts
     assert "deployment.md#https-with-nginx-proxy-manager" in accounts
+
+
+def test_container_publication_prevents_historical_main_overwrite():
+    workflow = (ROOT / ".github/workflows/publish-container.yml").read_text()
+    for term in (
+        "type=sha,format=short,prefix=sha-",
+        "git ls-remote origin refs/heads/main",
+        '"${current_main_sha}" == "${GITHUB_SHA}"',
+        "PUBLISH_MAIN:",
+        '"${tag}" == *":main"',
+    ):
+        assert term in workflow
 
 
 def test_category_guide_explains_square_bracket_contexts():

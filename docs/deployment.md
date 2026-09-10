@@ -215,7 +215,9 @@ The health response and the bottom of Settings show the image's release,
 revision, and build date.
 
 Set `FORGE_GAMESHEETS_IMAGE_TAG=main` for the current development image. Use a
-version tag for a fixed release when one is available.
+version tag for a fixed release when one is available. Published builds also
+receive an immutable `sha-<revision>` tag, which can be used to recover a known
+build without relying on the moving `main` tag.
 
 ### Local development build
 
@@ -309,6 +311,11 @@ git pull --ff-only origin main
 docker compose config
 docker compose down
 docker compose pull
+
+docker image inspect "$(docker compose config --images | head -n 1)" \
+  --format '{{range .Config.Env}}{{println .}}{{end}}' \
+  | grep 'FORGE_GAMESHEETS_\(VERSION\|REVISION\|BUILD_DATE\)'
+
 docker compose up -d --force-recreate
 
 curl --retry 10 \
@@ -317,10 +324,13 @@ curl --retry 10 \
   http://127.0.0.1:8000/health
 ```
 
-Verify the reported revision, open Settings, inspect one game, view one original
-PDF, and open one FORGE Reprint after every update. Database migrations run
-automatically; the stopped data backup is the recovery point if an update must
-be abandoned.
+Confirm that the downloaded image reports the intended revision before
+recreating the container. This prevents an accidentally republished older
+development image from being started against newer application data. Then
+verify the same revision in `/health` or Settings, inspect one game, view one
+original PDF, and open one FORGE Reprint after every update. Database migrations
+run automatically; the stopped data backup is the recovery point if an update
+must be abandoned.
 
 When the release adds deployment variables, verify that the resolved Compose
 configuration and running container contain them. A value in `.env` is only an

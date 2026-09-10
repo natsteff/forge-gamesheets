@@ -63,6 +63,7 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=short,prefix=sha-
             type=ref,event=tag
 
       - name: Build image for security review
@@ -105,13 +106,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Protect the moving main tag
+        id: main-guard
+        shell: bash
+        run: |
+          publish_main=false
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            current_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+            if [[ "${current_main_sha}" == "${GITHUB_SHA}" ]]; then
+              publish_main=true
+            else
+              echo "::warning::This run is not for the current main commit; the main image tag will not be changed."
+            fi
+          fi
+          echo "publish_main=${publish_main}" >> "${GITHUB_OUTPUT}"
+
       - name: Publish the verified image
         shell: bash
         env:
           IMAGE_TAGS: ${{ steps.metadata.outputs.tags }}
+          PUBLISH_MAIN: ${{ steps.main-guard.outputs.publish_main }}
         run: |
           while IFS= read -r tag; do
             if [[ -n "${tag}" ]]; then
+              if [[ "${tag}" == *":main" && "${PUBLISH_MAIN}" != "true" ]]; then
+                echo "Skipping protected tag ${tag}"
+                continue
+              fi
               docker tag forge-gamesheets:security-review "${tag}"
               docker push "${tag}"
             fi

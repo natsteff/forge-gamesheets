@@ -71,6 +71,12 @@ Handle unavailable PDF previews
 Follow [PHASE1_RELEASE_CHECKLIST.md](PHASE1_RELEASE_CHECKLIST.md). Public-history
 consolidation, GitHub publication, and beta tagging happen only after the local
 history has been backed up and verified separately.
+
+Published container builds receive both their channel/release tag and an
+immutable `sha-<revision>` tag. A historical GitHub Actions rerun may publish
+its immutable revision tag, but the workflow must verify that its commit is the
+current branch head before changing the moving `main` tag.
+
 # Documentation verification
 
 The normal test suite includes offline documentation checks. Follow
