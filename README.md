@@ -36,7 +36,8 @@ a cloud service, or store PDF contents in its database.
 - Optional local Admin, Contributor, and Reader accounts with per-resource QR restrictions
 - Token-free manual BGG game URLs, Game/Files links, and external title search
 - All Games, category, and Uncategorized browsing
-- Favorites, up to ten pinned homepage resources, Recent, and use history
+- Favorites, up to ten pinned homepage resources, Recent, and paginated activity
+  history for scans, content changes, and PDF use
 - Configurable library footer, Recent limit, and History time zone
 - Manual rescans with safe partial-scan and missing-file behavior
 - Grouped desktop dropdowns and a compact-screen hamburger menu
@@ -52,17 +53,17 @@ and demo accounts. No private library content or third-party game files are
 included. These views show authentication enabled; available controls depend on
 the signed-in role. Click an image to inspect it at full size.
 
-| Library and categories | Game resources |
+| Library, pins, and categories | Game resources |
 | --- | --- |
 | ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
 | **Bulk game categories** | **Bulk FORGE Reprint maintenance** |
-| ![Selected demo games and categories with bulk operations and explanatory help](docs/images/assign-categories.png) | ![Admin utility showing current, missing, stale, and unavailable reprints with bulk operation choices](docs/images/reprint-maintenance.png) |
-| **User Accounts** | **Manual BoardGameGeek linking** |
-| ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Token-free BGG search button and empty full-game-URL field](docs/images/bgg-manual.png) |
-| **Integration and build details** | **Grouped desktop navigation** |
-| ![Settings showing the optional API disabled and a local development build](docs/images/settings-build.png) | ![Admin dropdown with FORGE Reprints, Settings, and User Accounts](docs/images/desktop-navigation.png) |
-| **Mobile navigation** | |
-| <img src="docs/images/mobile-navigation.png" alt="Phone menu with Games, Quick access, History, Admin, and Account groups" width="200"> | |
+| ![Demo games with current categories and bulk assignment controls](docs/images/assign-categories.png) | ![Admin utility showing reprint inventory, guided bulk operations, and recent operation results](docs/images/reprint-maintenance.png) |
+| **User Accounts** | **Game Resource Links and BoardGameGeek** |
+| ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Game editing with official and alternate resource links and manual BoardGameGeek linking](docs/images/bgg-manual.png) |
+| **Activity History** | **Integration and build details** |
+| ![Activity history showing summarized scans, content changes, favorites, pins, and PDF use](docs/images/activity-history.png) | ![Settings showing optional integration status and complete local build identification](docs/images/settings-build.png) |
+| **Grouped desktop navigation** | **Mobile navigation** |
+| ![Admin dropdown with FORGE Reprints, Settings, and User Accounts](docs/images/desktop-navigation.png) | <img src="docs/images/mobile-navigation.png" alt="Phone menu with Games, Quick access, History, Admin, and Account groups" width="200"> |
 
 The [screenshot maintenance guide](docs/SCREENSHOTS.md) records the capture
 procedure and review requirements. The former Settings and FORGE Reprint images
@@ -296,6 +297,11 @@ file, interruption recovery, and individual skip/failure details. Source PDFs ar
 never changed. Every generated copy uses its resource's stable QR address, so
 changing access does not require generating another QR code.
 
+Validated generated copies are recorded in SQLite, allowing the maintenance
+inventory to use fast database aggregation and a single directory scan instead
+of reopening every generated PDF on each visit. The first inventory visit after
+this upgrade performs a one-time compatibility pass for existing reprints.
+
 Upgrading from the earlier test-only secure-link design retires `/s/…` QR
 addresses. Use **Create or refresh all reprints** once after this upgrade to
 replace those experimental copies with the stable `/r/{resource-id}` address.
@@ -378,7 +384,9 @@ The library mount is read-only. Forge GameSheets never edits source PDFs.
   from the web UI is not implemented; artwork upload is available to editors.
 - **Audit visibility:** Admins can review recent account security events
   with actor and target names. This is bounded activity logging, not a complete
-  audit trail.
+  audit trail. General Activity History is retained in SQLite and displayed 50
+  events at a time; each library scan creates one aggregate event rather than
+  one event per discovered file.
 
 Implementation review and publication safeguards are described separately in
 [Development and security](#development-and-security).

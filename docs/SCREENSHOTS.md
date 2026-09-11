@@ -2,16 +2,17 @@
 
 ## Current set
 
-Captured September 8, 2026 from application revision `00381e8`, with only pending
-documentation edits. The demo uses invented games (Lantern Vale, Pebble Parade,
+Captured September 11, 2026 from the local application at revision
+`6eaab8a-dirty`. The demo uses invented games (Lantern Vale, Pebble Parade,
 Pocket Orchard, Starship Signals), original sample PDFs and simple cover art,
-and disposable demo accounts. It has no BGG token or real game association.
-The build panel correctly says Development build: this was a local source run,
-not a published-container verification.
+example-only resource URLs, and disposable demo accounts. It has no BGG token or
+real game association. The build panel correctly says Local development build:
+this was a local source run, not a published-container verification.
 
 The gallery contains library-overview, game-resources, assign-categories,
-reprint-maintenance, users, bgg-manual, settings-build, desktop-navigation, and
-mobile-navigation PNGs in `docs/images/`. The obsolete `settings.png` and
+reprint-maintenance, users, bgg-manual, activity-history, settings-build,
+desktop-navigation, and mobile-navigation PNGs in `docs/images/`. The obsolete
+`settings.png` and
 `forge-reprint.png` captures were removed when global QR guest access and secure
 token sharing were replaced by public-by-default, per-resource QR restrictions.
 Capture replacement Settings and FORGE Reprint images after the interface is
@@ -26,8 +27,9 @@ finalized.
 2. Bootstrap a disposable Admin and Reader in that demo only. Add a few category
    assignments and pinned resources. Leave all passphrase fields empty in captures.
 3. Capture the gallery routes: `/`, `/games/{demo-id}`, `/assign-categories`,
-   `/r/{demo-resource-id}`, `/settings/reprints`, `/settings`, `/settings/users`, and
-   `/games/{demo-id}/edit`. Discover IDs from the demo; do not assume production IDs.
+   `/r/{demo-resource-id}`, `/history`, `/settings/reprints`, `/settings`,
+   `/settings/users`, and `/games/{demo-id}/edit`. Discover IDs from the demo;
+   do not assume production IDs.
 4. On bulk categories, select games and a category to illustrate the controls;
    no change need be applied. Generate an ordinary demo reprint to show its ready
    state. Do not expose QR links from a live installation. Leave the BGG input
@@ -68,12 +70,11 @@ or GitHub Actions would reduce dependency on interactive tooling. That job is
 **not implemented** by this documentation refresh. Pin the browser/environment
 and use the same synthetic fixture if it is added; images still need human review.
 
-## Refresh verification — September 8, 2026
+## Refresh verification — September 11, 2026
 
-- All eleven saved gallery images inspected; desktop and phone navigation captured.
-- Local rendered README gallery reviewed with all eleven images loading.
-- Documentation tests: 9 passed. Ruff and `git diff --check`: passed.
-- Full Mac suite: 598 passed, 1 failed. The existing scanner case-sensitivity
-  fixture cannot create distinct `Alpha` and `alpha` directories on this host.
-  No scanner code or test was changed as part of this refresh.
-- No live library used and no guest token exposed.
+- All ten README gallery images inspected, including the refreshed desktop views
+  and the existing phone navigation capture.
+- Documentation tests: 10 passed. Ruff and `git diff --check`: passed.
+- Full Mac suite: 637 passed, 1 skipped.
+- Only disposable fictional library data and example-only URLs were used. No live
+  library, real account details, or guest token was captured.
