@@ -86,7 +86,7 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
     text = (ROOT / "README.md").read_text()
     gallery = text.split("## Screenshots", 1)[1].split("## Requirements", 1)[0]
     images = set(re.findall(r"docs/images/[\w-]+\.png", gallery))
-    assert len(images) == 11
+    assert len(images) == 9
     for name in (
         "users",
         "assign-categories",
@@ -101,6 +101,8 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
             assert image.width >= 320 and image.height >= 300
             image.verify()
     assert "Screenshot refresh pending" not in gallery
+    assert "docs/images/settings.png" not in images
+    assert "docs/images/forge-reprint.png" not in images
     assert "SCREENSHOTS.md" in gallery
 
 

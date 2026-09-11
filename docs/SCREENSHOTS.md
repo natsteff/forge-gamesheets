@@ -10,9 +10,12 @@ The build panel correctly says Development build: this was a local source run,
 not a published-container verification.
 
 The gallery contains library-overview, game-resources, assign-categories,
-forge-reprint, reprint-maintenance, settings, users, bgg-manual, settings-build,
-desktop-navigation, and mobile-navigation PNGs in `docs/images/`. The account
-image focuses on roles and account management; QR policy appears in Settings.
+reprint-maintenance, users, bgg-manual, settings-build, desktop-navigation, and
+mobile-navigation PNGs in `docs/images/`. The obsolete `settings.png` and
+`forge-reprint.png` captures were removed when global QR guest access and secure
+token sharing were replaced by public-by-default, per-resource QR restrictions.
+Capture replacement Settings and FORGE Reprint images after the interface is
+finalized.
 
 ## Repeatable capture checklist
 

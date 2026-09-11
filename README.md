@@ -10,10 +10,11 @@
 
 **Organize. Customize. Print. Play.**
 
-Forge GameSheets is a self-hosted library for board-game rules, score sheets,
-player references, and other printable PDF resources. It scans ordinary folders
-on disk and provides a responsive browser interface for organizing, finding,
-viewing, downloading, and printing those files.
+Forge GameSheets is a self-hosted manager for PDF-based game resources, including
+rulebooks, score sheets, player aids, quick references, and print-and-play
+materials. Similar to Plex or Jellyfin for game documents, it scans your existing
+folder-based library and turns it into a searchable, browsable collection for
+viewing, downloading, and printing.
 
 FORGE GAMESHEETS is in beta, with local library management and optional
 FORGE Reprints available. Core operation does not modify source PDFs, require
@@ -54,10 +55,8 @@ the signed-in role. Click an image to inspect it at full size.
 | Library and categories | Game resources |
 | --- | --- |
 | ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
-| **Bulk game categories** | **FORGE Reprint** |
-| ![Selected demo games and categories with bulk operations and explanatory help](docs/images/assign-categories.png) | ![Generated demo reprint ready to view or download, with QR access guidance](docs/images/forge-reprint.png) |
-| **Bulk FORGE Reprint maintenance** | **Settings and QR access** |
-| ![Admin utility showing current, missing, stale, and unavailable reprints with bulk operation choices](docs/images/reprint-maintenance.png) | ![Settings showing library and account preferences](docs/images/settings.png) |
+| **Bulk game categories** | **Bulk FORGE Reprint maintenance** |
+| ![Selected demo games and categories with bulk operations and explanatory help](docs/images/assign-categories.png) | ![Admin utility showing current, missing, stale, and unavailable reprints with bulk operation choices](docs/images/reprint-maintenance.png) |
 | **User Accounts** | **Manual BoardGameGeek linking** |
 | ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Token-free BGG search button and empty full-game-URL field](docs/images/bgg-manual.png) |
 | **Integration and build details** | **Grouped desktop navigation** |
@@ -66,7 +65,9 @@ the signed-in role. Click an image to inspect it at full size.
 | <img src="docs/images/mobile-navigation.png" alt="Phone menu with Games, Quick access, History, Admin, and Account groups" width="200"> | |
 
 The [screenshot maintenance guide](docs/SCREENSHOTS.md) records the capture
-procedure and review requirements.
+procedure and review requirements. The former Settings and FORGE Reprint images
+were removed after the QR access model changed; refreshed versions should be
+captured from the finalized interface.
 
 ## Requirements
 
@@ -472,10 +473,11 @@ print-history decision.
 
 ## Development and security
 
-FORGE GAMESHEETS is developed with assistance from OpenAI Codex, guided by a
-maintainer with professional experience in software test management and
-security roles. Development includes automated testing and incremental
-changes, with OWASP ASVS-based security reviews planned for major releases.
+FORGE GAMESHEETS is developed with assistance from OpenAI Codex under the
+direction of a maintainer with a degree in software development and professional
+experience in software testing, test management, and security. Development
+includes automated testing and incremental changes, with OWASP ASVS-based
+security reviews planned for major releases.
 The source is openly available for inspection and contributions.
 
 Before publishing Docker images, [GitHub Actions](.github/workflows/publish-container.yml)
@@ -484,9 +486,9 @@ Dependency audit findings block publication. Container scans report High and
 Critical findings and block publication for Critical vulnerabilities with an
 available fix. The workflow publishes the same image that passed these checks.
 
-These safeguards complement—not replace—code review, targeted security testing,
-and planned OWASP ASVS-based reviews for major releases. Passing checks is not a
-security certification or a guarantee that no vulnerabilities exist.
+These safeguards complement, but do not replace, code review, targeted security
+testing, and planned OWASP ASVS-based reviews for major releases. Passing checks
+is not a security certification or a guarantee that no vulnerabilities exist.
 
 Documentation checks run with the test suite to catch broken local references,
 missing screenshot files, and selected stale feature claims. Major updates also
