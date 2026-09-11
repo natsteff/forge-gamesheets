@@ -50,8 +50,10 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "application_preferences",
         "game_bgg_associations",
         "reprint_jobs",
-        "reprint_job_items",
-        "game_resource_links",
+            "reprint_job_items",
+            "game_resource_links",
+            "generated_reprints",
+            "activity_events",
     } <= tables
     assert [tuple(row) for row in migrations] == [
         (1, "create_library_index"),
@@ -76,6 +78,9 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (20, "add_configurable_session_policies"),
         (21, "add_game_resource_links"),
         (22, "add_resource_qr_access_policy"),
+        (23, "add_generated_reprint_registry"),
+        (24, "add_application_activity_history"),
+        (25, "bound_reprint_job_history"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -102,7 +107,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 22
+    assert count == 25
 
 
 def test_multi_category_migration_preserves_single_category(database: Database) -> None:

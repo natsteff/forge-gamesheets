@@ -106,6 +106,9 @@ def test_reprint_maintenance_explains_operations_and_requires_base_url(web_clien
     assert "Create missing reprints" in page.text
     assert "Refresh existing reprints" in page.text
     assert "Create or refresh all reprints" in page.text
+    assert "Use when you added new PDFs" in page.text
+    assert "Use after changing the server hostname" in page.text
+    assert "Use for initial setup, a complete rebuild" in page.text
     assert "Source PDFs are never changed" in page.text
     assert web_client.post(
         "/settings/reprints/start", data={"operation": "create_missing"}
@@ -731,6 +734,14 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
         )
         assert generated.status_code == 303
         assert generated.headers["location"] == f"/r/{resource_id}"
+        with client.app.state.database.connect() as connection:
+            registry = connection.execute(
+                "SELECT target_url FROM generated_reprints WHERE resource_id=?",
+                (resource_id,),
+            ).fetchone()
+        assert registry["target_url"] == (
+            f"https://forge.example.test/r/{resource_id}"
+        )
 
         ready = client.get(generated.headers["location"])
         assert "Your FORGE Reprint is ready" in ready.text
@@ -918,7 +929,7 @@ def test_history_uses_configured_timezone(web_client: TestClient) -> None:
     web_client.get(f"/resources/{resource_id}/open")
     with web_client.app.state.database.connect() as connection:
         connection.execute(
-            "UPDATE resource_activity SET occurred_at = ?",
+            "UPDATE activity_events SET occurred_at = ?",
             ("2026-01-15T18:30:00.000Z",),
         )
     saved = web_client.post(
@@ -941,6 +952,45 @@ def test_history_uses_configured_timezone(web_client: TestClient) -> None:
         '<option value="America/Chicago" selected>America/Chicago</option>'
         in settings.text
     )
+
+
+def test_history_records_no_change_scan_and_manual_game_edit(web_client):
+    game_id = _game_ids(web_client)[0]
+
+    scan = web_client.post("/rescan", follow_redirects=False)
+    edited = web_client.post(
+        f"/games/{game_id}/edit",
+        data={"title": "Updated Game"},
+        follow_redirects=False,
+    )
+    history = web_client.get("/history")
+
+    assert scan.headers["location"].endswith("scan=complete&changes=0")
+    assert edited.status_code == 303
+    assert "Library scan completed" in history.text
+    assert "0 games added" in history.text
+    assert "Game Edited" in history.text
+    assert "Updated Game" in history.text
+    assert 'href="http://testserver/settings/reprints"' in history.text
+    assert "Detailed bulk reprint operation results" in history.text
+
+
+def test_history_is_paginated_fifty_events_at_a_time(web_client):
+    with web_client.app.state.database.connect() as connection:
+        connection.execute("DELETE FROM activity_events")
+        connection.executemany(
+            "INSERT INTO activity_events (action,summary) VALUES ('test',?)",
+            ((f"Event {number}",) for number in range(55)),
+        )
+
+    first = web_client.get("/history")
+    cursor = re.search(r"/history\?before=(\d+)", first.text).group(1)
+    older = web_client.get(f"/history?before={cursor}")
+
+    assert first.text.count('class="history-row"') == 50
+    assert "Older activity" in first.text
+    assert older.text.count('class="history-row"') == 5
+    assert "Newer activity" in older.text
 
 
 def test_successful_resource_use_is_shown_on_recent_page(
@@ -1127,6 +1177,27 @@ def test_resource_can_be_favorited_and_shown_on_favorites_page(
     assert "<h1>Favorites</h1>" not in refreshed_home.text
     assert "<h1>Favorites</h1>" in favorites.text
     assert "Farkle" in favorites.text
+    history = web_client.get("/history")
+    assert "Added To Favorites" in history.text
+    assert "Rules" in history.text
+
+
+def test_favorite_can_be_removed_directly_from_favorites(web_client):
+    game_id = _game_ids(web_client)[1]
+    detail = web_client.get(f"/games/{game_id}")
+    resource_id = re.search(r"/resources/(\d+)/favorite", detail.text).group(1)
+    web_client.post(f"/resources/{resource_id}/favorite")
+
+    favorites = web_client.get("/favorites")
+    remove_path = re.search(
+        rf'action="([^"]*/resources/{resource_id}/favorite\?return_to=favorites)"',
+        favorites.text,
+    ).group(1)
+    removed = web_client.post(remove_path, follow_redirects=False)
+
+    assert removed.headers["location"] == "/favorites"
+    assert "No favorites yet" in web_client.get("/favorites").text
+    assert "Removed From Favorites" in web_client.get("/history").text
 
 
 def test_pinning_resource_also_favorites_and_shows_it_on_library(
@@ -1145,6 +1216,7 @@ def test_pinning_resource_also_favorites_and_shows_it_on_library(
     favorites = web_client.get("/favorites")
     refreshed_home = web_client.get("/")
     assert "2 of 10 pinned" in pinned.text
+    assert "Choose up to 10 pinned resources" in pinned.text
     assert pinned.text.index("Rules") < pinned.text.index("Score Sheet")
     assert "Pinned resources" in refreshed_home.text
     assert "Farkle" in favorites.text
@@ -1172,6 +1244,10 @@ def test_unpin_keeps_favorite_but_unfavorite_also_unpins(
     web_client.post(f"/resources/{resource_id}/favorite")
     assert "Nothing pinned yet" in web_client.get("/pinned").text
     assert "No favorites yet" in web_client.get("/favorites").text
+    history = web_client.get("/history")
+    assert "Pinned For Quick Access" in history.text
+    assert "Removed From Quick Access" in history.text
+    assert "Removed From Favorites" in history.text
 
 
 def test_pin_limit_rejects_eleventh_resource(web_client: TestClient) -> None:

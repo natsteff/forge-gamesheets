@@ -5,30 +5,37 @@
 {% block content %}
   <section class="history-header">
     <p class="eyebrow">Local activity</p>
-    <h1>Use history</h1>
-    <p>Successful PDF actions recorded by this Forge GameSheets server.</p>
+    <h1>Activity history</h1>
+    <p>Recent library scans, content changes, and successful PDF use recorded by this Forge GameSheets server.</p>
   </section>
 
   {% if activity %}
     <div class="history-list">
       {% for event, local_time in activity %}
-        <a class="history-row" href="{{ url_for('resource_reprint', resource_id=event.resource_id) }}">
+        {% if event.target_exists and event.resource_id %}<a class="history-row" href="{{ url_for('resource_reprint', resource_id=event.resource_id) }}">{% elif event.target_exists and event.game_id %}<a class="history-row" href="{{ url_for('game_detail', game_id=event.game_id) }}">{% else %}<div class="history-row">{% endif %}
           <span class="history-action history-action-{{ event.action }}">
-            {% if event.action == "view" %}Viewed{% else %}Downloaded{% endif %}
+            {% if event.action == 'view' %}Viewed{% elif event.action == 'download' %}Downloaded{% else %}{{ event.action.replace('_', ' ') | title }}{% endif %}
           </span>
           <span>
-            <strong>{{ event.resource_title }}</strong>
-            <small>{{ event.game_title }}</small>
+            <strong>{{ event.summary }}</strong>
+            {% if event.detail %}<small>{{ event.detail }}</small>{% endif %}
           </span>
           <time datetime="{{ event.occurred_at }}">{{ local_time }}</time>
-        </a>
+        {% if event.target_exists and (event.resource_id or event.game_id) %}</a>{% else %}</div>{% endif %}
       {% endfor %}
     </div>
     <p class="settings-note">Times shown in {{ timezone_name }}.</p>
   {% else %}
     <section class="empty-state compact">
       <h2>No activity yet</h2>
-      <p>Viewing or downloading a PDF will appear here.</p>
+      <p>Library scans, content changes, and PDF use will appear here.</p>
     </section>
   {% endif %}
+  <nav class="history-pagination" aria-label="Activity history pages">
+    {% if has_newer %}<a class="resource-action" href="{{ url_for('activity_history') }}">Newer activity</a>{% endif %}
+    {% if older_cursor %}<a class="resource-action" href="{{ url_for('activity_history') }}?before={{ older_cursor }}">Older activity</a>{% endif %}
+  </nav>
+  <p class="settings-note">
+    {% if accounts_enabled %}Account sign-ins and security changes are recorded separately under <a href="{{ url_for('accounts_home') }}">User Accounts</a>. {% endif %}Detailed bulk reprint operation results are recorded separately under <a href="{{ url_for('reprint_maintenance') }}">FORGE Reprint maintenance</a>.{% if accounts_enabled %} Both pages require an Admin account.{% endif %}
+  </p>
 {% endblock %}

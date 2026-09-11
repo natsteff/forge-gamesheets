@@ -142,6 +142,9 @@ names or game/resource titles alongside IDs. Missing targets retain their IDs;
 local setup/recovery is labeled Local operator. Names reflect current records,
 not historical snapshots. This is not comprehensive content auditing. App access logs redact
 sharing tokens; operators must also redact proxy logs and protect backups.
+These security events remain separate from the general Activity History page,
+which points administrators to User Accounts for authentication and account
+changes.
 Authentication-related responses disable browser caching, but downloaded copies
 are outside server control. Perform the planned ASVS-focused and independent
 security reviews before a major release; this feature is not an ASVS certification.

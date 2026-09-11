@@ -93,3 +93,39 @@ def test_cleanup_does_not_follow_managed_directory_symlink(
 
     assert summary.generated_reprints_removed == 0
     assert outside_file.is_file()
+
+
+def test_cleanup_discards_registry_facts_after_source_change(tmp_path: Path) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    database = Database.in_data_directory(data)
+    database.initialize()
+    with database.connect() as connection:
+        game_id = connection.execute(
+            "INSERT INTO games (relative_path, title) VALUES ('Game', 'Game')"
+        ).lastrowid
+        resource_id = connection.execute(
+            """INSERT INTO resources (
+                   game_id, relative_path, category, title, size_bytes, modified_ns
+               ) VALUES (?, 'Game/Rules.pdf', 'rules', 'Rules', 10, 15)""",
+            (game_id,),
+        ).lastrowid
+        connection.execute(
+            """INSERT INTO generated_reprints (
+                   resource_id, source_size_bytes, source_modified_ns,
+                   generator_version, target_url, filename,
+                   output_size_bytes, output_modified_ns
+               ) VALUES (?, 10, 15, '5', 'https://forge.test/r/1',
+                         'resource-1-10-15.pdf', 100, 200)""",
+            (resource_id,),
+        )
+        connection.execute(
+            "UPDATE resources SET modified_ns=16 WHERE id=?", (resource_id,)
+        )
+
+    cleanup_managed_files(database, data)
+
+    with database.connect() as connection:
+        assert connection.execute(
+            "SELECT count(*) FROM generated_reprints"
+        ).fetchone()[0] == 0

@@ -12,12 +12,13 @@ from app.library.reprint_maintenance import (
     create_job,
     inventory,
     job_detail,
-    latest_job,
     preview,
+    recent_jobs,
     resume_job,
     start_worker,
 )
-from app.web import templates
+from app.preferences import get_preferences
+from app.web import _format_local_timestamp, templates
 
 router = APIRouter()
 
@@ -49,13 +50,23 @@ def reprint_maintenance(request: Request):
         settings.data_path,
         settings.base_url,
     )
+    timezone_name = get_preferences(request.app.state.database).timezone_name
+    jobs = tuple(
+        {
+            **job,
+            "display_time": _format_local_timestamp(
+                job["created_at"], timezone_name
+            ),
+        }
+        for job in recent_jobs(request.app.state.database)
+    )
     return templates.TemplateResponse(
         request=request,
         name="reprint_maintenance.html",
         context={
             "inventory": summary,
             "operations": OPERATIONS,
-            "latest_job": latest_job(request.app.state.database),
+            "recent_jobs": jobs,
             "generation_enabled": bool(settings.base_url),
             "error": request.query_params.get("error"),
         },

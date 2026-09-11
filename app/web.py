@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app import accounts
+from app.activity import PAGE_SIZE, list_activity, record_activity, record_scan
 from app.bgg.client import BggApiError, BggClient
 from app.bgg.matching import enrich_game
 from app.bgg.repository import (
@@ -61,7 +62,6 @@ from app.library.repository import (
     list_games_in_category,
     list_pinned_resources,
     list_recent_resources,
-    list_resource_activity,
     record_resource_use,
     rename_game_category,
     reset_game_artwork_override,
@@ -74,6 +74,7 @@ from app.library.repository import (
     set_resource_favorite,
     toggle_resource_pin,
 )
+from app.library.reprint_registry import record_validated_reprint
 from app.library.reprint_targets import (
     preferred_reprint_target,
     readable_reprint_targets,
@@ -299,6 +300,12 @@ async def assign_categories_apply(request: Request):
             operation,
         )
         message = f"Updated categories for {changed} games."
+        record_activity(
+            _database(request),
+            "game_categories_updated",
+            "Game categories updated",
+            detail=message,
+        )
     except ValueError as error:
         message = str(error)
     params = {
@@ -556,12 +563,14 @@ def library_rescan(request: Request) -> RedirectResponse:
         summary = reconcile_scan(_database(request), scan_result)
     except ReconciliationError:
         request.app.state.scan_issues = scan_result.issues
+        record_scan(_database(request), issue_count=len(scan_result.issues))
         query = urlencode({"scan": "partial", "issues": len(scan_result.issues)})
         return RedirectResponse(url=f"/?{query}", status_code=303)
     except LibraryScanError:
         request.app.state.scan_issues = (
             ScanIssue(Path("Library root"), "The library could not be read."),
         )
+        record_scan(_database(request), failed=True)
         return RedirectResponse(url="/?scan=failed&issues=1", status_code=303)
 
     request.app.state.scan_issues = ()
@@ -577,25 +586,41 @@ def library_rescan(request: Request) -> RedirectResponse:
             summary.resources_removed,
         )
     )
+    record_scan(_database(request), summary)
     query = urlencode({"scan": "complete", "changes": change_count})
     return RedirectResponse(url=f"/?{query}", status_code=303)
 
 
 @router.get("/history", response_class=HTMLResponse, name="activity_history")
 def activity_history(request: Request) -> HTMLResponse:
-    """Show recent successful PDF actions stored on this server."""
+    """Show one bounded page of application activity."""
     preferences = get_preferences(_database(request))
+    raw_before = request.query_params.get("before")
+    try:
+        before = int(raw_before) if raw_before else None
+        if before is not None and before < 1:
+            raise ValueError
+    except ValueError:
+        raise HTTPException(422, "Invalid history cursor") from None
+    events, older_cursor = list_activity(_database(request), before=before)
     activity = tuple(
         (
             event,
             _format_local_timestamp(event.occurred_at, preferences.timezone_name),
         )
-        for event in list_resource_activity(_database(request))
+        for event in events
     )
     return templates.TemplateResponse(
         request=request,
         name="history.html",
-        context={"activity": activity, "timezone_name": preferences.timezone_name},
+        context={
+            "activity": activity,
+            "timezone_name": preferences.timezone_name,
+            "older_cursor": older_cursor,
+            "has_newer": before is not None,
+            "page_size": PAGE_SIZE,
+            "accounts_enabled": accounts.auth_enabled(_database(request)),
+        },
     )
 
 
@@ -612,9 +637,21 @@ def resource_favorite(request: Request, resource_id: int) -> RedirectResponse:
     set_resource_favorite(
         _database(request), resource_id, favorite=not resource.is_favorite
     )
-    return RedirectResponse(
-        url=f"/games/{resource.game_id}#resource-{resource.id}", status_code=303
+    game = get_game(_database(request), resource.game_id)
+    record_activity(
+        _database(request),
+        "removed_from_favorites" if resource.is_favorite else "added_to_favorites",
+        resource.title,
+        detail=game.title,
+        game_id=resource.game_id,
+        resource_id=resource.id,
     )
+    target = (
+        "/favorites"
+        if request.query_params.get("return_to") == "favorites"
+        else f"/games/{resource.game_id}#resource-{resource.id}"
+    )
+    return RedirectResponse(url=target, status_code=303)
 
 
 @router.post(
@@ -628,6 +665,20 @@ async def resource_pin(request: Request, resource_id: int) -> RedirectResponse:
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found")
     result = toggle_resource_pin(_database(request), resource_id)
+    if result != "limit":
+        game = get_game(_database(request), resource.game_id)
+        record_activity(
+            _database(request),
+            (
+                "pinned_for_quick_access"
+                if result == "pinned"
+                else "removed_from_quick_access"
+            ),
+            resource.title,
+            detail=game.title,
+            game_id=resource.game_id,
+            resource_id=resource.id,
+        )
     form = await request.form()
     destination = str(form.get("return_to", "game"))
     destinations = {
@@ -694,6 +745,14 @@ async def resource_edit_save(request: Request, resource_id: int) -> RedirectResp
         category=category,
         variant=variant,
     )
+    record_activity(
+        _database(request),
+        "resource_edited",
+        resource.title,
+        detail="Resource entry edited.",
+        game_id=resource.game_id,
+        resource_id=resource.id,
+    )
     return RedirectResponse(
         url=f"/games/{resource.game_id}#resource-{resource.id}", status_code=303
     )
@@ -709,6 +768,14 @@ def resource_reset(request: Request, resource_id: int) -> RedirectResponse:
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found")
     reset_resource_override(_database(request), resource_id)
+    record_activity(
+        _database(request),
+        "resource_reset",
+        resource.title,
+        detail="Resource entry restored to scanned metadata.",
+        game_id=resource.game_id,
+        resource_id=resource.id,
+    )
     return RedirectResponse(
         url=f"/games/{resource.game_id}#resource-{resource.id}", status_code=303
     )
@@ -786,6 +853,10 @@ async def game_edit_save(request: Request, game_id: int) -> RedirectResponse:
         raise HTTPException(status_code=422, detail="Invalid game category")
     save_game_title_override(_database(request), game_id, title=title)
     save_game_categories(_database(request), game_id, category_ids=category_ids)
+    record_activity(
+        _database(request), "game_edited", title,
+        detail="Game entry edited.", game_id=game_id,
+    )
     return RedirectResponse(url=f"/games/{game_id}", status_code=303)
 
 
@@ -818,6 +889,10 @@ async def game_links_save(request: Request, game_id: int) -> RedirectResponse:
         return RedirectResponse(
             url=f"/games/{game_id}/edit?links_error=invalid", status_code=303
         )
+    record_activity(
+        _database(request), "game_links_edited", game.title,
+        detail="Game resource links updated.", game_id=game_id,
+    )
     return RedirectResponse(
         url=f"/games/{game_id}/edit?links_status=saved", status_code=303
     )
@@ -833,6 +908,10 @@ def game_reset(request: Request, game_id: int) -> RedirectResponse:
     if game is None:
         raise HTTPException(status_code=404, detail="Game not found")
     reset_game_title_override(_database(request), game_id)
+    record_activity(
+        _database(request), "game_reset", game.title,
+        detail="Game title restored to scanned metadata.", game_id=game_id,
+    )
     return RedirectResponse(url=f"/games/{game_id}", status_code=303)
 
 
@@ -883,6 +962,11 @@ async def game_artwork_upload(
     except UnsafeResourcePath as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     save_game_artwork_override(_database(request), artwork)
+    game = get_game(_database(request), game_id)
+    record_activity(
+        _database(request), "artwork_updated", game.title,
+        detail="Custom artwork uploaded.", game_id=game_id,
+    )
     return RedirectResponse(url=f"/games/{game_id}/edit", status_code=303)
 
 
@@ -897,6 +981,11 @@ def game_artwork_reset(request: Request, game_id: int) -> RedirectResponse:
         raise HTTPException(status_code=404, detail="Uploaded artwork not found")
     reset_game_artwork_override(_database(request), game_id)
     delete_uploaded_artwork(request.app.state.settings.data_path, artwork)
+    game = get_game(_database(request), game_id)
+    record_activity(
+        _database(request), "artwork_reset", game.title,
+        detail="Custom artwork removed.", game_id=game_id,
+    )
     return RedirectResponse(url=f"/games/{game_id}/edit", status_code=303)
 
 
@@ -971,6 +1060,10 @@ async def game_bgg_select(request: Request, game_id: int) -> RedirectResponse:
         last_lookup_at=_utc_timestamp(),
     )
     save_bgg_association(_database(request), association)
+    record_activity(
+        _database(request), "bgg_link_updated", game.title,
+        detail="BoardGameGeek link updated.", game_id=game_id,
+    )
     return _game_edit_redirect(game_id, bgg_status="linked")
 
 
@@ -993,6 +1086,10 @@ def game_bgg_retry(request: Request, game_id: int) -> RedirectResponse:
         game_id=game_id,
         source_title=game.detected_title,
         force=True,
+    )
+    record_activity(
+        _database(request), "bgg_link_updated", game.title,
+        detail="BoardGameGeek lookup refreshed.", game_id=game_id,
     )
     return _game_edit_redirect(game_id, bgg_status=association.match_state.value)
 
@@ -1040,6 +1137,10 @@ async def game_bgg_manual(request: Request, game_id: int):
             url_slug=slug,
         ),
     )
+    record_activity(
+        _database(request), "bgg_link_updated", game.title,
+        detail="BoardGameGeek link updated.", game_id=game_id,
+    )
     return _game_edit_redirect(game_id, bgg_status="manual-linked")
 
 
@@ -1050,9 +1151,14 @@ async def game_bgg_manual(request: Request, game_id: int):
 )
 def game_bgg_unlink(request: Request, game_id: int) -> RedirectResponse:
     """Remove BGG state without changing the local game or its files."""
-    if get_game(_database(request), game_id) is None:
+    game = get_game(_database(request), game_id)
+    if game is None:
         raise HTTPException(status_code=404, detail="Game not found")
     delete_bgg_association(_database(request), game_id)
+    record_activity(
+        _database(request), "bgg_link_removed", game.title,
+        detail="BoardGameGeek link removed.", game_id=game_id,
+    )
     return _game_edit_redirect(game_id, bgg_status="unlinked")
 
 
@@ -1086,6 +1192,15 @@ async def game_bgg_lookup_toggle(request: Request, game_id: int) -> RedirectResp
         last_lookup_at=existing.last_lookup_at if existing else None,
     )
     save_bgg_association(_database(request), association)
+    record_activity(
+        _database(request), "bgg_lookup_updated", game.title,
+        detail=(
+            "BoardGameGeek lookup enabled."
+            if enabled
+            else "BoardGameGeek lookup disabled."
+        ),
+        game_id=game_id,
+    )
     status = "lookup-enabled" if enabled else "lookup-disabled"
     return _game_edit_redirect(game_id, bgg_status=status)
 
@@ -1208,6 +1323,7 @@ def resource_qr_reprint(request: Request, resource_id: int):
     "/resources/{resource_id}/qr-access", name="resource_qr_policy_save"
 )
 async def resource_qr_policy_save(request: Request, resource_id: int):
+    resource = get_resource(_database(request), resource_id)
     form = await request.form()
     if not set_requires_sign_in(
         _database(request),
@@ -1215,6 +1331,14 @@ async def resource_qr_policy_save(request: Request, resource_id: int):
         required=form.get("requires_sign_in") == "1",
     ):
         raise HTTPException(status_code=404, detail="Resource not found")
+    record_activity(
+        _database(request),
+        "qr_access_updated",
+        resource.title,
+        detail="QR access restriction updated.",
+        game_id=resource.game_id,
+        resource_id=resource.id,
+    )
     return _reprint_redirect(resource_id, status="qr-policy-saved")
 
 
@@ -1337,13 +1461,21 @@ def _generated_reprint(
             request.app.state.settings.base_url,
             resource_id,
         )
-        return generate_forge_reprint(
+        output = generate_forge_reprint(
             source,
             request.app.state.settings.data_path,
             resource_id=resource_id,
             target_url=target_url,
             force=force,
         )
+        record_validated_reprint(
+            _database(request),
+            source,
+            output,
+            resource_id=resource_id,
+            target_url=target_url,
+        )
+        return output
     except ResourceFileMissing as error:
         raise HTTPException(
             status_code=410,

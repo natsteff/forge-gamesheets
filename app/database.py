@@ -529,6 +529,80 @@ MIGRATIONS += (
 )
 
 
+MIGRATIONS += (
+    Migration(
+        version=23,
+        name="add_generated_reprint_registry",
+        statements=(
+            """CREATE TABLE generated_reprints (
+                resource_id INTEGER PRIMARY KEY
+                    REFERENCES resources(id) ON DELETE CASCADE,
+                source_size_bytes INTEGER NOT NULL,
+                source_modified_ns INTEGER NOT NULL,
+                generator_version TEXT NOT NULL,
+                target_url TEXT NOT NULL,
+                filename TEXT NOT NULL,
+                output_size_bytes INTEGER NOT NULL,
+                output_modified_ns INTEGER NOT NULL,
+                validated_at TEXT NOT NULL DEFAULT (
+                    strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                )
+            )""",
+        ),
+    ),
+)
+
+
+MIGRATIONS += (
+    Migration(
+        version=24,
+        name="add_application_activity_history",
+        statements=(
+            """CREATE TABLE activity_events (
+                id INTEGER PRIMARY KEY,
+                action TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                detail TEXT,
+                game_id INTEGER,
+                resource_id INTEGER,
+                occurred_at TEXT NOT NULL DEFAULT (
+                    strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                )
+            )""",
+            """CREATE INDEX activity_events_occurred_idx
+                ON activity_events(occurred_at DESC, id DESC)""",
+            """INSERT INTO activity_events (
+                   action, summary, detail, game_id, resource_id, occurred_at
+               )
+               SELECT ra.action, COALESCE(ro.title, r.title),
+                      COALESCE(go.title, g.title), r.game_id, ra.resource_id,
+                      ra.occurred_at
+               FROM resource_activity ra
+               JOIN resources r ON r.id=ra.resource_id
+               JOIN games g ON g.id=r.game_id
+               LEFT JOIN resource_overrides ro ON ro.resource_id=r.id
+               LEFT JOIN game_overrides go ON go.game_id=g.id""",
+        ),
+    ),
+)
+
+
+MIGRATIONS += (
+    Migration(
+        version=25,
+        name="bound_reprint_job_history",
+        statements=(
+            """DELETE FROM reprint_jobs
+               WHERE status IN ('completed','cancelled') AND id NOT IN (
+                   SELECT id FROM reprint_jobs
+                   WHERE status IN ('completed','cancelled')
+                   ORDER BY id DESC LIMIT 20
+               )""",
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Database:
     """A SQLite database stored beneath the configured data directory."""

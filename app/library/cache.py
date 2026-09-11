@@ -61,7 +61,7 @@ def cleanup_managed_files(
         Path(row["relative_path"]).name for row in uploaded_artwork
     }
 
-    return CacheCleanupSummary(
+    summary = CacheCleanupSummary(
         previews_removed=_remove_orphans(
             data_path / "previews", _PREVIEW_FILE, allowed_previews
         ),
@@ -81,6 +81,19 @@ def cleanup_managed_files(
             allowed_generated_reprints,
         ),
     )
+    with database.connect() as connection:
+        connection.execute(
+            """DELETE FROM generated_reprints
+               WHERE NOT EXISTS (
+                   SELECT 1 FROM resources
+                   WHERE resources.id = generated_reprints.resource_id
+                     AND resources.size_bytes =
+                         generated_reprints.source_size_bytes
+                     AND resources.modified_ns =
+                         generated_reprints.source_modified_ns
+               )"""
+        )
+    return summary
 
 
 def _remove_orphans(

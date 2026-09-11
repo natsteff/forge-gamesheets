@@ -118,7 +118,9 @@ Minimum Phase 1 concepts:
 - Game: stable identity, display title, filesystem path, timestamps.
 - Resource: game, provider/type, category, title/variant, source path, file
   identity, timestamps, and availability state.
-- Application state: favorite, recent use, print history, and scanner status.
+- Application state: favorites, recent use, paginated activity history, and
+  scanner status. Activity includes one aggregate entry for every scan plus
+  selected manual content changes and successful PDF use.
 
 - **Confirmed:** Files removed from the filesystem must not remain falsely
   available after a successful scan.
@@ -268,6 +270,9 @@ rather than delaying feature progress beforehand.
 - **Confirmed:** Reuse existing rendering locks and file/page/output/free-space/
   derived-storage limits. Process resources sequentially and isolate failures
   so one bad PDF does not abort the full batch.
+- **Completed locally:** Persist validation facts for generated reprints so the
+  inventory page does not reopen and traverse every PDF on each visit. Existing
+  copies are verified and registered once after upgrade.
 - **Confirmed:** Centralize individual and bulk QR-target selection in one
   service so both paths enforce identical sharing behavior.
 - **Confirmed:** Add migrations, service/route/UI tests, interruption and

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import threading
 from dataclasses import dataclass
@@ -14,8 +15,10 @@ from app.library.files import (
     resolve_resource_pdf,
 )
 from app.library.generated import GeneratedStorageError, generated_reprint_path
+from app.library.reprint_registry import record_validated_reprint
 from app.library.reprint_targets import preferred_reprint_target
 from app.library.reprints import (
+    GENERATOR_VERSION,
     ReprintGenerationError,
     existing_forge_reprint,
     generate_forge_reprint,
@@ -45,8 +48,21 @@ class ReprintInventory:
 def _resources(database: Database):
     with database.connect() as connection:
         return connection.execute(
-            "SELECT id, relative_path, size_bytes, modified_ns "
-            "FROM resources WHERE provider='pdf' ORDER BY id"
+            """SELECT resources.id, resources.relative_path,
+                      resources.size_bytes, resources.modified_ns,
+                      generated_reprints.source_size_bytes AS registered_size,
+                      generated_reprints.source_modified_ns AS registered_modified,
+                      generated_reprints.generator_version AS registered_version,
+                      generated_reprints.target_url AS registered_target,
+                      generated_reprints.filename AS registered_filename,
+                      generated_reprints.output_size_bytes AS registered_output_size,
+                      generated_reprints.output_modified_ns
+                          AS registered_output_modified
+               FROM resources
+               LEFT JOIN generated_reprints
+                 ON generated_reprints.resource_id = resources.id
+               WHERE resources.provider='pdf'
+               ORDER BY resources.id"""
         ).fetchall()
 
 
@@ -67,27 +83,73 @@ def inventory(
 ) -> ReprintInventory:
     counts = {"current": 0, "missing": 0, "stale": 0, "unavailable": 0}
     rows = _resources(database)
+    generated = _generated_files(data_path)
     for row in rows:
-        try:
-            source = resolve_resource_pdf(library_path, row["relative_path"])
-        except (ResourceFileMissing, UnsafeResourcePath):
-            counts["unavailable"] += 1
-            continue
         stored = _stored_path(data_path, row)
         try:
             target = preferred_reprint_target(database, base_url, row["id"])
         except ReprintGenerationError:
             counts["stale" if stored and stored.is_file() else "missing"] += 1
             continue
+        file_facts = generated.get(stored.name) if stored else None
+        if file_facts and _registration_matches(row, target, stored.name, file_facts):
+            counts["current"] += 1
+            continue
+        if not file_facts:
+            counts["missing"] += 1
+            continue
+        if row["registered_filename"] is not None:
+            # A changed source fingerprint, generator version, QR target, or
+            # output file is definitively stale. Do not reopen it on every page
+            # visit; the selected maintenance job will perform full validation.
+            counts["stale"] += 1
+            continue
+        try:
+            source = resolve_resource_pdf(library_path, row["relative_path"])
+        except (ResourceFileMissing, UnsafeResourcePath):
+            counts["unavailable"] += 1
+            continue
         if existing_forge_reprint(
             source, data_path, resource_id=row["id"], target_url=target
         ):
+            record_validated_reprint(
+                database,
+                source,
+                stored,
+                resource_id=row["id"],
+                target_url=target,
+            )
             counts["current"] += 1
-        elif stored and stored.is_file():
-            counts["stale"] += 1
         else:
-            counts["missing"] += 1
+            counts["stale"] += 1
     return ReprintInventory(total=len(rows), **counts)
+
+
+def _generated_files(data_path: Path) -> dict[str, tuple[int, int]]:
+    """Read the managed directory once instead of opening every generated PDF."""
+    directory = data_path / "generated"
+    try:
+        with os.scandir(directory) as entries:
+            return {
+                entry.name: (facts.st_size, facts.st_mtime_ns)
+                for entry in entries
+                if entry.is_file(follow_symlinks=False)
+                and (facts := entry.stat(follow_symlinks=False))
+            }
+    except OSError:
+        return {}
+
+
+def _registration_matches(row, target, filename, file_facts) -> bool:
+    return (
+        row["registered_size"] == row["size_bytes"]
+        and row["registered_modified"] == row["modified_ns"]
+        and row["registered_version"] == GENERATOR_VERSION
+        and row["registered_target"] == target
+        and row["registered_filename"] == filename
+        and row["registered_output_size"] == file_facts[0]
+        and row["registered_output_modified"] == file_facts[1]
+    )
 
 
 def preview(
@@ -197,6 +259,39 @@ def latest_job(database: Database):
     return job_detail(database, row["id"]) if row else None
 
 
+def recent_jobs(database: Database, *, limit: int = 20):
+    """Return lightweight summaries for recent maintenance operations."""
+    with database.connect() as connection:
+        rows = connection.execute(
+            """SELECT j.*,
+                      SUM(CASE WHEN i.status='completed' THEN 1 ELSE 0 END)
+                          AS completed_count,
+                      SUM(CASE WHEN i.status='skipped' THEN 1 ELSE 0 END)
+                          AS skipped_count,
+                      SUM(CASE WHEN i.status='failed' THEN 1 ELSE 0 END)
+                          AS failed_count
+               FROM (
+                   SELECT * FROM reprint_jobs ORDER BY id DESC LIMIT ?
+               ) j
+               LEFT JOIN reprint_job_items i ON i.job_id=j.id
+               GROUP BY j.id ORDER BY j.id DESC""",
+            (limit,),
+        ).fetchall()
+    return tuple({**dict(row), "label": OPERATIONS[row["operation"]]} for row in rows)
+
+
+def _prune_finished_jobs(connection, *, keep: int = 20) -> None:
+    connection.execute(
+        """DELETE FROM reprint_jobs
+           WHERE status IN ('completed','cancelled') AND id NOT IN (
+               SELECT id FROM reprint_jobs
+               WHERE status IN ('completed','cancelled')
+               ORDER BY id DESC LIMIT ?
+           )""",
+        (keep,),
+    )
+
+
 def cancel_job(database: Database, job_id: int) -> None:
     with database.connect() as connection:
         changed = connection.execute(
@@ -227,6 +322,7 @@ def interrupt_active_jobs(database: Database) -> None:
                 "strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",
                 (job["id"],),
             )
+        _prune_finished_jobs(connection)
         connection.execute(
             "UPDATE reprint_job_items SET status='queued', detail=NULL "
             "WHERE status='running'"
@@ -311,6 +407,7 @@ def run_job(
                     "strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",
                     (job_id,),
                 )
+                _prune_finished_jobs(connection)
                 return
             item = connection.execute(
                 "SELECT id, resource_id, action FROM reprint_job_items "
@@ -323,6 +420,7 @@ def run_job(
                     "strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",
                     (job_id,),
                 )
+                _prune_finished_jobs(connection)
                 return
             connection.execute(
                 "UPDATE reprint_job_items SET status='running' WHERE id=?",
@@ -344,12 +442,19 @@ def _process_item(database, library_path, data_path, base_url, item) -> None:
         else:
             source = resolve_resource_pdf(library_path, resource["relative_path"])
             target = preferred_reprint_target(database, base_url, item["resource_id"])
-            generate_forge_reprint(
+            output = generate_forge_reprint(
                 source,
                 data_path,
                 resource_id=item["resource_id"],
                 target_url=target,
                 force=item["action"] == "refresh",
+            )
+            record_validated_reprint(
+                database,
+                source,
+                output,
+                resource_id=item["resource_id"],
+                target_url=target,
             )
     except (ResourceFileMissing, UnsafeResourcePath):
         status, detail = "skipped", "Source PDF is unavailable."

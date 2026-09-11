@@ -603,6 +603,7 @@ input[type="checkbox"] {
 .history-row strong, .history-row small { display: block; }
 .history-row small, .history-row time { color: var(--muted); font-size: 0.8rem; }
 .history-action { color: var(--forge-dark); font-size: 0.78rem; font-weight: 800; }
+.history-pagination { display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; }
 
 .edit-panel { max-width: 680px; }
 .edit-panel h1 { font-size: clamp(2.4rem, 7vw, 4rem); }

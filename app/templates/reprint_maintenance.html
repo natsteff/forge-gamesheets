@@ -16,6 +16,8 @@
 
   <section class="settings-section">
     <h2>Library inventory</h2>
+    <p>Based on the latest library scan and validated generated copies. The first
+    visit after upgrading may take longer while existing reprints are registered.</p>
     <dl class="maintenance-summary">
       <div><dt>Indexed PDFs</dt><dd>{{ inventory.total }}</dd></div>
       <div><dt>Current reprints</dt><dd>{{ inventory.current }}</dd></div>
@@ -28,18 +30,25 @@
   <section class="settings-section">
     <h2>Choose an operation</h2>
     <form class="maintenance-options" action="{{ url_for('reprint_maintenance_confirm') }}" method="post">
-      <label><input type="radio" name="operation" value="create_missing" checked> <strong>Create missing reprints</strong><span>Create only where no stored copy exists.</span></label>
-      <label><input type="radio" name="operation" value="refresh_existing"> <strong>Refresh existing reprints</strong><span>Replace stored copies without creating new ones.</span></label>
-      <label><input type="radio" name="operation" value="create_or_refresh_all"> <strong>Create or refresh all reprints</strong><span>Process every eligible indexed PDF.</span></label>
+      <label><input type="radio" name="operation" value="create_missing" checked> <strong>Create missing reprints</strong><span>Use when you added new PDFs or have resources that have never had a FORGE Reprint.</span></label>
+      <label><input type="radio" name="operation" value="refresh_existing"> <strong>Refresh existing reprints</strong><span>Use after changing the server hostname, IP address, public URL, QR format, or reprint design. It updates existing copies without creating ones for every resource.</span></label>
+      <label><input type="radio" name="operation" value="create_or_refresh_all"> <strong>Create or refresh all reprints</strong><span>Use for initial setup, a complete rebuild, or when you want every eligible PDF brought up to date.</span></label>
       <button class="primary-button" type="submit" {% if not generation_enabled %}disabled{% endif %}>Review operation</button>
     </form>
   </section>
 
-  {% if latest_job %}
+  {% if recent_jobs %}
     <section class="settings-section">
-      <h2>Latest job</h2>
-      <p>{{ latest_job.label }} — <strong>{{ latest_job.status }}</strong></p>
-      <a class="resource-action" href="{{ url_for('reprint_maintenance_job', job_id=latest_job.id) }}">View progress and results</a>
+      <h2>Recent operations</h2>
+      <div class="history-list">
+        {% for job in recent_jobs %}
+          <a class="history-row" href="{{ url_for('reprint_maintenance_job', job_id=job.id) }}">
+            <span class="history-action">{{ job.status | title }}</span>
+            <span><strong>{{ job.label }}</strong><small>{{ job.completed_count }} completed · {{ job.skipped_count }} skipped · {{ job.failed_count }} failed</small></span>
+            <time datetime="{{ job.created_at }}">{{ job.display_time }}</time>
+          </a>
+        {% endfor %}
+      </div>
     </section>
   {% endif %}
 {% endblock %}

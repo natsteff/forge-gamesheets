@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.access import AccessControl, RedactSharingLinks
+from app.activity import record_scan
 from app.build_info import BuildInfo
 from app.config import Settings
 from app.database import Database
@@ -43,9 +44,11 @@ def create_app(
             application.state.last_reconciliation = reconcile_scan(
                 database, scan_result
             )
+            record_scan(database, application.state.last_reconciliation)
             cleanup_managed_files(database, validated.data_path)
         except ReconciliationError:
             application.state.last_reconciliation = None
+            record_scan(database, issue_count=len(scan_result.issues))
         application.state.settings = validated
         application.state.database = database
         yield

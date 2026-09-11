@@ -60,16 +60,6 @@ class RecentResource:
 
 
 @dataclass(frozen=True, slots=True)
-class ResourceActivity:
-    resource_id: int
-    game_id: int
-    game_title: str
-    resource_title: str
-    action: str
-    occurred_at: str
-
-
-@dataclass(frozen=True, slots=True)
 class GameDetail:
     id: int
     title: str
@@ -485,43 +475,6 @@ def list_recent_resources(
     )
 
 
-def list_resource_activity(
-    database: Database, *, limit: int = 100
-) -> tuple[ResourceActivity, ...]:
-    """Return recent successful resource actions, newest first."""
-    with database.connect() as connection:
-        rows = connection.execute(
-            """
-            SELECT resource_activity.resource_id, resources.game_id,
-                   COALESCE(game_overrides.title, games.title) AS game_title,
-                   COALESCE(resource_overrides.title, resources.title)
-                       AS resource_title,
-                   resource_activity.action, resource_activity.occurred_at
-            FROM resource_activity
-            JOIN resources ON resources.id = resource_activity.resource_id
-            JOIN games ON games.id = resources.game_id
-            LEFT JOIN game_overrides ON game_overrides.game_id = games.id
-            LEFT JOIN resource_overrides
-              ON resource_overrides.resource_id = resources.id
-            ORDER BY resource_activity.occurred_at DESC,
-                     resource_activity.id DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
-    return tuple(
-        ResourceActivity(
-            resource_id=row["resource_id"],
-            game_id=row["game_id"],
-            game_title=row["game_title"],
-            resource_title=row["resource_title"],
-            action=row["action"],
-            occurred_at=row["occurred_at"],
-        )
-        for row in rows
-    )
-
-
 def record_resource_use(
     database: Database, resource_id: int, *, action: str
 ) -> bool:
@@ -540,11 +493,16 @@ def record_resource_use(
         )
         if cursor.rowcount == 1:
             connection.execute(
-                """
-                INSERT INTO resource_activity (resource_id, action)
-                VALUES (?, ?)
-                """,
-                (resource_id, action),
+                """INSERT INTO activity_events (
+                       action, summary, detail, game_id, resource_id
+                   )
+                   SELECT ?, COALESCE(ro.title, r.title),
+                          COALESCE(go.title, g.title), r.game_id, r.id
+                   FROM resources r JOIN games g ON g.id=r.game_id
+                   LEFT JOIN resource_overrides ro ON ro.resource_id=r.id
+                   LEFT JOIN game_overrides go ON go.game_id=g.id
+                   WHERE r.id=?""",
+                (action, resource_id),
             )
     return cursor.rowcount == 1
 

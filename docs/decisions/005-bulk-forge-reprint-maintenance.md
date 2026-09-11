@@ -54,7 +54,9 @@ time out while rendering continues. Instead:
 - a container interruption leaves a recognizable interrupted job that an Admin
   can resume or restart deliberately; and
 - completion retains a per-resource error report rather than failing the whole
-  batch because one PDF could not be processed.
+  batch because one PDF could not be processed; and
+- the maintenance page lists the latest 20 operations, with older completed or
+  cancelled jobs and their item details removed to bound database growth.
 
 The first implementation may use light browser polling for progress. It does
 not require WebSockets.
@@ -76,6 +78,13 @@ limits, including per-file/page/output limits, free-space checks, and the total
 derived-storage ceiling. Rendering remains sequential initially. Continue using
 atomic output replacement so a failed refresh does not destroy a usable prior
 copy.
+
+Record each successfully validated generated copy in SQLite with its source
+fingerprint, generator version, QR target, filename, size, and modification time.
+The inventory may trust matching records after comparing them with one managed
+directory scan. Existing unregistered copies receive one full validation before
+being recorded. Generation and delivery retain their existing PDF validation;
+the registry accelerates summary reporting rather than weakening output checks.
 
 Eligibility and failures must distinguish at least unavailable source files,
 unsupported/encrypted PDFs, validation or rendering errors, storage exhaustion,
