@@ -32,7 +32,6 @@ READ_ROUTES = {
     "activity_history",
     "game_detail",
     "game_artwork",
-    "resource_reprint",
     "resource_reprint_generate",
     "resource_reprint_regenerate",
     "resource_reprint_view",
@@ -78,10 +77,8 @@ ADMIN_ROUTES = {
     "accounts_create",
     "accounts_update",
     "accounts_password",
-    "qr_policy_save",
+    "resource_qr_policy_save",
     "session_policy_save",
-    "share_generate",
-    "share_revoke",
     "reprint_maintenance",
     "reprint_maintenance_confirm",
     "reprint_maintenance_start",
@@ -93,9 +90,9 @@ PUBLIC_ROUTES = {
     "health",
     "login_form",
     "login_submit",
-    "shared_resource",
-    "shared_original",
-    "shared_reprint",
+    "resource_reprint",
+    "resource_qr_original",
+    "resource_qr_reprint",
 }
 
 

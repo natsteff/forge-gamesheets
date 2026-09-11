@@ -27,7 +27,7 @@ image focuses on roles and account management; QR policy appears in Settings.
    `/games/{demo-id}/edit`. Discover IDs from the demo; do not assume production IDs.
 4. On bulk categories, select games and a category to illustrate the controls;
    no change need be applied. Generate an ordinary demo reprint to show its ready
-   state. Do not create or expose live guest-sharing links. Leave the BGG input
+   state. Do not expose QR links from a live installation. Leave the BGG input
    empty rather than pretending an invented game has a real BGG listing.
 5. Capture the Admin dropdown at desktop width and the open hamburger menu at
    390 × 844 for the phone view. Restore any temporary viewport override afterward.

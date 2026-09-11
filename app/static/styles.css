@@ -573,9 +573,11 @@ input[type="checkbox"] {
 .reprint-generate .resource-action { cursor: pointer; }
 .reprint-print-tip { max-width: 36rem; color: var(--muted); font-size: 0.88rem; }
 .reprint-print-tip strong { color: var(--ink); }
-.reprint-responsibility { max-width: 36rem; margin-block: 1.25rem; padding: 1rem; border-left: 3px solid var(--line); background: var(--paper); color: var(--muted); font-size: 0.86rem; }
+.reprint-responsibility { max-width: 36rem; margin-block: 1.5rem; padding: 1rem 1.1rem; border: 1px solid var(--line); border-left: 4px solid var(--forge); border-radius: 0.65rem; background: var(--paper); color: var(--muted); font-size: 0.86rem; }
 .reprint-responsibility strong { color: var(--ink); }
 .reprint-responsibility p { margin: 0.35rem 0 0; }
+.reprint-qr-access { margin-top: 2rem; padding-top: 0.25rem; border-top: 1px solid var(--line); }
+.reprint-qr-access .metadata-form { margin-bottom: 2rem; }
 .reprint-original { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
 .reprint-original h2 { margin-bottom: 0.25rem; font-size: 1.25rem; }
 .reprint-original p { margin-top: 0; color: var(--muted); }

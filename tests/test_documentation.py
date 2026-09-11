@@ -34,6 +34,8 @@ def test_readme_current_capability_contract():
         "DOCUMENTATION_REVIEW.md",
         "docker compose exec app python -m app.accounts create-admin",
         "immediately requires sign-in",
+        "public by default",
+        "Create or refresh all reprints",
     ):
         assert term in text
     for obsolete in (
@@ -61,7 +63,7 @@ def test_project_plan_retains_bulk_reprint_maintenance_design():
         "Create or refresh all reprints",
         "persistent SQLite job",
         "cancellation stops safely",
-        "revoked share is never revived",
+        "stable QR address",
         "atomic output replacement",
     ):
         assert term in decision

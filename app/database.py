@@ -516,6 +516,19 @@ MIGRATIONS += (
 )
 
 
+MIGRATIONS += (
+    Migration(
+        version=22,
+        name="add_resource_qr_access_policy",
+        statements=(
+            "ALTER TABLE resources ADD COLUMN qr_requires_sign_in "
+            "INTEGER NOT NULL DEFAULT 0 CHECK (qr_requires_sign_in IN (0, 1))",
+            "DROP TABLE resource_shares",
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Database:
     """A SQLite database stored beneath the configured data directory."""

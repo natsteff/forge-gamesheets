@@ -7,7 +7,7 @@ requirement. Use any location that the Docker operator can manage safely.
 Forge GameSheets is beta software. Back up both the PDF library and application
 data before upgrades. Local accounts are optional and remain off until explicit
 operator setup. Forge must not be exposed directly to the public internet or an
-untrusted network. See [Accounts and QR sharing](ACCOUNTS.md).
+untrusted network. See [Accounts and QR access](ACCOUNTS.md).
 
 ## Requirements
 
@@ -504,10 +504,8 @@ local logs (10 MB per file, three files) to bound ordinary log growth. Access
 logs can contain client addresses and requested URLs; protect log access and
 avoid putting secrets in URLs. No new body, token, or form-value logging is
 introduced. These operational logs are not a user-attributed security audit
-trail. Account and sharing operations have a bounded, user-attributed security
-event list when accounts are enabled; it is not a comprehensive content audit.
-Redact `/s/` sharing credentials in proxy logs, including encoded login return
-paths. Application access logs redact these links, but cannot control proxy logs.
+trail. Account operations have a bounded, user-attributed security event list
+when accounts are enabled; it is not a comprehensive content audit.
 
 ### PDF rendering and derived storage
 

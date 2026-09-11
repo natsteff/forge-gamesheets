@@ -75,6 +75,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (19, "add_reprint_maintenance_jobs"),
         (20, "add_configurable_session_policies"),
         (21, "add_game_resource_links"),
+        (22, "add_resource_qr_access_policy"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -101,7 +102,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 21
+    assert count == 22
 
 
 def test_multi_category_migration_preserves_single_category(database: Database) -> None:

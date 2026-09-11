@@ -5,7 +5,6 @@ from pathlib import Path
 import pymupdf as fitz
 import pytest
 
-from app import accounts, sharing
 from app.database import Database
 from app.library.reconciliation import reconcile_scan
 from app.library.reprint_maintenance import (
@@ -71,17 +70,14 @@ def test_inventory_and_operation_plans_distinguish_existing(reprint_library):
         preview(database, data, "erase_everything")
 
 
-def test_bulk_job_preserves_active_share_target_and_isolates_missing_source(
+def test_bulk_job_uses_stable_resource_target_and_isolates_missing_source(
     reprint_library,
 ):
     database, library, data = reprint_library
-    accounts.bootstrap_admin(database, "admin", "sample passphrase for tests")
-    admin = accounts.User(1, "admin", "admin")
     with database.connect() as connection:
         resources = connection.execute(
             "SELECT id, relative_path FROM resources ORDER BY id"
         ).fetchall()
-    token = sharing.create_share(database, admin, resources[0]["id"])
     (library / resources[1]["relative_path"]).unlink()
 
     job_id = create_job(database, data, "create_or_refresh_all")
@@ -95,7 +91,7 @@ def test_bulk_job_preserves_active_share_target_and_isolates_missing_source(
         (data / "generated").glob(f"resource-{resources[0]['id']}-*.pdf")
     )
     with fitz.open(generated) as document:
-        assert f"/s/{token}" in document.metadata["subject"]
+        assert f"/r/{resources[0]['id']}" in document.metadata["subject"]
 
 
 def test_job_cancellation_and_interruption_are_durable(reprint_library):

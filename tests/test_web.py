@@ -283,7 +283,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=8" in response.text
-    assert "/static/styles.css?v=37" in response.text
+    assert "/static/styles.css?v=38" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text

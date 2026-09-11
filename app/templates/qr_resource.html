@@ -1,0 +1,14 @@
+{% extends "public_base.html" %}
+{% block title %}{{ resource.title }} · Forge GameSheets{% endblock %}
+{% block content %}
+  <section class="settings-section">
+    <p class="eyebrow">FORGE Reprint</p>
+    <h1>{{ resource.title }}</h1>
+    <p>{{ game.title }}{% if resource.variant %} · {{ resource.variant }}{% endif %}</p>
+    <p>This QR code provides access only to this resource. Use your PDF viewer to print or save it.</p>
+    <div class="reprint-actions">
+      <a class="resource-action primary" href="{{ url_for('resource_qr_original', resource_id=resource.id) }}" target="_blank" rel="noopener noreferrer">View original PDF</a>
+      {% if generated_available %}<a class="resource-action" href="{{ url_for('resource_qr_reprint', resource_id=resource.id) }}" target="_blank" rel="noopener noreferrer">View FORGE Reprint</a>{% endif %}
+    </div>
+  </section>
+{% endblock %}

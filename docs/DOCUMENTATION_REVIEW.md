@@ -11,12 +11,12 @@ For every major update (including significant beta milestones), review:
 - Fresh image pull/start, first library scan, optional folder hints, and rescan.
 - Bulk categories: permissions, filters, confirmation/cancel, and source preservation.
 - Account bootstrap on an existing installation, role restrictions, recovery,
-  session invalidation, and QR guest allow/restrict/revoke behavior.
+  session invalidation, and public-by-default per-resource QR restrictions.
 - Manual BGG URL validation, correct Game/Files links, and no-token operation.
 - Reprint generation/download/regeneration and source-file preservation.
 - Deployment HTTPS/proxy boundaries, data permissions, backup/restore, and build identity.
 - Screenshots at desktop and mobile sizes using invented content only. Never
-  capture real accounts, library PDFs, credentials, or live guest-share tokens.
+  capture real accounts, library PDFs, credentials, or private installation data.
   Follow [the screenshot maintenance checklist](SCREENSHOTS.md), inspect the saved
   files, and refresh affected images together with their README captions.
 - Consistency among README, deployment/accounts/category/BGG guides, current

@@ -13,7 +13,7 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app import accounts, sharing
+from app import accounts
 from app.bgg.client import BggApiError, BggClient
 from app.bgg.matching import enrich_game
 from app.bgg.repository import (
@@ -44,6 +44,7 @@ from app.library.game_links import (
     save_game_resource_links,
 )
 from app.library.previews import PreviewUnavailable, cached_resource_preview
+from app.library.qr_access import requires_sign_in, set_requires_sign_in
 from app.library.reconciliation import ReconciliationError, reconcile_scan
 from app.library.repository import (
     GameDetail,
@@ -429,15 +430,8 @@ def recent_home(request: Request) -> HTMLResponse:
 @router.get("/settings", response_class=HTMLResponse, name="settings_home")
 def settings_home(request: Request) -> HTMLResponse:
     """Show the limited Phase 1 application settings."""
-    qr_guests = False
     session_policy = None
     if request.state.auth_enabled:
-        with _database(request).connect() as connection:
-            qr_guests = bool(
-                connection.execute(
-                    "SELECT qr_guests FROM auth_configuration WHERE id=1"
-                ).fetchone()[0]
-            )
         session_policy = accounts.session_policy(_database(request))
     return templates.TemplateResponse(
         request=request,
@@ -453,7 +447,6 @@ def settings_home(request: Request) -> HTMLResponse:
             "timezone_names": _timezone_names(),
             "build_info": request.app.state.build_info,
             "bgg_configured": bool(request.app.state.settings.bgg_api_token),
-            "qr_guests": qr_guests,
             "session_policy": session_policy,
             "session_duration_options": (
                 (1800, "30 minutes"),
@@ -1111,6 +1104,12 @@ def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
     if game is None:
         raise HTTPException(status_code=404, detail="Game not found")
 
+    qr_restricted = requires_sign_in(_database(request), resource_id)
+    if qr_restricted and request.state.auth_enabled and not request.state.user:
+        return RedirectResponse(
+            "/login?" + urlencode({"next": request.url.path}), status_code=303
+        )
+
     available = True
     generated_available = False
     try:
@@ -1126,6 +1125,18 @@ def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
     except (ResourceFileMissing, UnsafeResourcePath):
         available = False
 
+    if request.state.auth_enabled and not request.state.user:
+        return templates.TemplateResponse(
+            request=request,
+            name="qr_resource.html",
+            context={
+                "resource": resource,
+                "game": game,
+                "generated_available": generated_available,
+            },
+            headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+        )
+
     return templates.TemplateResponse(
         request=request,
         name="resource_reprint.html",
@@ -1137,10 +1148,74 @@ def resource_reprint(request: Request, resource_id: int) -> HTMLResponse:
             "generated_available": generated_available,
             "generation_status": request.query_params.get("status"),
             "generation_error": request.query_params.get("error"),
-            "share_url": _current_share_url(request, resource_id),
-            "qr_guests": _qr_guests(request),
+            "qr_requires_sign_in": qr_restricted,
         },
     )
+
+
+def _qr_resource(request: Request, resource_id: int):
+    resource = get_resource(_database(request), resource_id)
+    if resource is None:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    if (
+        requires_sign_in(_database(request), resource_id)
+        and request.state.auth_enabled
+        and not request.state.user
+    ):
+        return RedirectResponse(
+            "/login?" + urlencode({"next": f"/r/{resource_id}"}), status_code=303
+        )
+    try:
+        source = resolve_resource_pdf(
+            request.app.state.settings.library_path, resource.relative_path
+        )
+    except (ResourceFileMissing, UnsafeResourcePath):
+        raise HTTPException(status_code=404, detail="Resource unavailable") from None
+    return resource, source
+
+
+def _qr_file(request: Request, resource_id: int, *, generated: bool):
+    result = _qr_resource(request, resource_id)
+    if isinstance(result, RedirectResponse):
+        return result
+    resource, source = result
+    path = _existing_reprint(request, source, resource_id) if generated else source
+    if path is None:
+        raise HTTPException(status_code=409, detail="FORGE Reprint unavailable")
+    game = get_game(_database(request), resource.game_id)
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=_pdf_filename(
+            game, resource, prefix="FORGE Reprint" if generated else None
+        ),
+        content_disposition_type="inline",
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
+
+
+@router.get("/r/{resource_id}/original", name="resource_qr_original")
+def resource_qr_original(request: Request, resource_id: int):
+    return _qr_file(request, resource_id, generated=False)
+
+
+@router.get("/r/{resource_id}/reprint", name="resource_qr_reprint")
+def resource_qr_reprint(request: Request, resource_id: int):
+    return _qr_file(request, resource_id, generated=True)
+
+
+@router.post(
+    "/resources/{resource_id}/qr-access", name="resource_qr_policy_save"
+)
+async def resource_qr_policy_save(request: Request, resource_id: int):
+    form = await request.form()
+    if not set_requires_sign_in(
+        _database(request),
+        resource_id,
+        required=form.get("requires_sign_in") == "1",
+    ):
+        raise HTTPException(status_code=404, detail="Resource not found")
+    return _reprint_redirect(resource_id, status="qr-policy-saved")
 
 
 @router.post(
@@ -1318,28 +1393,7 @@ def _generated_reprint_response(
     )
 
 
-def _current_share_url(request: Request, resource_id: int) -> str | None:
-    if not request.state.auth_enabled or not request.app.state.settings.base_url:
-        return None
-    token = sharing.share_token(_database(request), resource_id)
-    if token:
-        return sharing.sharing_url(request.app.state.settings.base_url, token)
-    return None
-
-
-def _qr_guests(request: Request) -> bool:
-    if not request.state.auth_enabled:
-        return False
-    with _database(request).connect() as connection:
-        row = connection.execute(
-            "SELECT qr_guests FROM auth_configuration WHERE id=1"
-        ).fetchone()
-        return bool(row[0])
-
-
 def _existing_reprint(request: Request, source: Path, resource_id: int) -> Path | None:
-    # Both ordinary login-required prints and explicit shared prints are readable
-    # by members. Guests use a separate handler that accepts only the shared URL.
     for target in readable_reprint_targets(
         _database(request), request.app.state.settings.base_url, resource_id
     ):

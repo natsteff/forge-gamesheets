@@ -120,7 +120,7 @@ do not submit copyrighted source files without permission.
    per-resource skip or failure details are understandable.
 4. Confirm cancellation stops after the current resource and an interrupted job
    can resume its remaining resources.
-5. Confirm source PDFs remain unchanged and active shared QR targets are preserved.
+5. Confirm source PDFs remain unchanged and every copy retains its stable QR address.
 
 ## Test 8 — responsive and keyboard use
 
@@ -160,7 +160,7 @@ public report. Describe filenames and folder structure with sanitized examples.
 - What would prevent you from continuing to use the application?
 # Current-source review additions
 
-For current builds, test optional accounts and QR sharing using [ACCOUNTS.md](ACCOUNTS.md),
+For current builds, test optional accounts and QR access using [ACCOUNTS.md](ACCOUNTS.md),
 bulk categories and folder hints using [GAME_CATEGORIES.md](GAME_CATEGORIES.md),
 and token-free BGG links using [BGG_MANUAL_LINKS.md](BGG_MANUAL_LINKS.md).
 Check grouped navigation at desktop and mobile widths. Follow the major-update

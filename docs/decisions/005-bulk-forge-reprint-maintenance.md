@@ -37,8 +37,8 @@ Offer three distinct operations:
 The confirmation page states exact counts where known—for example, 327 total,
 241 replaced, and 86 new—and explicitly says original PDFs are untouched. It
 also identifies skips such as missing, unsupported, or encrypted input; warns
-about estimated time and storage; and explains how active shared QR targets
-will be handled. The Admin may cancel before the job starts.
+about estimated time and storage; and explains that every copy retains its
+stable QR address. The Admin may cancel before the job starts.
 
 ## Durable job behavior
 
@@ -59,18 +59,11 @@ time out while rendering continues. Instead:
 The first implementation may use light browser polling for progress. It does
 not require WebSockets.
 
-## Sharing and QR invariants
+## QR invariants
 
-Bulk regeneration must preserve the access behavior represented by the current
-stored reprint:
-
-- an ordinary reprint remains pointed at its ordinary stable resource URL and
-  follows the installation's sign-in rules;
-- a reprint with an active resource-scoped share retains the active secure
-  sharing target;
-- a revoked share is never revived; and
-- bulk processing must not silently replace a shared QR target with an ordinary
-  numeric/sign-in target.
+Bulk regeneration must preserve each resource's stable QR address. Whether that
+address is public or requires sign-in is checked when it is opened, so an access
+change does not require a new PDF or QR code.
 
 Move QR-target selection out of the individual web route into a reusable service
 used by both individual generation and bulk maintenance. This avoids two paths
@@ -98,14 +91,14 @@ and resources changed or removed after the job was planned.
 - a Settings entry plus dedicated server-rendered templates;
 - optional lightweight progress polling in the existing JavaScript boundary;
 - service, authorization, confirmation, progress, cancellation, interruption,
-  sharing-preservation, storage-limit, and failure-isolation tests; and
+  stable-target, storage-limit, and failure-isolation tests; and
 - README/deployment/backup/beta/security documentation where behavior affects
   operators.
 
 ## Validation before release
 
 Exercise all three operations against mixed resources: missing and existing
-reprints, ordinary and actively shared QR targets, revoked shares, missing
+reprints, public and restricted resource QR settings, missing
 sources, unsupported PDFs, and injected per-item failures. Specifically verify
 regeneration after a generator-version change and after a configured public
 base-URL change. Repeat container interruption, cancellation, backup/restore,

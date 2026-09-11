@@ -32,7 +32,7 @@ a cloud service, or store PDF contents in its database.
 - Multiple customizable categories per game
 - Bulk category assignment with filtering, selection, and confirmation before changes
 - Optional trailing folder-category hints, such as `Yahtzee [Dice, Children]`
-- Optional local Admin, Contributor, and Reader accounts with revocable QR guest links
+- Optional local Admin, Contributor, and Reader accounts with per-resource QR restrictions
 - Token-free manual BGG game URLs, Game/Files links, and external title search
 - All Games, category, and Uncategorized browsing
 - Favorites, up to ten pinned homepage resources, Recent, and use history
@@ -57,7 +57,7 @@ the signed-in role. Click an image to inspect it at full size.
 | **Bulk game categories** | **FORGE Reprint** |
 | ![Selected demo games and categories with bulk operations and explanatory help](docs/images/assign-categories.png) | ![Generated demo reprint ready to view or download, with QR access guidance](docs/images/forge-reprint.png) |
 | **Bulk FORGE Reprint maintenance** | **Settings and QR access** |
-| ![Admin utility showing current, missing, stale, and unavailable reprints with bulk operation choices](docs/images/reprint-maintenance.png) | ![Settings showing folder-category import and QR guest access](docs/images/settings.png) |
+| ![Admin utility showing current, missing, stale, and unavailable reprints with bulk operation choices](docs/images/reprint-maintenance.png) | ![Settings showing library and account preferences](docs/images/settings.png) |
 | **User Accounts** | **Manual BoardGameGeek linking** |
 | ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Token-free BGG search button and empty full-game-URL field](docs/images/bgg-manual.png) |
 | **Integration and build details** | **Grouped desktop navigation** |
@@ -292,8 +292,12 @@ copies, refresh only existing copies, or create/refresh all eligible indexed PDF
 Forge confirms the number of new and replaced files before starting. Work runs
 sequentially as a durable job with progress, safe cancellation after the current
 file, interruption recovery, and individual skip/failure details. Source PDFs are
-never changed. Active shared QR targets are preserved and revoked shares are not
-restored.
+never changed. Every generated copy uses its resource's stable QR address, so
+changing access does not require generating another QR code.
+
+Upgrading from the earlier test-only secure-link design retires `/s/…` QR
+addresses. Use **Create or refresh all reprints** once after this upgrade to
+replace those experimental copies with the stable `/r/{resource-id}` address.
 
 ## Application data and backups
 
@@ -302,7 +306,7 @@ database, uploaded artwork, and regenerable caches. Back up both directories:
 
 - `library/` preserves original PDFs and detected artwork.
 - `data/` preserves titles, categories, favorites, pins, settings, activity,
-  uploaded artwork, accounts, sessions, and QR sharing state. Preserve the hidden
+  uploaded artwork, accounts, sessions, and QR access settings. Preserve the hidden
   `.authentication-required` marker with the rest of this directory.
 
 Stop the application before making a simple filesystem copy of `data/`. See
@@ -334,11 +338,12 @@ Enter the first Admin username and a new 15–128-character passphrase at the
 private prompts. Do not put the passphrase in the command. Successful setup
 immediately requires sign-in for the existing library; it does not change PDFs,
 categories, or other content. Sign in with that Admin, then open **Admin → User
-Accounts** to create Contributor or Reader accounts. Configure QR guest access in
-**Admin → Settings**.
+Accounts** to create Contributor or Reader accounts. QR codes allow direct,
+resource-only access by default; an Admin can require sign-in for an individual
+resource from its FORGE Reprint page.
 There is no default password or web-based initial setup.
 
-Read [Accounts and QR sharing](docs/ACCOUNTS.md) before activation for HTTPS
+Read [Accounts and QR access](docs/ACCOUNTS.md) before activation for HTTPS
 requirements, role permissions, recovery, backups, and the effect on previously
 printed QR codes. If the container is not running or has a different Compose
 service name, follow the deployment-specific instructions instead of changing
@@ -360,20 +365,19 @@ The library mount is read-only. Forge GameSheets never edits source PDFs.
 - **Accounts:** passwords use salted Argon2id hashes, not plaintext. New passwords
   receive offline common-password screening. Sessions expire and account changes
   invalidate affected sessions. These controls do not make public exposure safe.
-- **QR sharing:** secure guest links are bearer credentials. Anyone with a link
-  can access that resource while guest sharing is allowed; keep printed copies
-  and links private when appropriate. Admins can revoke links or require Reader
-  sign-in. Old numeric QR links require login after activation. Downloaded copies
-  cannot be revoked.
+- **QR access:** every FORGE Reprint uses a stable, resource-only address that is
+  public by default. An Admin can require Reader-or-higher sign-in for an
+  individual resource, including previously printed QR codes. Downloaded copies
+  cannot be recalled.
 - **Host and backups:** the database is not encrypted by Forge. Protect data,
   backups, activation markers, and BGG tokens. A container is not a complete
   security boundary; keep the host and images updated.
 - **Content:** PDF/image parsing is not malware scanning. Only add trusted files
   you are authorized to use. Browser PDF viewers also need updates. PDF upload
   from the web UI is not implemented; artwork upload is available to editors.
-- **Audit visibility:** Admins can review recent account/sharing security events
+- **Audit visibility:** Admins can review recent account security events
   with actor and target names. This is bounded activity logging, not a complete
-  audit trail. Protect proxy logs as they may contain sharing URLs.
+  audit trail.
 
 Implementation review and publication safeguards are described separately in
 [Development and security](#development-and-security).
@@ -394,12 +398,11 @@ holders. A FORGE Reprint does not itself grant permission to reproduce or
 distribute a source PDF.
 
 QR links point back to the operator's own Forge installation. Depending on its
-network configuration, that link may make a resource reachable from other
-devices. With accounts enabled, numeric QR links require sign-in; an Admin can
-explicitly create a revocable, resource-scoped guest link instead. Anyone with
-that link can access the shared resource while guest access is allowed. Disabling
-guest access requires Reader-or-higher sign-in, but cannot recall downloaded copies.
-Use the original PDF when a copy without a FORGE sharing link is desired.
+network configuration, that link may make one resource reachable from other
+devices. QR access is public by default. An Admin can require Reader-or-higher
+sign-in for an individual resource, and the same printed code responds to the
+current setting. This cannot recall downloaded copies. Use the original PDF
+when a copy without a FORGE QR link is desired.
 
 ## Testing and development
 

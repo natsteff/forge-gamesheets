@@ -4,25 +4,13 @@ from datetime import UTC, datetime
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-from app import accounts, sharing
+from app import accounts
 from app.access import safe_next
-from app.library.files import (
-    ResourceFileMissing,
-    UnsafeResourcePath,
-    resolve_resource_pdf,
-)
-from app.library.repository import get_game, get_resource
-from app.library.reprint_targets import preferred_reprint_target
-from app.library.reprints import (
-    ReprintGenerationError,
-    existing_forge_reprint,
-    generate_forge_reprint,
-)
 from app.preferences import get_preferences
-from app.web import _format_local_timestamp, _pdf_filename, templates
+from app.web import _format_local_timestamp, templates
 
 router = APIRouter()
 
@@ -303,25 +291,6 @@ async def accounts_password(request: Request, user_id: int):
     return RedirectResponse("/settings/users?saved=1", 303)
 
 
-@router.post("/settings/qr-access", name="qr_policy_save")
-async def qr_policy_save(request: Request):
-    form = await request.form()
-    try:
-        await _confirm(request, form)
-        await run_in_threadpool(
-            sharing.set_guest_policy,
-            _db(request),
-            request.state.user,
-            form.get("qr_guests") == "1",
-        )
-    except accounts.AccountError as error:
-        return RedirectResponse(
-            "/settings?" + urlencode({"error": "qr-access", "detail": str(error)}),
-            303,
-        )
-    return RedirectResponse("/settings?status=qr-access-saved", 303)
-
-
 @router.post("/settings/session-policy", name="session_policy_save")
 async def session_policy_save(request: Request):
     form = await request.form()
@@ -343,138 +312,3 @@ async def session_policy_save(request: Request):
             303,
         )
     return RedirectResponse("/settings?status=session-policy-saved", 303)
-
-
-@router.post("/resources/{resource_id}/share", name="share_generate")
-async def share_generate(request: Request, resource_id: int):
-    form = await request.form()
-    try:
-        await _confirm(request, form)
-        if form.get("acknowledge") != "1":
-            raise accounts.AccountError(
-                "Confirm that anyone with this QR link may access this resource "
-                "when guests are allowed."
-            )
-        settings = request.app.state.settings
-        if not settings.base_url:
-            raise accounts.AccountError("Configure the base URL before sharing.")
-        resource = await run_in_threadpool(get_resource, _db(request), resource_id)
-        if resource is None:
-            raise HTTPException(404, "Resource not found.")
-        source = resolve_resource_pdf(settings.library_path, resource.relative_path)
-        await run_in_threadpool(
-            sharing.create_share, _db(request), request.state.user, resource_id
-        )
-        await run_in_threadpool(
-            generate_forge_reprint,
-            source,
-            settings.data_path,
-            resource_id=resource_id,
-            target_url=preferred_reprint_target(
-                _db(request), settings.base_url, resource_id
-            ),
-            force=True,
-        )
-    except accounts.AccountError as error:
-        raise HTTPException(400, str(error)) from error
-    except (ReprintGenerationError, ResourceFileMissing, UnsafeResourcePath):
-        return RedirectResponse(f"/r/{resource_id}?error=generation-failed", 303)
-    return RedirectResponse(f"/r/{resource_id}?status=shared", 303)
-
-
-@router.post("/resources/{resource_id}/share/revoke", name="share_revoke")
-async def share_revoke(request: Request, resource_id: int):
-    form = await request.form()
-    try:
-        await _confirm(request, form)
-        await run_in_threadpool(
-            sharing.revoke_share, _db(request), request.state.user, resource_id
-        )
-    except accounts.AccountError as error:
-        raise HTTPException(400, str(error)) from error
-    return RedirectResponse(f"/r/{resource_id}?status=revoked", 303)
-
-
-def _shared(request: Request, token: str):
-    _enabled(request)
-    result = sharing.resolve_share(_db(request), token)
-    if not result:
-        raise HTTPException(404, "Shared resource unavailable.")
-    resource_id, guests_allowed = result
-    if not guests_allowed and not request.state.user:
-        return RedirectResponse(
-            "/login?" + urlencode({"next": safe_next(request.url.path)}), 303
-        )
-    resource = get_resource(_db(request), resource_id)
-    if resource is None:
-        raise HTTPException(404, "Shared resource unavailable.")
-    try:
-        source = resolve_resource_pdf(
-            request.app.state.settings.library_path, resource.relative_path
-        )
-    except (ResourceFileMissing, UnsafeResourcePath):
-        raise HTTPException(404, "Shared resource unavailable.") from None
-    return resource, source
-
-
-def _shared_output(request, token, resource, source):
-    settings = request.app.state.settings
-    if not settings.base_url:
-        return None
-    return existing_forge_reprint(
-        source,
-        settings.data_path,
-        resource_id=resource.id,
-        target_url=sharing.sharing_url(settings.base_url, token),
-    )
-
-
-@router.get("/s/{token}", response_class=HTMLResponse, name="shared_resource")
-def shared_resource(request: Request, token: str):
-    result = _shared(request, token)
-    if isinstance(result, RedirectResponse):
-        return result
-    resource, source = result
-    return templates.TemplateResponse(
-        request=request,
-        name="shared_resource.html",
-        context={
-            "resource": resource,
-            "token": token,
-            "generated_available": bool(
-                _shared_output(request, token, resource, source)
-            ),
-        },
-    )
-
-
-def _shared_file(request, token, *, generated):
-    result = _shared(request, token)
-    if isinstance(result, RedirectResponse):
-        return result
-    resource, source = result
-    path = _shared_output(request, token, resource, source) if generated else source
-    if path is None:
-        raise HTTPException(
-            409, "Shared reprint is unavailable. The library operator must generate it."
-        )
-    game = get_game(_db(request), resource.game_id)
-    return FileResponse(
-        path,
-        media_type="application/pdf",
-        filename=_pdf_filename(
-            game, resource, prefix="FORGE Reprint" if generated else None
-        ),
-        content_disposition_type="inline",
-        headers={"Cache-Control": "no-store"},
-    )
-
-
-@router.get("/s/{token}/original", name="shared_original")
-def shared_original(request: Request, token: str):
-    return _shared_file(request, token, generated=False)
-
-
-@router.get("/s/{token}/reprint", name="shared_reprint")
-def shared_reprint(request: Request, token: str):
-    return _shared_file(request, token, generated=True)

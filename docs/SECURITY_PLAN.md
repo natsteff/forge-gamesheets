@@ -1,7 +1,7 @@
 # Security priorities and future access/upload planning
 
 Security is a primary release requirement. This document includes remaining work
-and approved milestones. Local accounts and resource-scoped QR sharing are now
+and approved milestones. Local accounts and resource-scoped QR access are now
 implemented in the working source; see ACCOUNTS.md and the account review reports.
 Future identity providers, MFA, and PDF uploads still require owner approval.
 The current supported deployment boundaries remain unchanged: localhost,
@@ -72,42 +72,38 @@ Remaining decisions/fixes, in priority order:
    BGG rollout remains paused; no token-distribution policy has been approved.
 3. Verify an actual protected-proxy deployment when one is used; current tests
    cover trusted versus untrusted forwarded scheme, not a live TLS perimeter.
-4. Account and sharing operations now record bounded user-attributed events.
+4. Account operations now record bounded user-attributed events.
    Comprehensive content-change auditing remains future work. Rotating
    access/error logs are operational evidence only; never log tokens or bodies.
 
-## Local login, roles, and QR sharing — approved implementation
+## Local login, roles, and QR access — approved implementation
 
 The owner approved local implementation and testing, not live activation or
 publication. The implemented permission matrix and migration behavior are in
-[Accounts and QR sharing](ACCOUNTS.md) and [decision 004](decisions/004-local-accounts-and-sharing.md).
+[Accounts and QR access](ACCOUNTS.md) and [decision 004](decisions/004-local-accounts-and-sharing.md).
 Reader, Contributor (previously called Librarian), and Admin are account roles.
-QR guest access is a fourth
-access category, not an account role: it has no username/password and is granted
-only by possession of a valid resource-scoped sharing link.
+QR guest access is a fourth access category, not an account role: it has no
+username/password and is limited to one stable resource QR address.
 
 ### QR guest requirements
 
 - **Default: allow QR guest access.** In the opt-in authenticated system, a
-  valid secure QR link allows anonymous viewing of its particular shared
+  resource QR link allows anonymous viewing of its particular
   resource and approved PDF delivery only. It does not grant Reader access to
   the library or permission to edit, upload, or generate/regenerate content.
-- **Restrict: require sign-in.** An administrator can disable QR guest access;
-  QR visitors then require an authenticated Reader, Contributor, or Admin with
-  permission to view the resource. There is no shared "Reader" password.
-- Apply the current setting on every shared-page, PDF, preview, and download
-  request, not just when creating a QR code. Disabling guest access must also
-  restrict previously printed secure links and direct file URLs. Previously
+- **Restrict: require sign-in.** An administrator can restrict an individual
+  resource; its QR visitors then require an authenticated Reader, Contributor,
+  or Admin. There is no shared "Reader" password.
+- Apply the resource's current setting on every QR landing-page and PDF request,
+  not just when creating a QR code. Restricting it must also affect previously
+  printed codes and direct QR PDF URLs. Previously
   downloaded files cannot be recalled.
 - After sign-in, return to the intended resource using a validated local
-  destination; do not permit arbitrary redirect URLs. Re-enabling guest access
-  must not revive revoked sharing credentials.
+  destination; do not permit arbitrary redirect URLs.
 - The FORGE Reprint page should explain the active access mode and that the
   administrator may change it later. Keep this notice off the printed copy.
 - Test both modes, role permissions, direct endpoint access, cross-resource
-  attempts, revocation, cache behavior, and setting changes on existing links.
-  Explicitly decide migration of today's numeric links; never treat guessing a
-  resource ID as possession of a secure sharing credential.
+  attempts, cache behavior, and setting changes on existing links.
 
 This implementation is pending owner review and release validation. External proxy
 authentication may still require sign-in regardless of the application

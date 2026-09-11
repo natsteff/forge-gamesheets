@@ -9,7 +9,7 @@
     <p>This will process {{ plan.total }} resource{% if plan.total != 1 %}s{% endif %}: create {{ plan.create }} and replace {{ plan.refresh }}. Original PDFs remain untouched.</p>
   </section>
   <section class="settings-section">
-    <p>Unsupported, encrypted, missing, or changed resources will be skipped or reported individually. Existing rendering and storage limits still apply. Active shared QR links retain their secure target; revoked shares are not restored.</p>
+    <p>Unsupported, encrypted, missing, or changed resources will be skipped or reported individually. Existing rendering and storage limits still apply. Every copy uses its resource's stable QR address.</p>
     <p>Large libraries may take time. The job continues if this browser page is closed.</p>
     <div class="reprint-actions">
       <form action="{{ url_for('reprint_maintenance_start') }}" method="post">

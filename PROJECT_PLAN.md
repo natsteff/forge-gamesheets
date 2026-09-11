@@ -63,7 +63,8 @@ for the next approved feature.
 
 1. **Completed:** Phase 1 library, Phase 1.5 individual FORGE Reprints, bulk
    game categorization and optional folder-category import, token-free manual
-   BGG links, local accounts/QR sharing, and the initial container deployment.
+   BGG links, local accounts/resource-scoped QR access, and the initial container
+   deployment.
 2. **Completed:** Basic owner validation of the updated navigation,
    categorization workflow, account activation, reverse-proxy HTTPS access,
    and Docker upgrade path. Further exploratory testing remains welcome and
@@ -241,7 +242,8 @@ rather than delaying feature progress beforehand.
   links, or open a title-based BGG search. This baseline makes no API request
   and remains separate from later token-backed enrichment.
 - **Completed and published:** Opt-in local Admin/Contributor/Reader accounts,
-  recovery, security events, and revocable resource-scoped QR guest sharing.
+  recovery, security events, and resource-scoped QR access that is public by
+  default and individually restrictable to signed-in users.
   Existing installations remain open until local Admin setup activates access
   control. See [account operations](docs/ACCOUNTS.md) and
   [the access-control design](docs/decisions/004-local-accounts-and-sharing.md).
@@ -256,9 +258,9 @@ rather than delaying feature progress beforehand.
 - **Confirmed:** Show inventory and confirmation counts before starting,
   including replacements, new files, skips, and the fact that originals remain
   untouched.
-- **Confirmed:** Preserve each resource's current sharing policy. Active shared
-  reprints retain their secure target, ordinary reprints retain their normal
-  sign-in target, and revoked shares are never revived.
+- **Confirmed:** Every generated copy retains its resource's stable QR address.
+  Per-resource access changes are enforced when that address is opened and do
+  not require regenerating the PDF.
 - **Confirmed:** Process the work as a durable background job rather than one
   proxy-sensitive HTTP request. Show persistent progress and per-resource
   failures, allow safe cancellation after the current file, and define recovery

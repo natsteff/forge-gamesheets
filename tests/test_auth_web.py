@@ -6,7 +6,7 @@ import pymupdf as fitz
 import pytest
 from fastapi.testclient import TestClient
 
-from app import accounts, sharing
+from app import accounts
 from app.access import ADMIN_ROUTES, CONTRIBUTOR_ROUTES, PUBLIC_ROUTES, READ_ROUTES
 from app.config import Settings
 from app.main import create_app
@@ -104,7 +104,7 @@ def test_grouped_navigation_users_visibility(secured, role):
         assert ">User Accounts</a>" not in account_menu
         settings = client.get("/settings").text
         accounts_page = client.get("/settings/users").text
-        assert "QR guest access" in settings
+        assert "QR guest access" not in settings
         assert 'class="checkbox-option"' in settings
         assert "QR guest access" not in accounts_page
         assert "Choose your crew" in accounts_page
@@ -334,7 +334,6 @@ def test_anonymous_numeric_paths_and_edits_require_login(secured):
     for path in [
         "/",
         "/games/1",
-        "/r/1",
         "/resources/1/open",
         "/resources/1/download",
         "/resources/1/preview",
@@ -415,56 +414,44 @@ def test_login_origin_and_return_path_protection(secured):
     assert response.headers["location"] == "/"
 
 
-def test_guest_share_is_resource_scoped_and_policy_checked_on_every_endpoint(secured):
-    client, db, admin = secured
-    token = sharing.create_share(db, admin, 1)
-    for suffix in ["", "/original"]:
-        response = client.get("/s/" + token + suffix)
-        assert response.status_code == 200
-        assert response.headers["referrer-policy"] == "no-referrer"
-        assert response.headers["cache-control"] == "no-store"
-    page = client.get("/s/" + token).text
-    assert "Second" not in page
-    assert "Settings" not in page and "History" not in page
-    assert client.get("/s/" + token + "/reprint").status_code == 409
-    assert client.get("/s/1").status_code == 404
-    assert (
-        client.get("/s/" + token[:-1] + ("a" if token[-1] != "a" else "b")).status_code
-        == 404
-    )
-    sharing.set_guest_policy(db, admin, False)
-    for suffix in ["", "/original", "/reprint"]:
-        response = client.get("/s/" + token + suffix, follow_redirects=False)
-        assert response.status_code == 303
-    signin(client, "reader")
-    assert client.get("/s/" + token + "/original").status_code == 200
-    sharing.revoke_share(db, admin, 1)
-    sharing.set_guest_policy(db, admin, True)
-    assert client.get("/s/" + token).status_code == 404
-    replacement = sharing.create_share(db, admin, 1)
-    assert replacement != token
-    assert sharing.create_share(db, admin, 1) == replacement
+def test_qr_access_is_public_scoped_and_individually_restrictable(secured):
+    client, _, _ = secured
+    page = client.get("/r/1")
+    assert page.status_code == 200
+    assert page.headers["referrer-policy"] == "same-origin"
+    assert page.headers["cache-control"] == "no-store"
+    assert "First" in page.text and "Second" not in page.text
+    assert "Settings" not in page.text and "History" not in page.text
+    original = client.get("/r/1/original")
+    assert original.status_code == 200
+    with fitz.open(stream=original.content, filetype="pdf") as document:
+        assert "First sample" in document[0].get_text()
 
-
-def test_shared_generation_is_explicit_and_original_unchanged(secured):
-    client, db, _ = secured
     signin(client, "admin")
-    original = client.get("/resources/1/open").content
     response = client.post(
-        "/resources/1/share", data={"current_password": PASSWORD, "acknowledge": "1"}
+        "/resources/1/qr-access", data={"requires_sign_in": "1"}
     )
-    assert (
-        response.status_code == 200 and "Shared FORGE Reprint created" in response.text
-    )
-    token = sharing.share_token(db, 1)
-    assert client.post("/resources/1/forge-reprint/regenerate").status_code == 200
+    assert response.status_code == 200 and "QR access updated" in response.text
     client.post("/logout")
-    pdf = client.get("/s/" + token + "/reprint")
-    assert pdf.status_code == 200
-    with fitz.open(stream=pdf.content, filetype="pdf") as document:
-        assert "/s/" + token in document.metadata["subject"]
-    assert client.get("/s/" + token + "/original").content == original
-    assert client.post("/resources/1/forge-reprint/regenerate").status_code == 401
+    for suffix in ["", "/original", "/reprint"]:
+        response = client.get(f"/r/1{suffix}", follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers["location"].startswith("/login?")
+    signin(client, "reader")
+    assert client.get("/r/1/original").status_code == 200
+
+    client.post("/logout")
+    signin(client, "admin")
+    client.post("/resources/1/qr-access", data={})
+    client.post("/logout")
+    assert client.get("/r/1").status_code == 200
+
+
+def test_qr_policy_change_is_admin_only(secured):
+    client, _, _ = secured
+    assert client.post("/resources/1/qr-access").status_code == 401
+    signin(client, "reader")
+    assert client.post("/resources/1/qr-access").status_code == 403
 
 
 def test_marker_with_missing_admin_fails_closed(secured):
@@ -591,40 +578,14 @@ def test_session_policy_requires_current_password(secured):
     assert accounts.session_policy(db) == original
 
 
-def test_share_requires_acknowledgement_and_revokes_direct_pdf(secured):
-    client, db, _ = secured
-    signin(client, "admin")
-    assert (
-        client.post(
-            "/resources/1/share", data={"current_password": PASSWORD}
-        ).status_code
-        == 400
-    )
-    assert sharing.share_token(db, 1) is None
-    client.post(
-        "/resources/1/share", data={"current_password": PASSWORD, "acknowledge": "1"}
-    )
-    token = sharing.share_token(db, 1)
-    assert (
-        client.post(
-            "/resources/1/share/revoke", data={"current_password": PASSWORD}
-        ).status_code
-        == 200
-    )
-    client.post("/logout")
-    for suffix in ["", "/original", "/reprint"]:
-        assert client.get("/s/" + token + suffix).status_code == 404
-
-
-def test_guest_queries_cannot_select_a_different_resource(secured):
-    client, db, admin = secured
-    token = sharing.create_share(db, admin, 1)
-    response = client.get("/s/" + token + "/original?resource_id=2&path=../Second")
+def test_qr_queries_cannot_select_a_different_resource(secured):
+    client, _, _ = secured
+    response = client.get("/r/1/original?resource_id=2&path=../Second")
     assert response.status_code == 200
     with fitz.open(stream=response.content, filetype="pdf") as document:
         assert "First sample" in document[0].get_text()
         assert "Second" not in document[0].get_text()
-    assert client.post("/s/" + token).status_code == 401
+    assert client.post("/r/1").status_code == 401
 
 
 def test_account_forms_do_not_echo_secrets_or_hashes(secured):

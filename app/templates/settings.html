@@ -61,19 +61,6 @@
     </form>
   </section>
 
-  <section class="settings-section">
-    <h2>QR guest access</h2>
-    <p>Secure sharing links grant access only to their resource. Ordinary numeric QR links always require sign-in when authentication is enabled.</p>
-    <form class="metadata-form settings-form" action="{{ url_for('qr_policy_save') }}" method="post">
-      <label class="checkbox-option">
-        <input type="checkbox" name="qr_guests" value="1"{% if qr_guests %} checked{% endif %}>
-        <span><strong>Allow secure QR links without sign-in</strong><small>Uncheck to require Reader-or-higher sign-in, including for previously printed links. Downloaded copies cannot be recalled.</small></span>
-      </label>
-      <label for="policy-password">Your current passphrase</label>
-      <input id="policy-password" name="current_password" type="password" autocomplete="current-password" maxlength="128" required>
-      <button type="submit">Save QR access policy</button>
-    </form>
-  </section>
   {% endif %}
 
   {% if not request.state.auth_enabled %}

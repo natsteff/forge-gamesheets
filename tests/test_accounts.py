@@ -92,12 +92,16 @@ def test_upgrade_preserves_existing_content_and_does_not_activate(tmp_path):
     db.initialize()
     assert not accounts.auth_enabled(db)
     with db.connect() as connection:
-        assert dict(connection.execute("SELECT * FROM resources").fetchone()) == before
+        upgraded = dict(connection.execute("SELECT * FROM resources").fetchone())
+        assert upgraded.pop("qr_requires_sign_in") == 0
+        assert upgraded == before
         assert connection.execute("SELECT count(*) FROM users").fetchone()[0] == 0
     accounts.bootstrap_admin(db, "owner", PASSWORD)
     assert accounts.auth_enabled(db)
     with db.connect() as connection:
-        assert dict(connection.execute("SELECT * FROM resources").fetchone()) == before
+        protected = dict(connection.execute("SELECT * FROM resources").fetchone())
+        assert protected.pop("qr_requires_sign_in") == 0
+        assert protected == before
 
 
 def test_bootstrap_cannot_be_repeated_and_marker_fails_closed(database, admin):

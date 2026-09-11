@@ -52,7 +52,7 @@ regeneration so they receive the current footer design.
 Current source includes opt-in local Admin, Contributor, and Reader accounts;
 activation requires local Admin setup. Existing installations remain in
 trusted-operator mode until activated. The supplied configuration listens only
-on localhost by default. See [accounts and QR sharing](ACCOUNTS.md).
+on localhost by default. See [accounts and QR access](ACCOUNTS.md).
 
 Do not expose Forge directly to the public internet or an untrusted network.
 Use trusted-LAN access only when appropriate, or place Forge behind an
