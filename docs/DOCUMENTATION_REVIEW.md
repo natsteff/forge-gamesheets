@@ -24,7 +24,7 @@ For every major update (including significant beta milestones), review:
   explicitly identified as historical instead of silently rewritten as current.
 
 Record the candidate revision, tests run, screenshots refreshed, manual paths
-checked, known gaps, and owner approval in release evidence. Remind the owner to
-perform the independent/ASVS-focused review before major release approval.
-No green automated check replaces that review. Do not publish while documentation
+checked, known gaps, and owner approval in release evidence. Complete the planned
+ASVS-focused self-assessment before major release approval. No green automated
+check replaces that review. Do not publish while documentation
 describes unverified critical-path behavior as confirmed.

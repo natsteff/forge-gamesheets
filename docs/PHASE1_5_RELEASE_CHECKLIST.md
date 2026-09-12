@@ -1,8 +1,8 @@
 # Phase 1.5 external beta release checklist
 
 This checklist is the release gate for the FORGE Reprint external beta. It does
-not authorize direct public-network exposure. Forge GameSheets has no built-in
-authentication and remains limited to localhost, a trusted private LAN, or an
+not authorize direct public-network exposure. Forge GameSheets has optional local
+accounts and remains limited to localhost, a trusted private LAN, or an
 appropriately protected proxy or VPN.
 
 Do not move or rewrite the existing `v0.1.0-beta.1` tag. The Phase 1.5 candidate
@@ -79,9 +79,9 @@ Record the final test count in the release notes.
 - [ ] Review high findings and unfixed critical findings rather than treating a
   non-blocking result as evidence that they are harmless.
 - [ ] Record the workflow run and scanner results with the release candidate.
-- [ ] Complete or refresh the applicable OWASP ASVS assessment and remind the
-  owner to arrange an independent review. Do not describe either as
-  certification.
+- [ ] Complete or refresh the applicable OWASP ASVS self-assessment. Record that
+  the release uses automated and maintainer-led, AI-assisted review and is not
+  independently certified.
 
 ## 3. Clean localhost installation
 

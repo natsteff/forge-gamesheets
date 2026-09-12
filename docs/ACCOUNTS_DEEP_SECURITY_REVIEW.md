@@ -142,9 +142,9 @@ auditing, per-client general traffic limits, native-parser process isolation,
 session-list UI, MFA/SSO, and PDF uploads remain outside this review's fixes.
 
 After approved remediation, rerun the adversarial probes and full suite, update
-this disposition, and obtain owner approval before committing. For stronger
-assurance before wider/untrusted exposure, arrange a human security review;
-the separate AI pass is not a substitute for independent professional assurance.
+this disposition, and obtain owner approval before committing. The planned
+release process does not include an external professional review; this separate
+AI pass is not independent certification.
 # Follow-up fixes (2026-09-04)
 
 AR-1: Password confirmations now use a separate authenticated-account budget;

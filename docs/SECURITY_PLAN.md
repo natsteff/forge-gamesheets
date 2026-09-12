@@ -26,16 +26,14 @@ trusted LAN, or an appropriately protected proxy/VPN, not direct public access.
 - Validate findings with reproducible checks and add regression tests for
   fixes. Resolve release-blocking risks before publication and present any
   remaining risks to the owner for an explicit decision.
-- At the initial assessment and each major-release checkpoint, explicitly
-  remind the owner to arrange an independent review. Offer a secondary AI
-  reviewer for a separate pass, with findings independently verified, and
-  discuss a human security review for stronger assurance before wider exposure.
-  Do not silently launch a second reviewer or commission external work.
+- At the initial assessment and each major-release checkpoint, use automated
+  checks plus a maintainer-led, AI-assisted review. A separate AI pass may be
+  requested when useful, but an external professional review is not part of the
+  planned release process.
 - Describe work publicly as a scoped self-assessment or AI-assisted review,
   not independent certification or proof that all vulnerabilities are absent.
 
-The reminder is tied to release work, not a scheduled notification. Future
-release checklists should include both the assessment and owner reminder.
+Future release checklists should record the assessment and its remaining limits.
 
 The container publication workflow must run tests, lint, a Python dependency
 audit, and a container vulnerability scan before authenticating to the registry
@@ -46,11 +44,15 @@ exceptions explicitly rather than maintaining an unexplained ignore list.
 
 Reference: [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/).
 
+The latest release-focused review is
+[the September 11, 2026 security review](RELEASE_SECURITY_REVIEW_2026-09-11.md),
+performed against commit `d67cbb2`.
+
 ## Secondary review and remaining hardening
 
 The 2026-09-03 owner-authorized secondary AI pass is recorded in
 [the review follow-up](SECURITY_REVIEW_FOLLOWUP.md). This is a separate AI review,
-not third-party certification or a substitute for a human review.
+not third-party certification.
 
 Dependency policy: every publication must audit resolved Python dependencies and
 scan the exact runtime image that will be pushed. Production images exclude
@@ -62,11 +64,11 @@ merely to obtain repeatability.
 
 Remaining decisions/fixes, in priority order:
 
-1. Rendering concurrency and derived-write/storage budgets are now implemented
-   in the pending change set (see deployment guide). Still review isolated,
+1. Rendering concurrency and derived-write/storage budgets are implemented and
+   published (see deployment guide). Still review isolated,
    killable native-parser execution and a per-client rate policy; serialization
    alone does not stop repeated requests monopolizing the rendering slot.
-2. Authenticated BGG redirects are now rejected in the pending change set,
+2. Authenticated BGG redirects are rejected in the published implementation,
    including same-origin redirects. Synthetic transport regression tests verify
    that no redirect destination is contacted and Authorization is not copied.
    BGG rollout remains paused; no token-distribution policy has been approved.
@@ -78,8 +80,8 @@ Remaining decisions/fixes, in priority order:
 
 ## Local login, roles, and QR access — approved implementation
 
-The owner approved local implementation and testing, not live activation or
-publication. The implemented permission matrix and migration behavior are in
+The owner validated the published implementation on the trusted home-hosted
+deployment. The permission matrix and migration behavior are in
 [Accounts and QR access](ACCOUNTS.md) and [decision 004](decisions/004-local-accounts-and-sharing.md).
 Reader, Contributor (previously called Librarian), and Admin are account roles.
 QR guest access is a fourth access category, not an account role: it has no
@@ -105,37 +107,28 @@ username/password and is limited to one stable resource QR address.
 - Test both modes, role permissions, direct endpoint access, cross-resource
   attempts, cache behavior, and setting changes on existing links.
 
-This implementation is pending owner review and release validation. External proxy
-authentication may still require sign-in regardless of the application
-setting; proxy routing must be reviewed without exposing unrelated endpoints.
+Owner validation is complete. Every FORGE Reprint uses a stable numeric
+`/r/{resource-id}` address. These addresses are intentionally discoverable rather
+than secret bearer credentials: anyone who can reach the installation may try
+adjacent IDs and access any resource that remains public. This is an accepted
+tradeoff for the trusted home-hosted deployment model, not a design for direct
+public-Internet exposure.
 
-The owner's preferred QR experience is access without login for the particular
-shared resource. Treat this as deliberate bearer-link sharing, not a general
-authentication bypass:
-
-- Use an unguessable, resource-scoped sharing credential; a sequential resource
-  ID alone must not grant anonymous access in an authenticated installation.
-- When guest access is allowed, anyone possessing or receiving a valid link/QR
-  may access its approved content.
-  The link does not itself make a private network reachable.
-- Authorize every destination, including PDF delivery, previews, originals,
-  and generated output. Decide explicitly which variants the share permits.
-- Do not expose other games/resources, library browsing, history, settings,
-  uploads, administrative actions, credentials, or internal filesystem details.
-- Review revocation/rotation, optional expiry, rate limits, caching, logging,
-  referrer leakage, and how previously printed QR codes behave after revocation.
-- Add a clear notice on the FORGE Reprint page, not on the printed copy,
-  explaining that anybody with the QR code or URL can access the shared content.
-  Provide a genuine no-share/no-QR print choice; hiding only the QR while leaving
-  a public URL is insufficient. Explain that downloaded copies cannot be revoked.
-- Test cross-resource access attempts and every anonymous endpoint before
-  enabling this model. Existing numeric `/r/` links are not evidence that secure
-  sharing or authentication is already implemented.
-
-The reprint page now describes the active policy. Admins deliberately create
-secure shared reprints; ordinary numeric links require sign-in after activation.
-The original PDF is the no-FORGE-QR alternative. Further authentication or upload
-work still requires owner review; no public-exposure readiness is claimed.
+- A public QR address exposes only its resource landing page, original PDF, and
+  existing generated copy. It does not permit library browsing, history,
+  generation, editing, settings, or account access.
+- An Admin may require sign-in for an individual resource. The current setting
+  is checked on its landing page and both PDF endpoints, including for previously
+  printed codes. There is no global QR-access switch.
+- The stable address has no secret to rotate or expire. Changing the resource
+  policy is the supported way to remove anonymous access; downloaded copies
+  cannot be recalled.
+- External proxy authentication may still require sign-in before Forge receives
+  a request, regardless of the resource setting.
+- The FORGE Reprint page explains the current policy. The original PDF remains
+  available as the source for printing without a FORGE QR code.
+- Tests cover public and restricted access, direct endpoints, cross-resource
+  attempts, cache behavior, and changes applied to an existing QR address.
 
 ### Bulk reprint maintenance
 
@@ -143,11 +136,11 @@ Bulk FORGE Reprint maintenance is Admin-only and uses the same validated source,
 generated-path, rendering-lock, storage-budget, and QR-target services as the
 individual workflow. Only one persistent job may be queued or running. Items are
 processed sequentially, and cancellation takes effect after the current file so
-an atomic output replacement is never interrupted deliberately. Active sharing
-targets are preserved; revoked credentials are not stored in jobs or restored.
+an atomic output replacement is never interrupted deliberately. Stable QR targets
+and current per-resource restrictions are preserved.
 
 Job pages expose resource titles and bounded failure descriptions only to Admins.
-They do not store bearer URLs, source contents, or filesystem paths. Unexpected
+They do not store source contents or filesystem paths. Unexpected
 errors use a generic message. Database and generated-output backups should be
 taken while Forge is stopped so job state and derived files are consistent.
 

@@ -52,8 +52,9 @@ will provide one browsable, searchable place to organize and print them.
     when optional external services are unavailable.
 12. **Confirmed:** Security is a primary release requirement. Perform an
     evidence-based OWASP ASVS self-assessment as a future action and before
-    every major release; remind the owner to arrange an independent review
-    at those checkpoints. See [security planning](docs/SECURITY_PLAN.md).
+    every major release. Automated checks and maintainer-led, AI-assisted review
+    are the planned release controls; do not claim independent certification.
+    See [security planning](docs/SECURITY_PLAN.md).
 
 ### Current execution sequence
 
@@ -69,15 +70,15 @@ for the next approved feature.
    categorization workflow, account activation, reverse-proxy HTTPS access,
    and Docker upgrade path. Further exploratory testing remains welcome and
    may produce focused follow-up fixes.
-3. **Current documentation closeout:** Keep account activation, Nginx Proxy
+3. **Completed:** Keep account activation, Nginx Proxy
    Manager, upgrade, category-hint, screenshot, and security guidance aligned
    with the shipped behavior.
-4. **Implemented locally; owner validation next:** The Admin-only bulk FORGE
+4. **Completed and published:** The Admin-only bulk FORGE
    Reprint maintenance utility defined in Milestone D and
    [decision 005](docs/decisions/005-bulk-forge-reprint-maintenance.md).
-5. **Then:** Validate regeneration after application generator changes and
+5. **Completed:** Validate regeneration after application generator changes and
    public/base-URL changes, including preservation of active sharing behavior.
-6. **Then:** Complete release-candidate regression, documentation/screenshot
+6. **Current:** Complete release-candidate regression, documentation/screenshot
    review, security review, and a clean-install/upgrade walkthrough.
 7. **Then:** Publish the next prerelease and triage external beta feedback.
 
@@ -252,7 +253,7 @@ rather than delaying feature progress beforehand.
 
 #### Milestone D — Bulk FORGE Reprint maintenance
 
-**Implemented locally; awaiting owner validation.**
+**Implemented, published, and owner-validated.**
 
 - **Confirmed:** Provide an Admin-only Settings utility with three explicit
   operations: create missing reprints, refresh existing reprints, and create or
@@ -270,7 +271,7 @@ rather than delaying feature progress beforehand.
 - **Confirmed:** Reuse existing rendering locks and file/page/output/free-space/
   derived-storage limits. Process resources sequentially and isolate failures
   so one bad PDF does not abort the full batch.
-- **Completed locally:** Persist validation facts for generated reprints so the
+- **Completed and published:** Persist validation facts for generated reprints so the
   inventory page does not reopen and traverse every PDF on each visit. Existing
   copies are verified and registered once after upgrade.
 - **Confirmed:** Centralize individual and bulk QR-target selection in one

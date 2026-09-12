@@ -1,6 +1,6 @@
 # Bulk FORGE Reprint maintenance
 
-Status: implemented locally; awaiting owner validation.
+Status: implemented, published, and owner-validated.
 
 ## Purpose and placement
 

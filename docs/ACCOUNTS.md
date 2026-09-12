@@ -146,5 +146,5 @@ These security events remain separate from the general Activity History page,
 which points administrators to User Accounts for authentication and account
 changes.
 Authentication-related responses disable browser caching, but downloaded copies
-are outside server control. Perform the planned ASVS-focused and independent
-security reviews before a major release; this feature is not an ASVS certification.
+are outside server control. Perform the planned ASVS-focused, maintainer-led
+security review before a major release; this feature is not ASVS certification.

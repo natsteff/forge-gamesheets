@@ -2,7 +2,8 @@
 
 Date: 2026-09-04. Reviewer: Codex, primary development agent.
 Scope: uncommitted opt-in account/role/QR milestone; not a release certification.
-Owner review and independent security review remain required before publication.
+Owner review and the planned automated and AI-assisted security checks remain
+required before publication. This is not independent certification.
 
 Follow-up: the owner-authorized [deeper account review](ACCOUNTS_DEEP_SECURITY_REVIEW.md)
 records the second AI pass, additional adversarial probes, and outstanding
@@ -49,8 +50,8 @@ owner review. No production deployment, Docker Test upgrade, live authentication
 activation, commit, or publication was performed.
 
 This is a selected-control implementation review, not a complete ASVS assessment.
-Before release, perform the planned independent review and an actual configured
-HTTPS/proxy walkthrough. General traffic limiting, killable native PDF processing,
+Before release, complete the planned maintainer-led security review and an actual
+configured HTTPS/proxy walkthrough. General traffic limiting, killable native PDF processing,
 MFA/SSO, password-breach screening, comprehensive content auditing, and PDF uploads
 remain outside this milestone. Login throttling can temporarily deny legitimate
 access and is not a substitute for network controls. QR links have revocation but

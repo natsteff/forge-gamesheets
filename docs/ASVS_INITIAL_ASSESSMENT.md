@@ -218,6 +218,8 @@ review reminder was delivered during this assessment; no second reviewer ran.
 
 Complete a requirement-level inventory and remaining dynamic/dependency/runtime
 checks before claiming a full ASVS assessment or releasing against that claim.
+An external professional review is not part of the planned release process, and
+this maintainer-led, AI-assisted assessment is not independent certification.
 
 ## Standards references
 
