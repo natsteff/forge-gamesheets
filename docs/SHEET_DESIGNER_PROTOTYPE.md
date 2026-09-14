@@ -1,9 +1,9 @@
-# Sheet Designer prototype
+# Sheet Designer beta boundary
 
-The first Sheet Designer prototype is an intentionally narrow experiment based
-on the approved structured-composer specification and mockup. It proves the
-editing model, standalone boundary, Forge integration, and deterministic PDF
-output before the formal FGS v1 format is designed.
+Sheet Designer is an integrated Forge beta feature based on the approved
+structured-composer specification and mockup. Its current narrow scope proves
+the editing model, standalone boundary, Forge integration, and deterministic
+PDF output before the formal FGS v1 format is designed.
 
 ## Current scope
 
@@ -71,8 +71,9 @@ Open <http://127.0.0.1:8765/sheet-designer>. To retain the draft somewhere
 other than the temporary default, set `FORGE_SHEET_DESIGNER_DATA` to a writable
 development directory before starting the shell.
 
-The integrated prototype appears under **Admin > Sheet Designer** when the
-normal Forge application is running.
+The integrated editor appears as **Sheet Designer** in the main navigation when
+the normal Forge application is running. It remains visible only to Admins while
+document ownership and sharing are undecided.
 
 ## Deferred decisions
 

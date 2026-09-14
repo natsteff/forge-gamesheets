@@ -17,13 +17,15 @@ The configured `data/` directory contains:
 - `forge-gamesheets.db`, including settings, categories, overrides, favorites,
   pins, Recent state, and history
 - Uploaded game artwork
+- Sheet Designer `.fgs` drafts and the active-sheet pointer
 - Generated preview and artwork caches
 - Generated FORGE Reprints and durable bulk-maintenance job history
 
-The generated files and caches can be regenerated, but the database and uploaded
-artwork cannot. The database also records bulk-job progress; stop Forge before a
-filesystem copy so the database and generated outputs represent one consistent
-point in time. Back up the entire directory together.
+The generated files and caches can be regenerated, but the database, uploaded
+artwork, and Sheet Designer drafts cannot. The database also records bulk-job
+progress; stop Forge before a filesystem copy so the database, drafts, and
+generated outputs represent one consistent point in time. Back up the entire
+directory together.
 
 ### Git repository
 
@@ -47,7 +49,7 @@ a failed backup. Verify the result and retain a copy on separate storage.
    confirmed.
 3. Restore both backed-up directories to the paths mounted by Compose.
 4. Start the application.
-5. Confirm games, settings, categories, and artwork appear.
+5. Confirm games, settings, categories, artwork, and Sheet Designer drafts appear.
 6. Run a rescan and verify several PDFs.
 
 ## Before an application upgrade

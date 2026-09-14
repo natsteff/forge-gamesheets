@@ -91,9 +91,10 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
         "users",
         "assign-categories",
         "bgg-manual",
-        "desktop-navigation",
         "reprint-maintenance",
         "activity-history",
+        "sheet-designer",
+        "sheet-designer-open",
     ):
         assert f"docs/images/{name}.png" in images
     for path in images:
@@ -104,6 +105,8 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
     assert "Screenshot refresh pending" not in gallery
     assert "docs/images/settings.png" not in images
     assert "docs/images/forge-reprint.png" not in images
+    assert "docs/images/desktop-navigation.png" not in images
+    assert "docs/images/mobile-navigation.png" not in images
     assert "SCREENSHOTS.md" in gallery
 
 

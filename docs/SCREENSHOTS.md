@@ -2,16 +2,20 @@
 
 ## Current set
 
-Captured September 11, 2026 from the local application at revision
-`6eaab8a-dirty`. The demo uses invented games (Lantern Vale, Pebble Parade,
+Feature screenshots reviewed September 13, 2026. The demo uses invented games
+(Lantern Vale, Pebble Parade,
 Pocket Orchard, Starship Signals), original sample PDFs and simple cover art,
 example-only resource URLs, and disposable demo accounts. It has no BGG token or
 real game association. The build panel correctly says Local development build:
 this was a local source run, not a published-container verification.
 
-The gallery contains library-overview, game-resources, assign-categories,
+The README gallery contains library-overview, game-resources, assign-categories,
 reprint-maintenance, users, bgg-manual, activity-history, settings-build,
-desktop-navigation, and mobile-navigation PNGs in `docs/images/`. The obsolete
+sheet-designer, and sheet-designer-open PNGs in `docs/images/`. The Sheet Designer
+captures were supplied from the integrated local Forge build and show only the
+invented default sheet content. The older desktop-navigation and mobile-navigation
+files remain available for historical comparison but are omitted from the gallery
+because they predate the top-level Sheet Designer link. The obsolete
 `settings.png` and
 `forge-reprint.png` captures were removed when global QR guest access and secure
 token sharing were replaced by public-by-default, per-resource QR restrictions.
@@ -28,14 +32,17 @@ finalized.
    assignments and pinned resources. Leave all passphrase fields empty in captures.
 3. Capture the gallery routes: `/`, `/games/{demo-id}`, `/assign-categories`,
    `/r/{demo-resource-id}`, `/history`, `/settings/reprints`, `/settings`,
-   `/settings/users`, and `/games/{demo-id}/edit`. Discover IDs from the demo;
-   do not assume production IDs.
+   `/settings/users`, `/games/{demo-id}/edit`, and `/sheet-designer`. Discover IDs
+   from the demo; do not assume production IDs. Use an invented or default draft
+   for the designer workspace and Open Sheets captures.
 4. On bulk categories, select games and a category to illustrate the controls;
    no change need be applied. Generate an ordinary demo reprint to show its ready
    state. Do not expose QR links from a live installation. Leave the BGG input
    empty rather than pretending an invented game has a real BGG listing.
-5. Capture the Admin dropdown at desktop width and the open hamburger menu at
-   390 × 844 for the phone view. Restore any temporary viewport override afterward.
+5. Capture desktop and mobile navigation after major navigation changes. Confirm
+   the top-level Sheet Designer link appears for the disposable Admin, capture the
+   open Admin dropdown at desktop width, and capture the open hamburger menu at
+   390 × 844. Restore any temporary viewport override afterward.
 6. Inspect every saved PNG, not just the live browser. Check text, cropping,
    responsive wrapping, loaded fonts/previews, empty password fields, and absence
    of private paths, hostnames, tokens, or real account details. Section crops must
@@ -70,11 +77,11 @@ or GitHub Actions would reduce dependency on interactive tooling. That job is
 **not implemented** by this documentation refresh. Pin the browser/environment
 and use the same synthetic fixture if it is added; images still need human review.
 
-## Refresh verification — September 11, 2026
+## Refresh verification — September 13, 2026
 
-- All ten README gallery images inspected, including the refreshed desktop views
-  and the existing phone navigation capture.
-- Documentation tests: 10 passed. Ruff and `git diff --check`: passed.
-- Full Mac suite: 637 passed, 1 skipped.
+- All ten README gallery images inspected. The two current Sheet Designer images
+  replace the stale navigation-only captures in the public gallery.
+- Documentation and Sheet Designer tests: 24 passed. Full Mac suite: 651 passed,
+  1 skipped. Ruff and `git diff --check`: passed.
 - Only disposable fictional library data and example-only URLs were used. No live
   library, real account details, or guest token was captured.

@@ -109,10 +109,11 @@ solve login problems.
 ## Security limits and review
 
 Navigation groups Games, Quick access, Admin, and Account into desktop dropdowns,
-with History separate. The mobile Menu shows the same permitted groups with
-directly visible links. Admins can open FORGE Reprints, Settings, and User Accounts
-from Admin. Account contains personal account actions. Readers and Contributors
-do not see the Admin menu.
+with Sheet Designer and History as separate top-level links. The mobile Menu shows
+the same permitted groups with directly visible links. Admins can open FORGE
+Reprints, Settings, and User Accounts from Admin and can open the Sheet Designer.
+Account contains personal account actions. Readers and Contributors do not see
+the Admin menu or Sheet Designer.
 
 Passphrases use Argon2id; sessions are random opaque cookies with server-side
 digests. By default, standard sessions have a 12-hour inactivity limit and a

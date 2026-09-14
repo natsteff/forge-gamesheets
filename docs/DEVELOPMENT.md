@@ -26,7 +26,7 @@ Both directories must exist. Their contents are ignored by Git.
 
 ## Sheet Designer development shell
 
-The experimental Sheet Designer can run without the Forge database or PDF
+The Sheet Designer development shell can run without the Forge database or PDF
 library. See [the prototype boundary and known deferrals](SHEET_DESIGNER_PROTOTYPE.md).
 
 ```sh
@@ -34,7 +34,7 @@ library. See [the prototype boundary and known deferrals](SHEET_DESIGNER_PROTOTY
 ```
 
 Open <http://127.0.0.1:8765/sheet-designer>. The normal Forge application also
-exposes the same designer under **Admin > Sheet Designer**.
+exposes the same Admin-only designer through the top-level **Sheet Designer** link.
 
 ## Run checks
 

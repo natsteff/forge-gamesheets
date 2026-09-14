@@ -16,9 +16,10 @@ materials. Similar to Plex or Jellyfin for game documents, it scans your existin
 folder-based library and turns it into a searchable, browsable collection for
 viewing, downloading, and printing.
 
-FORGE GAMESHEETS is in beta, with local library management and optional
-FORGE Reprints available. Core operation does not modify source PDFs, require
-a cloud service, or store PDF contents in its database.
+FORGE GAMESHEETS is in beta, with local library management, optional FORGE
+Reprints, and an integrated Sheet Designer for creating printable game sheets.
+Core operation does not modify source PDFs, require a cloud service, or store
+PDF contents in its database.
 
 ## Available features
 
@@ -29,6 +30,8 @@ a cloud service, or store PDF contents in its database.
 - Optional FORGE Reprint copies with a QR return link and source-rights notice
 - Admin bulk maintenance to create missing, refresh existing, or rebuild all
   eligible FORGE Reprints with durable progress and per-resource results
+- Integrated Sheet Designer with structured headers, score tables, references,
+  checklists, notes, live page preview, local drafts, and PDF or `.fgs` export
 - Editable display titles, document metadata, and game artwork
 - Multiple customizable categories per game
 - Bulk category assignment with filtering, selection, and confirmation before changes
@@ -48,7 +51,7 @@ The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
 ## Screenshots
 
-Screenshots refreshed September 8, 2026, using an invented demonstration library
+Screenshots reviewed September 13, 2026, using an invented demonstration library
 and demo accounts. No private library content or third-party game files are
 included. These views show authentication enabled; available controls depend on
 the signed-in role. Click an image to inspect it at full size.
@@ -62,13 +65,13 @@ the signed-in role. Click an image to inspect it at full size.
 | ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Game editing with official and alternate resource links and manual BoardGameGeek linking](docs/images/bgg-manual.png) |
 | **Activity History** | **Integration and build details** |
 | ![Activity history showing summarized scans, content changes, favorites, pins, and PDF use](docs/images/activity-history.png) | ![Settings showing optional integration status and complete local build identification](docs/images/settings-build.png) |
-| **Grouped desktop navigation** | **Mobile navigation** |
-| ![Admin dropdown with FORGE Reprints, Settings, and User Accounts](docs/images/desktop-navigation.png) | <img src="docs/images/mobile-navigation.png" alt="Phone menu with Games, Quick access, History, Admin, and Account groups" width="200"> |
+| **Sheet Designer** | **Saved sheets and import** |
+| ![Sheet Designer with a compact editing sidebar and live printable-sheet preview](docs/images/sheet-designer.png) | ![Open sheets window with saved drafts, duplication, deletion, and FGS import](docs/images/sheet-designer-open.png) |
 
 The [screenshot maintenance guide](docs/SCREENSHOTS.md) records the capture
-procedure and review requirements. The former Settings and FORGE Reprint images
-were removed after the QR access model changed; refreshed versions should be
-captured from the finalized interface.
+procedure and review requirements. The Sheet Designer views also show its new
+top-level navigation placement. Older navigation-only captures are temporarily
+omitted because they predate that change.
 
 ## Requirements
 
@@ -281,10 +284,30 @@ API enrichment remains a separate, optional feature requiring token configuratio
 
 Desktop navigation groups **Games** (All games, Categories, Assign game categories),
 **Quick access** (Pinned, Favorites, Recently used), **Admin** (FORGE Reprints,
-Settings, User Accounts), and **Account** (My account and Sign out), with
-**History** separate. The logo opens Library home. Mobile Menu shows the same
-permitted groups with visible links. Admin is shown only to Admins; editing options
-follow role permissions. Recently used is hidden when its configured limit is zero.
+Settings, User Accounts), and **Account** (My account and Sign out). **Sheet
+Designer** and **History** are separate top-level links. The logo opens Library
+home. Mobile Menu shows the same permitted groups with visible links. Admin and
+Sheet Designer are shown only to Admins; editing options follow role permissions.
+Recently used is hidden when its configured limit is zero.
+
+### Sheet Designer
+
+Admins can open **Sheet Designer** from the main navigation to create printable
+game sheets without editing a source PDF. The structured editor supports headers,
+score tables, references, checklists, and lined notes; sections may be reordered,
+duplicated, deleted, or paired into two columns. Score rows and checklist items
+are editable, and numbered rows such as Round 1 through Round 10 can be generated
+in one step. Letter and A4 output are available in portrait or landscape, with a
+live single-page preview and overflow warning.
+
+Forge saves each draft automatically under `data/sheet-designer/`. **New** creates
+a separate draft, **Open** manages saved drafts and imports portable `.fgs` files,
+and **Export** downloads either a printable PDF or `.fgs` source file. Designer
+PDFs are not automatically added to the indexed game library; place an exported
+PDF in the appropriate game folder and rescan when you want it managed as a normal
+resource. The current `.fgs` format remains a beta format and may change before a
+formal version 1 specification. See the
+[Sheet Designer boundary and current limitations](docs/SHEET_DESIGNER_PROTOTYPE.md).
 
 ### Bulk FORGE Reprint maintenance
 
@@ -313,8 +336,9 @@ database, uploaded artwork, and regenerable caches. Back up both directories:
 
 - `library/` preserves original PDFs and detected artwork.
 - `data/` preserves titles, categories, favorites, pins, settings, activity,
-  uploaded artwork, accounts, sessions, and QR access settings. Preserve the hidden
-  `.authentication-required` marker with the rest of this directory.
+  uploaded artwork, Sheet Designer drafts, accounts, sessions, and QR access
+  settings. Preserve the hidden `.authentication-required` marker with the rest
+  of this directory.
 
 Stop the application before making a simple filesystem copy of `data/`. See
 [Backup and recovery](docs/BACKUP_AND_RECOVERY.md) before upgrades or migration.
