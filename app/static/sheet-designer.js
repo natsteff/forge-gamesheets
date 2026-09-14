@@ -80,6 +80,8 @@
   }
 
   function structure() {
+    const sectionCount = model.rows.reduce((count, row) => count + row.blocks.length, 0);
+    $("section-count").textContent = `${sectionCount} section${sectionCount === 1 ? "" : "s"}`;
     $("structure-list").innerHTML = model.rows.map((row, rowIndex) => row.blocks.map((block) => `
       <div class="designer-structure-item${selected === block.id ? " is-selected" : ""}" draggable="true" data-block-id="${block.id}" data-row-index="${rowIndex}">
         <button type="button" class="designer-section-select" data-select="${block.id}">

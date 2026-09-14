@@ -203,6 +203,9 @@ def test_designer_appears_as_native_forge_admin_feature(tmp_path: Path):
         saved = client.post("/sheet-designer/document", json=expedition_document())
 
     assert ">Sheet Designer</a>" in home.text
+    assert home.text.index(">Sheet Designer</a>") < home.text.index(">History</a>")
+    admin_links = home.text.split('id="nav-admin"', 1)[1].split("</div>", 1)[0]
+    assert "Sheet Designer" not in admin_links
     assert page.status_code == 200
     assert "site-header" in page.text
     assert saved.status_code == 200
@@ -246,3 +249,20 @@ def test_designer_controls_reuse_forge_form_tokens():
     assert 'textarea[data-list="score_rows"] { min-height: 10rem; }' in styles
     assert ".page-shell:has(.designer-app) { width: 100%" in styles
     assert "z-index: 100" in styles
+
+
+def test_designer_uses_one_collapsible_scrolling_tool_sidebar():
+    root = Path(__file__).parents[1]
+    template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
+    styles = (root / "app/static/styles.css").read_text()
+    script = (root / "app/static/sheet-designer.js").read_text()
+    assert '<aside class="designer-tools"' in template
+    assert '<details class="designer-structure" open>' in template
+    assert "data-section-count" in template
+    structure_position = template.index('class="designer-structure"')
+    properties_position = template.index('class="designer-properties"')
+    preview_position = template.index('class="designer-canvas-shell"')
+    assert structure_position < properties_position < preview_position
+    assert "grid-template-columns: minmax(20rem, 23rem) minmax(32rem, 1fr)" in styles
+    assert "overflow-y: auto" in styles
+    assert '$("section-count").textContent' in script

@@ -24,10 +24,12 @@
   </header>
 
   <div class="designer-workspace">
-    <aside class="designer-structure" aria-label="Sheet structure">
-      <h2>Sheet structure</h2>
-      <p>Drag or use the arrow buttons to reorder sections.</p>
-      <div data-structure-list></div>
+    <aside class="designer-tools" aria-label="Sheet editing tools">
+      <details class="designer-structure" open>
+        <summary><span>Sheet structure</span><small data-section-count></small></summary>
+        <p>Drag or use the arrow buttons to reorder sections.</p>
+        <div data-structure-list></div>
+      </details>
       <div class="designer-add-section">
         <label for="designer-section-type">Section type</label>
         <div>
@@ -41,6 +43,11 @@
           <button class="primary-button" data-add-block type="button">＋ Add section</button>
         </div>
       </div>
+
+      <section class="designer-properties" aria-label="Section properties">
+        <h2 data-properties-title>Section</h2>
+        <div data-properties-panel><p>Select a section to edit it.</p></div>
+      </section>
     </aside>
 
     <section class="designer-canvas-shell" aria-label="Sheet preview">
@@ -53,11 +60,6 @@
       <div class="designer-message" data-message role="alert" hidden></div>
       <div class="sheet-preview" data-sheet-preview></div>
     </section>
-
-    <aside class="designer-properties" aria-label="Section properties">
-      <h2 data-properties-title>Section</h2>
-      <div data-properties-panel><p>Select a section to edit it.</p></div>
-    </aside>
   </div>
 
   <dialog class="designer-dialog" data-new-dialog>
