@@ -95,6 +95,15 @@ def test_published_runtime_excludes_development_stage() -> None:
     assert "target: runtime" in workflow
 
 
+def test_base_image_installs_current_debian_security_updates() -> None:
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text()
+    update = dockerfile.index("apt-get update")
+    upgrade = dockerfile.index("apt-get upgrade --yes")
+    cleanup = dockerfile.index("rm -rf /var/lib/apt/lists/*")
+    application_install = dockerfile.index("pip install --no-cache-dir .")
+    assert update < upgrade < cleanup < application_install
+
+
 def test_proxy_trust_is_explicit_and_not_wildcard() -> None:
     compose = (PROJECT_ROOT / "compose.yml").read_text()
     assert (
