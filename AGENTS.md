@@ -16,10 +16,10 @@ Read `PROJECT_PLAN.md` before making product or architecture changes.
 - Use `compose.yml`; do not introduce alternate Compose filenames.
 - Do not deploy to production unless explicitly requested.
 - Before every major release, follow `docs/SECURITY_PLAN.md`: perform and
-  record an OWASP ASVS self-assessment and explicitly remind the owner to
-  arrange an independent review. These are release checkpoints, not a claim
-  of certification. Do not implement future authentication or uploads without
-  reviewing the plan with the owner and obtaining approval.
+  record the maintainer-led, AI-assisted OWASP ASVS self-assessment. These are
+  release checkpoints, not a claim of independent certification. Do not
+  implement future authentication or uploads without reviewing the plan with
+  the owner and obtaining approval.
 
 ## Before finishing a change
 
