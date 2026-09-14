@@ -81,6 +81,11 @@ for the next approved feature.
 6. **Current:** Complete release-candidate regression, documentation/screenshot
    review, security review, and a clean-install/upgrade walkthrough.
 7. **Then:** Publish the next prerelease and triage external beta feedback.
+8. **Experimental carveout:** Evaluate the narrow Sheet Designer prototype
+   without treating its JSON `0.1-prototype` files as the formal FGS v1 format.
+   Keep its model, persistence, and renderer portable between a standalone
+   development shell and the native Admin integration. See
+   [the prototype boundary](docs/SHEET_DESIGNER_PROTOTYPE.md).
 
 ## 4. Filesystem convention
 

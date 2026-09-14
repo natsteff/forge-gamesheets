@@ -16,7 +16,7 @@
       sizes="180x180"
       href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
     >
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=38">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=39">
     <script src="{{ url_for('static', path='/app.js') }}?v=8" defer></script>
     {% block head %}{% endblock %}
   </head>
@@ -62,6 +62,7 @@
         <span class="nav-heading">Admin</span>
         <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-admin" hidden>Admin <span aria-hidden="true">▾</span></button>
         <div class="nav-group-links" id="nav-admin">
+        <a href="{{ url_for('sheet_designer') }}"{% if request.url.path.startswith("/sheet-designer") %} aria-current="page"{% endif %}>Sheet Designer</a>
         <a href="{{ url_for('reprint_maintenance') }}"{% if request.url.path.startswith("/settings/reprints") %} aria-current="page"{% endif %}>FORGE Reprints</a>
         <a href="{{ url_for('settings_home') }}"{% if request.url.path == "/settings" %} aria-current="page"{% endif %}>Settings</a>
         {% if request.state.user %}<a href="{{ url_for('accounts_home') }}"{% if request.url.path == "/settings/users" %} aria-current="page"{% endif %}>User Accounts</a>{% endif %}

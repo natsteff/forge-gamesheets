@@ -1,0 +1,88 @@
+<div class="designer-app" data-designer-app data-standalone="{{ 'true' if standalone else 'false' }}">
+  <header class="designer-bar">
+    {% if standalone %}
+    <a class="designer-brand" href="/sheet-designer" aria-label="Forge GameSheets Sheet Designer">
+      <img src="{{ url_for('static', path='/brand/forge-wordmark.png') }}" alt="Forge GameSheets">
+    </a>
+    {% else %}
+    <div>
+      <p class="eyebrow">Experimental prototype</p>
+      <h1>Sheet Designer</h1>
+    </div>
+    {% endif %}
+    <label class="designer-title">Sheet title
+      <input data-document-title maxlength="160" aria-label="Sheet title">
+    </label>
+    <p class="designer-status" data-save-status role="status">Loading…</p>
+    <div class="designer-actions">
+      <button class="secondary-button" data-new-sheet type="button">New sheet</button>
+      <button class="secondary-button" data-open-sheets type="button">Open sheets</button>
+      <label class="secondary-button designer-import">Import .fgs<input data-import-file type="file" accept=".fgs,application/json"></label>
+      <a class="secondary-button" data-export-fgs href="/sheet-designer/export.fgs">Export .fgs</a>
+      <a class="primary-button" data-export-pdf href="/sheet-designer/export.pdf">Export PDF</a>
+    </div>
+  </header>
+
+  <div class="designer-workspace">
+    <aside class="designer-structure" aria-label="Sheet structure">
+      <h2>Sheet structure</h2>
+      <p>Drag or use the arrow buttons to reorder sections.</p>
+      <div data-structure-list></div>
+      <div class="designer-add-section">
+        <label for="designer-section-type">Section type</label>
+        <div>
+          <select id="designer-section-type" data-section-type>
+            <option value="header">Header</option>
+            <option value="score_table">Score table</option>
+            <option value="reference">Reference</option>
+            <option value="checklist">Checklist</option>
+            <option value="notes" selected>Notes</option>
+          </select>
+          <button class="primary-button" data-add-block type="button">＋ Add section</button>
+        </div>
+      </div>
+    </aside>
+
+    <section class="designer-canvas-shell" aria-label="Sheet preview">
+      <div class="designer-toolbar">
+        <label>Page <select data-page-size><option value="letter">Letter</option><option value="a4">A4</option></select></label>
+        <label>Orientation <select data-orientation><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+        <button class="secondary-button" data-undo type="button" aria-label="Undo">↶ Undo</button>
+        <button class="secondary-button" data-redo type="button" aria-label="Redo">↷ Redo</button>
+      </div>
+      <div class="designer-message" data-message role="alert" hidden></div>
+      <div class="sheet-preview" data-sheet-preview></div>
+    </section>
+
+    <aside class="designer-properties" aria-label="Section properties">
+      <h2 data-properties-title>Section</h2>
+      <div data-properties-panel><p>Select a section to edit it.</p></div>
+    </aside>
+  </div>
+
+  <dialog class="designer-dialog" data-new-dialog>
+    <form data-new-form>
+      <div class="designer-dialog-heading">
+        <div><p class="eyebrow">Sheet workspace</p><h2>New sheet</h2></div>
+        <button class="designer-dialog-close" data-close-new type="button" aria-label="Close">×</button>
+      </div>
+      <label>Sheet title<input data-new-title required maxlength="160" value="Untitled Game Sheet"></label>
+      <div class="designer-dialog-fields">
+        <label>Page size<select data-new-size><option value="letter">Letter</option><option value="a4">A4</option></select></label>
+        <label>Orientation<select data-new-orientation><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+      </div>
+      <div class="designer-dialog-actions">
+        <button class="secondary-button" data-cancel-new type="button">Cancel</button>
+        <button class="primary-button" type="submit">Create sheet</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="designer-dialog designer-library-dialog" data-open-dialog>
+    <div class="designer-dialog-heading">
+      <div><p class="eyebrow">Sheet workspace</p><h2>Open sheets</h2></div>
+      <button class="designer-dialog-close" data-close-open type="button" aria-label="Close">×</button>
+    </div>
+    <div class="designer-sheet-list" data-sheet-list></div>
+  </dialog>
+</div>

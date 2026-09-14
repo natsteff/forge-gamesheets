@@ -24,6 +24,18 @@ The Compose service mounts:
 
 Both directories must exist. Their contents are ignored by Git.
 
+## Sheet Designer development shell
+
+The experimental Sheet Designer can run without the Forge database or PDF
+library. See [the prototype boundary and known deferrals](SHEET_DESIGNER_PROTOTYPE.md).
+
+```sh
+.venv/bin/uvicorn app.sheet_designer.standalone:app --reload --port 8765
+```
+
+Open <http://127.0.0.1:8765/sheet-designer>. The normal Forge application also
+exposes the same designer under **Admin > Sheet Designer**.
+
 ## Run checks
 
 From the repository directory, run:

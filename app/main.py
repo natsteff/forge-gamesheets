@@ -23,6 +23,8 @@ from app.security import (
     LimitedRequestBodies,
     SameOriginMutations,
 )
+from app.sheet_designer.storage import FileDraftStore
+from app.sheet_designer.web import router as sheet_designer_router
 from app.web import router as web_router
 
 
@@ -51,6 +53,9 @@ def create_app(
             record_scan(database, issue_count=len(scan_result.issues))
         application.state.settings = validated
         application.state.database = database
+        application.state.sheet_designer_store = FileDraftStore(
+            validated.data_path / "sheet-designer"
+        )
         yield
 
     identity = build_info or BuildInfo.from_environment()
@@ -76,12 +81,19 @@ def create_app(
 
     application.include_router(account_router)
     application.include_router(reprint_router)
+    application.include_router(sheet_designer_router)
+    from app.web import templates
+
+    application.state.sheet_designer_templates = templates
+    application.state.sheet_designer_template = "sheet_designer.html"
+    application.state.sheet_designer_standalone = False
     # Match the declared leaf routes, independent of FastAPI's lazy include
     # wrappers. Unknown/new app routes still default to Admin in AccessControl.
     application.state.access_routes = [
         *web_router.routes,
         *account_router.routes,
         *reprint_router.routes,
+        *sheet_designer_router.routes,
     ]
     logger = logging.getLogger("uvicorn.access")
     if not any(isinstance(item, RedactSharingLinks) for item in logger.filters):
