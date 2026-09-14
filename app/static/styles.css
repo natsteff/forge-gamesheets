@@ -74,6 +74,8 @@ a { color: inherit; }
 }
 
 .site-header {
+  position: relative;
+  z-index: 100;
   border-bottom: 1px solid var(--line);
   background: rgb(247 244 237 / 88%);
   backdrop-filter: blur(12px);
@@ -863,7 +865,7 @@ input[type="checkbox"] {
 }
 
 /* Experimental Sheet Designer: isolated names keep the module portable. */
-.page-shell:has(.designer-app) { max-width: none; padding: 0; }
+.page-shell:has(.designer-app) { width: 100%; max-width: none; margin-inline: 0; padding: 0; }
 .designer-standalone { margin: 0; color: var(--ink); background: var(--paper); }
 .designer-app { min-height: calc(100vh - 7rem); background: var(--paper); }
 .designer-bar {

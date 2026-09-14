@@ -244,3 +244,5 @@ def test_designer_controls_reuse_forge_form_tokens():
     assert "background: var(--surface)" in styles
     assert "font-weight: 400" in styles
     assert 'textarea[data-list="score_rows"] { min-height: 10rem; }' in styles
+    assert ".page-shell:has(.designer-app) { width: 100%" in styles
+    assert "z-index: 100" in styles
