@@ -190,9 +190,7 @@ def create_job(database: Database, data_path: Path, operation: str) -> int:
                 "INSERT INTO reprint_jobs(operation) VALUES (?)", (operation,)
             ).lastrowid
             for row in _resources(database):
-                exists = bool(
-                    (path := _stored_path(data_path, row)) and path.is_file()
-                )
+                exists = bool((path := _stored_path(data_path, row)) and path.is_file())
                 if operation == "create_missing" and exists:
                     continue
                 if operation == "refresh_existing" and not exists:

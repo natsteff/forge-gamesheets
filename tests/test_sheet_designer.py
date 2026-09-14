@@ -12,7 +12,13 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import create_app
 from app.sheet_designer.commands import delete_block, move_row
-from app.sheet_designer.model import DocumentValidationError, normalize_document
+from app.sheet_designer.model import (
+    FORMAT_VERSION,
+    PROTOTYPE_VERSION,
+    DocumentValidationError,
+    migrate_document,
+    normalize_document,
+)
 from app.sheet_designer.rendering import PAGE_SIZES, PageOverflowError, render_pdf
 from app.sheet_designer.sample import expedition_document
 from app.sheet_designer.standalone import create_standalone_app
@@ -56,24 +62,82 @@ def test_workspace_migrates_the_original_single_draft(tmp_path: Path):
     root = tmp_path / "designer"
     root.mkdir()
     legacy = expedition_document()
+    legacy["format_version"] = PROTOTYPE_VERSION
     legacy["title"] = "Recovered draft"
     (root / "current.fgs").write_text(json.dumps(legacy))
 
     store = FileDraftStore(root)
     assert store.load()["title"] == "Recovered draft"
+    assert store.load()["format_version"] == FORMAT_VERSION
     assert store.path.parent == root / "drafts"
 
 
-def test_untrusted_fgs_requires_prototype_version_and_unique_ids():
+def test_workspace_backs_up_prototype_before_in_place_migration(tmp_path: Path):
+    root = tmp_path / "designer"
+    drafts = root / "drafts"
+    drafts.mkdir(parents=True)
+    prototype = json.loads(
+        (Path(__file__).parent / "fixtures/fgs/prototype-valid.fgs").read_text()
+    )
+    path = drafts / "prototype-sheet.fgs"
+    path.write_text(json.dumps(prototype))
+    (root / "current").write_text("prototype-sheet\n")
+    store = FileDraftStore(root)
+    assert store.load()["format_version"] == FORMAT_VERSION
+    assert path.with_suffix(".fgs.v0.1-prototype.bak").is_file()
+
+
+def test_untrusted_fgs_requires_supported_version_and_unique_ids():
     document = expedition_document()
-    document["format_version"] = "1"
-    with pytest.raises(DocumentValidationError, match="0.1-prototype"):
+    document["format_version"] = "2.0"
+    with pytest.raises(DocumentValidationError, match="1.0"):
         normalize_document(document)
 
     document = expedition_document()
     document["rows"][1]["blocks"][0]["id"] = "header-main"
     with pytest.raises(DocumentValidationError, match="Duplicate"):
         normalize_document(document)
+
+
+def test_prototype_migrates_and_v1_preserves_extensions():
+    prototype = expedition_document()
+    prototype["format_version"] = PROTOTYPE_VERSION
+    migrated = migrate_document(prototype)
+    assert migrated["format_version"] == FORMAT_VERSION
+    migrated["extensions"] = {"com.example.editor": {"grid": True}}
+    migrated["rows"][0]["extensions"] = {"com.example.layout": "locked"}
+    assert normalize_document(migrated)["extensions"] == migrated["extensions"]
+    assert normalize_document(migrated)["rows"][0]["extensions"] == {
+        "com.example.layout": "locked"
+    }
+
+
+def test_v1_rejects_unknown_properties_instead_of_discarding_them():
+    document = expedition_document()
+    document["web_app_only"] = True
+    with pytest.raises(DocumentValidationError, match="Unknown document property"):
+        normalize_document(document)
+
+
+def test_workspace_identity_is_separate_from_document_id(tmp_path: Path):
+    store = FileDraftStore(tmp_path / "designer")
+    workspace_id = store.list_documents()["current_id"]
+    imported = expedition_document()
+    imported["id"] = "portable-shared-id"
+    assert store.save(imported)["id"] == "portable-shared-id"
+    assert store.list_documents()["current_id"] == workspace_id
+    assert store.path.stem == workspace_id
+
+
+def test_fgs_conformance_fixtures():
+    fixtures = Path(__file__).parent / "fixtures" / "fgs"
+    valid = json.loads((fixtures / "v1-valid-minimal.fgs").read_text())
+    prototype = json.loads((fixtures / "prototype-valid.fgs").read_text())
+    invalid = json.loads((fixtures / "v1-invalid-unknown-property.fgs").read_text())
+    assert normalize_document(valid) == valid
+    assert migrate_document(prototype)["format_version"] == FORMAT_VERSION
+    with pytest.raises(DocumentValidationError, match="Unknown document property"):
+        normalize_document(invalid)
 
 
 def test_keyboard_equivalent_commands_move_and_delete_sections():
@@ -142,12 +206,18 @@ def test_pdf_rejects_overflow_instead_of_clipping(tmp_path: Path):
 
 def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Path):
     app = create_standalone_app(tmp_path / "standalone")
-    with TestClient(app) as client:
+    with TestClient(
+        app,
+        base_url="http://localhost",
+        headers={"Origin": "http://localhost"},
+    ) as client:
         page = client.get("/sheet-designer")
         assert page.status_code == 200
         assert "Sheet structure" in page.text
         assert "sheet-designer.js" in page.text
         assert "/static/brand/forge-wordmark.png" in page.text
+        assert client.get("/").url.path == "/sheet-designer"
+        assert client.get("/health").json()["mode"] == "designer"
 
         document = client.get("/sheet-designer/document").json()
         document["title"] = "Standalone Test"
@@ -160,6 +230,12 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         )
         assert pdf.status_code == 200
         assert pdf.content.startswith(b"%PDF")
+
+        prototype = expedition_document()
+        prototype["format_version"] = PROTOTYPE_VERSION
+        migrated = client.post("/sheet-designer/document", json=prototype)
+        assert migrated.status_code == 200
+        assert migrated.json()["format_version"] == FORMAT_VERSION
 
         created = client.post(
             "/sheet-designer/documents",
@@ -189,7 +265,7 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         assert deleted.status_code == 200
 
 
-def test_designer_appears_as_native_forge_admin_feature(tmp_path: Path):
+def test_designer_appears_as_native_forge_contributor_feature(tmp_path: Path):
     library = tmp_path / "library"
     data = tmp_path / "data"
     library.mkdir()
@@ -271,4 +347,4 @@ def test_designer_uses_one_collapsible_scrolling_tool_sidebar():
     assert "grid-template-columns: minmax(20rem, 23rem) minmax(32rem, 1fr)" in styles
     assert "overflow-y: auto" in styles
     assert '$("section-count").textContent' in script
-    assert 'summary::after' in styles
+    assert "summary::after" in styles

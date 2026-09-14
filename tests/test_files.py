@@ -24,9 +24,7 @@ def test_resolves_regular_pdf_beneath_library(tmp_path: Path) -> None:
     "relative_path",
     ["../outside.pdf", "/absolute/outside.pdf", "Game/../../outside.pdf"],
 )
-def test_rejects_paths_outside_library(
-    tmp_path: Path, relative_path: str
-) -> None:
+def test_rejects_paths_outside_library(tmp_path: Path, relative_path: str) -> None:
     library = tmp_path / "library"
     library.mkdir()
 

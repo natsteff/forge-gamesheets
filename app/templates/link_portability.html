@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% macro import_review(preview, source, token, policy) %}
+  <section class="settings-section metadata-portability-section metadata-portability-review" id="import-review" aria-labelledby="import-review-heading">
+    <div class="settings-heading">
+      <div>
+        <p class="eyebrow">Review only</p>
+        <h2 id="import-review-heading" tabindex="-1">{{ source }} results</h2>
+      </div>
+    </div>
+    <p class="status-banner warning" role="status"><strong>No changes have been made yet.</strong>
+      {% if preview.add + preview.replace %}Review the results, then confirm the import below.{% else %}This import would not add or replace any metadata.{% endif %}
+    </p>
+    <p><strong>Selected policy:</strong> {% if policy == "replace" %}Replace recognized fields{% else %}Fill empty fields{% endif %}</p>
+    <dl class="maintenance-summary metadata-portability-summary">
+      <div><dt>Add</dt><dd>{{ preview.add }}</dd></div>
+      <div><dt>Replace</dt><dd>{{ preview.replace }}</dd></div>
+      <div><dt>Unchanged</dt><dd>{{ preview.unchanged }}</dd></div>
+      <div><dt>Skipped or unmatched</dt><dd>{{ preview.skipped }}</dd></div>
+    </dl>
+    {% if preview.add + preview.replace %}
+      <form method="post" action="{{ url_for('link_import_apply') }}">
+        <input type="hidden" name="token" value="{{ token }}">
+        <button class="primary-button" type="submit">Confirm and apply import</button>
+      </form>
+    {% else %}
+      <p class="settings-note"><strong>Nothing needs to be applied.</strong> Existing metadata already matches this export, or the selected policy preserves the existing values.</p>
+    {% endif %}
+  </section>
+{% endmacro %}
+
+{% block title %}Metadata portability · Forge GameSheets{% endblock %}
+
+{% block content %}
+  <section class="page-intro compact-intro">
+    <p class="eyebrow">Admin utility</p>
+    <h1>Metadata portability</h1>
+    <p>Export or deliberately restore game links and uploaded artwork without changing the read-only PDF library.</p>
+  </section>
+
+  {% if request.query_params.get('imported') %}<p class="status-banner success" role="status">Imported {{ request.query_params.get('imported') }} metadata fields.</p>{% endif %}
+  {% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}
+
+  <section class="settings-section metadata-portability-section">
+    <div class="settings-heading"><div><p class="eyebrow">Portable copy</p><h2>Export game metadata</h2></div></div>
+    <p>Download one temporary ZIP containing uploaded game artwork, a complete metadata manifest, and Windows .url and macOS .webloc shortcuts. Forge does not retain the ZIP.</p>
+    <a class="primary-button" href="{{ url_for('link_portability_export') }}">Download metadata export</a>
+  </section>
+
+  <section class="settings-section metadata-portability-section">
+    <div class="settings-heading"><div><p class="eyebrow">Recommended restore method</p><h2>Import a Forge metadata export</h2></div></div>
+    <p>Restore links, their descriptions, BGG associations, uploaded artwork, and source-folder relationships from a Forge export.</p>
+    <form class="metadata-form settings-form" method="post" enctype="multipart/form-data" action="{{ url_for('link_manifest_preview') }}">
+      <label for="metadata-export-file">Forge metadata ZIP or manifest JSON</label>
+      <input id="metadata-export-file" type="file" name="export_file" accept="application/zip,application/json,.zip,.json" required>
+      <label for="manifest-policy">Import policy</label>
+      <select id="manifest-policy" name="policy"><option value="empty">Fill empty fields</option><option value="replace">Replace recognized fields</option></select>
+      <button class="primary-button" type="submit">Review metadata import</button>
+    </form>
+  </section>
+
+  {% if preview and source == "Forge metadata export" %}{{ import_review(preview, source, token, policy) }}{% endif %}
+
+  <section class="settings-section metadata-portability-section">
+    <div class="settings-heading"><div><p class="eyebrow">Folder-based link discovery / alternative recovery</p><h2>Scan library shortcut files</h2></div></div>
+    <p>Search game folders for compatible Windows .url and macOS .webloc shortcuts. Use this for an initial link import from folder-based shortcuts or when a Forge manifest is unavailable. URLs can be discovered, but uploaded artwork and original descriptions cannot.</p>
+    <form class="metadata-form settings-form" method="post" action="{{ url_for('link_scan_preview') }}">
+      <label for="shortcut-policy">Import policy</label>
+      <select id="shortcut-policy" name="policy"><option value="empty">Fill empty fields</option><option value="replace">Replace recognized fields</option></select>
+      <button class="primary-button" type="submit">Scan and review shortcuts</button>
+    </form>
+  </section>
+
+  {% if preview and source == "Library shortcut scan" %}{{ import_review(preview, source, token, policy) }}{% endif %}
+{% endblock %}

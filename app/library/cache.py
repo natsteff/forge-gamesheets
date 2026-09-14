@@ -24,9 +24,7 @@ class CacheCleanupSummary:
     generated_reprints_removed: int = 0
 
 
-def cleanup_managed_files(
-    database: Database, data_path: Path
-) -> CacheCleanupSummary:
+def cleanup_managed_files(database: Database, data_path: Path) -> CacheCleanupSummary:
     """Remove only recognized managed files that are absent from the live index."""
     with database.connect() as connection:
         resources = connection.execute(

@@ -50,9 +50,7 @@ def reprint_library(tmp_path):
     return database, library, data
 
 
-def test_inventory_backfills_once_then_uses_registry(
-    reprint_library, monkeypatch
-):
+def test_inventory_backfills_once_then_uses_registry(reprint_library, monkeypatch):
     database, library, data = reprint_library
     with database.connect() as connection:
         resources = connection.execute(
@@ -72,8 +70,7 @@ def test_inventory_backfills_once_then_uses_registry(
     assert (summary.total, summary.current, summary.missing) == (2, 1, 1)
     with database.connect() as connection:
         registered = connection.execute(
-            "SELECT resource_id, generator_version, target_url "
-            "FROM generated_reprints"
+            "SELECT resource_id, generator_version, target_url FROM generated_reprints"
         ).fetchone()
     assert registered["resource_id"] == resources[0]["id"]
     assert registered["target_url"].endswith(f"/r/{resources[0]['id']}")
@@ -115,20 +112,17 @@ def test_bulk_job_uses_stable_resource_target_and_isolates_missing_source(
     assert job["status"] == "completed"
     assert job["counts"] == {"completed": 1, "skipped": 1}
     assert job["failures"][0]["detail"] == "Source PDF is unavailable."
-    generated = next(
-        (data / "generated").glob(f"resource-{resources[0]['id']}-*.pdf")
-    )
+    generated = next((data / "generated").glob(f"resource-{resources[0]['id']}-*.pdf"))
     with fitz.open(generated) as document:
         assert f"/r/{resources[0]['id']}" in document.metadata["subject"]
     with database.connect() as connection:
-        assert connection.execute(
-            "SELECT count(*) FROM generated_reprints"
-        ).fetchone()[0] == 1
+        assert (
+            connection.execute("SELECT count(*) FROM generated_reprints").fetchone()[0]
+            == 1
+        )
 
 
-def test_large_registered_inventory_never_opens_generated_pdfs(
-    tmp_path, monkeypatch
-):
+def test_large_registered_inventory_never_opens_generated_pdfs(tmp_path, monkeypatch):
     data = tmp_path / "data"
     data.mkdir()
     database = Database.in_data_directory(data)

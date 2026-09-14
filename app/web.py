@@ -854,8 +854,11 @@ async def game_edit_save(request: Request, game_id: int) -> RedirectResponse:
     save_game_title_override(_database(request), game_id, title=title)
     save_game_categories(_database(request), game_id, category_ids=category_ids)
     record_activity(
-        _database(request), "game_edited", title,
-        detail="Game entry edited.", game_id=game_id,
+        _database(request),
+        "game_edited",
+        title,
+        detail="Game entry edited.",
+        game_id=game_id,
     )
     return RedirectResponse(url=f"/games/{game_id}", status_code=303)
 
@@ -890,8 +893,11 @@ async def game_links_save(request: Request, game_id: int) -> RedirectResponse:
             url=f"/games/{game_id}/edit?links_error=invalid", status_code=303
         )
     record_activity(
-        _database(request), "game_links_edited", game.title,
-        detail="Game resource links updated.", game_id=game_id,
+        _database(request),
+        "game_links_edited",
+        game.title,
+        detail="Game resource links updated.",
+        game_id=game_id,
     )
     return RedirectResponse(
         url=f"/games/{game_id}/edit?links_status=saved", status_code=303
@@ -909,8 +915,11 @@ def game_reset(request: Request, game_id: int) -> RedirectResponse:
         raise HTTPException(status_code=404, detail="Game not found")
     reset_game_title_override(_database(request), game_id)
     record_activity(
-        _database(request), "game_reset", game.title,
-        detail="Game title restored to scanned metadata.", game_id=game_id,
+        _database(request),
+        "game_reset",
+        game.title,
+        detail="Game title restored to scanned metadata.",
+        game_id=game_id,
     )
     return RedirectResponse(url=f"/games/{game_id}", status_code=303)
 
@@ -964,8 +973,11 @@ async def game_artwork_upload(
     save_game_artwork_override(_database(request), artwork)
     game = get_game(_database(request), game_id)
     record_activity(
-        _database(request), "artwork_updated", game.title,
-        detail="Custom artwork uploaded.", game_id=game_id,
+        _database(request),
+        "artwork_updated",
+        game.title,
+        detail="Custom artwork uploaded.",
+        game_id=game_id,
     )
     return RedirectResponse(url=f"/games/{game_id}/edit", status_code=303)
 
@@ -983,8 +995,11 @@ def game_artwork_reset(request: Request, game_id: int) -> RedirectResponse:
     delete_uploaded_artwork(request.app.state.settings.data_path, artwork)
     game = get_game(_database(request), game_id)
     record_activity(
-        _database(request), "artwork_reset", game.title,
-        detail="Custom artwork removed.", game_id=game_id,
+        _database(request),
+        "artwork_reset",
+        game.title,
+        detail="Custom artwork removed.",
+        game_id=game_id,
     )
     return RedirectResponse(url=f"/games/{game_id}/edit", status_code=303)
 
@@ -1061,8 +1076,11 @@ async def game_bgg_select(request: Request, game_id: int) -> RedirectResponse:
     )
     save_bgg_association(_database(request), association)
     record_activity(
-        _database(request), "bgg_link_updated", game.title,
-        detail="BoardGameGeek link updated.", game_id=game_id,
+        _database(request),
+        "bgg_link_updated",
+        game.title,
+        detail="BoardGameGeek link updated.",
+        game_id=game_id,
     )
     return _game_edit_redirect(game_id, bgg_status="linked")
 
@@ -1088,8 +1106,11 @@ def game_bgg_retry(request: Request, game_id: int) -> RedirectResponse:
         force=True,
     )
     record_activity(
-        _database(request), "bgg_link_updated", game.title,
-        detail="BoardGameGeek lookup refreshed.", game_id=game_id,
+        _database(request),
+        "bgg_link_updated",
+        game.title,
+        detail="BoardGameGeek lookup refreshed.",
+        game_id=game_id,
     )
     return _game_edit_redirect(game_id, bgg_status=association.match_state.value)
 
@@ -1138,8 +1159,11 @@ async def game_bgg_manual(request: Request, game_id: int):
         ),
     )
     record_activity(
-        _database(request), "bgg_link_updated", game.title,
-        detail="BoardGameGeek link updated.", game_id=game_id,
+        _database(request),
+        "bgg_link_updated",
+        game.title,
+        detail="BoardGameGeek link updated.",
+        game_id=game_id,
     )
     return _game_edit_redirect(game_id, bgg_status="manual-linked")
 
@@ -1156,8 +1180,11 @@ def game_bgg_unlink(request: Request, game_id: int) -> RedirectResponse:
         raise HTTPException(status_code=404, detail="Game not found")
     delete_bgg_association(_database(request), game_id)
     record_activity(
-        _database(request), "bgg_link_removed", game.title,
-        detail="BoardGameGeek link removed.", game_id=game_id,
+        _database(request),
+        "bgg_link_removed",
+        game.title,
+        detail="BoardGameGeek link removed.",
+        game_id=game_id,
     )
     return _game_edit_redirect(game_id, bgg_status="unlinked")
 
@@ -1193,7 +1220,9 @@ async def game_bgg_lookup_toggle(request: Request, game_id: int) -> RedirectResp
     )
     save_bgg_association(_database(request), association)
     record_activity(
-        _database(request), "bgg_lookup_updated", game.title,
+        _database(request),
+        "bgg_lookup_updated",
+        game.title,
         detail=(
             "BoardGameGeek lookup enabled."
             if enabled
@@ -1319,9 +1348,7 @@ def resource_qr_reprint(request: Request, resource_id: int):
     return _qr_file(request, resource_id, generated=True)
 
 
-@router.post(
-    "/resources/{resource_id}/qr-access", name="resource_qr_policy_save"
-)
+@router.post("/resources/{resource_id}/qr-access", name="resource_qr_policy_save")
 async def resource_qr_policy_save(request: Request, resource_id: int):
     resource = get_resource(_database(request), resource_id)
     form = await request.form()

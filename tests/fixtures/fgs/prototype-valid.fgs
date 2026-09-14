@@ -1,0 +1,9 @@
+{
+  "format": "forge-gamesheets",
+  "format_version": "0.1-prototype",
+  "id": "prototype-sheet",
+  "page": {"orientation": "portrait", "size": "letter"},
+  "rows": [{"id": "row-notes", "blocks": [{"id": "notes-main", "type": "notes", "title": "Notes", "lines": 5}]}],
+  "theme": {"accent": "#c84b24"},
+  "title": "Prototype Sheet"
+}

@@ -34,7 +34,8 @@ library. See [the prototype boundary and known deferrals](SHEET_DESIGNER_PROTOTY
 ```
 
 Open <http://127.0.0.1:8765/sheet-designer>. The normal Forge application also
-exposes the same Admin-only designer through the top-level **Sheet Designer** link.
+exposes the same shared Designer to Admins and Contributors through the top-level
+**Sheet Designer** link.
 
 ## Run checks
 
@@ -97,3 +98,8 @@ The normal test suite includes offline documentation checks. Follow
 [documentation review](DOCUMENTATION_REVIEW.md) for every major update, including
 screenshots, deployment/account critical paths, feature limits, and cross-guide
 consistency. Do not treat passing text checks as visual or security certification.
+
+The same image supports `FORGE_GAMESHEETS_MODE=designer`. An omitted value is
+`full`. Designer mode initializes only the file-backed Sheet Designer workspace;
+it does not open the library database or run a scan. Keep the default localhost
+bind because the Designer-only service has no account system.

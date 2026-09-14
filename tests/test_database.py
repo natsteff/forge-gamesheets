@@ -50,10 +50,10 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "application_preferences",
         "game_bgg_associations",
         "reprint_jobs",
-            "reprint_job_items",
-            "game_resource_links",
-            "generated_reprints",
-            "activity_events",
+        "reprint_job_items",
+        "game_resource_links",
+        "generated_reprints",
+        "activity_events",
     } <= tables
     assert [tuple(row) for row in migrations] == [
         (1, "create_library_index"),

@@ -81,11 +81,14 @@ for the next approved feature.
 6. **Current:** Complete release-candidate regression, documentation/screenshot
    review, security review, and a clean-install/upgrade walkthrough.
 7. **Then:** Publish the next prerelease and triage external beta feedback.
-8. **Active beta feature:** Continue the narrow Sheet Designer implementation
-   without treating its JSON `0.1-prototype` files as the formal FGS v1 format.
-   Keep its model, persistence, and renderer portable between a standalone
-   development shell and the native Admin integration. See
-   [the prototype boundary](docs/SHEET_DESIGNER_PROTOTYPE.md).
+8. **Completed:** Establish the application-independent FGS v1 specification,
+   compatibility policy, schema, prototype migration, and initial conformance
+   fixtures before expanding the Designer. See
+   [the FGS v1 draft](docs/FGS_V1_SPECIFICATION.md).
+9. **Completed:** Support `FORGE_GAMESHEETS_MODE=full|designer` in the same image.
+   An omitted value remains `full`, preserving existing installs. Designer mode
+   must not initialize the library, scanner, main database, accounts, or
+   reprints. Defer separate desktop-editor choices until FGS v1 is stable.
 
 ## 4. Filesystem convention
 
@@ -255,6 +258,11 @@ rather than delaying feature progress beforehand.
   Existing installations remain open until local Admin setup activates access
   control. See [account operations](docs/ACCOUNTS.md) and
   [the access-control design](docs/decisions/004-local-accounts-and-sharing.md).
+- **Completed locally:** Admin metadata portability exports uploaded artwork and
+  a versioned metadata manifest with Windows and macOS shortcuts, restores
+  represented
+  metadata with explicit fill-empty or replace policies, and offers a secondary
+  read-only shortcut scan.
 
 #### Milestone D — Bulk FORGE Reprint maintenance
 
@@ -415,8 +423,8 @@ GameSheet format, and `.fgs` is the native extension. An FGS file is editable
 source; a **GameSheet** is a rendered result.
 
 - **Confirmed:** FGS is a human-readable, plain-text, declarative, versioned
-  format. YAML is the preferred representation unless schema design finds a
-  compelling reason to use another structured text format.
+  format. FGS v1 uses UTF-8 JSON for browser/Python portability, deterministic
+  export, strict parsing, and standard JSON Schema validation.
 - **Confirmed:** Design and document the formal FGS v1 schema before building
   the editor or renderer. Illustrative YAML in planning documents is not the
   final schema.

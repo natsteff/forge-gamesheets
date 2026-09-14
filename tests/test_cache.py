@@ -126,6 +126,7 @@ def test_cleanup_discards_registry_facts_after_source_change(tmp_path: Path) -> 
     cleanup_managed_files(database, data)
 
     with database.connect() as connection:
-        assert connection.execute(
-            "SELECT count(*) FROM generated_reprints"
-        ).fetchone()[0] == 0
+        assert (
+            connection.execute("SELECT count(*) FROM generated_reprints").fetchone()[0]
+            == 0
+        )

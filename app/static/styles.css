@@ -702,6 +702,17 @@ input[type="checkbox"] {
 .settings-form { max-width: 680px; }
 .settings-form small { color: var(--muted); }
 .settings-secondary { width: auto; margin-top: 0.75rem; }
+.metadata-portability-section > p { max-width: 720px; color: var(--muted); }
+.metadata-portability-section .primary-button { margin-top: 0.75rem; }
+.metadata-portability-section .metadata-form { margin-top: 1.25rem; }
+.metadata-portability-section .metadata-form .primary-button { width: fit-content; }
+.metadata-portability-summary { margin-bottom: 1.25rem; }
+.metadata-portability-review {
+  border-color: var(--forge);
+  box-shadow: inset 4px 0 var(--forge);
+  scroll-margin-top: 1rem;
+}
+.metadata-portability-review .status-banner { max-width: none; }
 .inline-create-form {
   display: flex;
   gap: 0.65rem;

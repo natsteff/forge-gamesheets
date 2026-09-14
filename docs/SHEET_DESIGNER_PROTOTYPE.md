@@ -3,7 +3,8 @@
 Sheet Designer is an integrated Forge beta feature based on the approved
 structured-composer specification and mockup. Its current narrow scope proves
 the editing model, standalone boundary, Forge integration, and deterministic
-PDF output before the formal FGS v1 format is designed.
+PDF output while the [formal FGS v1 specification](FGS_V1_SPECIFICATION.md) is
+stabilized through migration and conformance testing.
 
 ## Current scope
 
@@ -22,8 +23,13 @@ PDF output before the formal FGS v1 format is designed.
 - Deterministic, single-page PDF export with overflow refusal
 - The invented Expedition Score Sheet as the initial fixture
 
-The integrated route is an Admin feature. The standalone shell intentionally
-has no account system and should only be bound to localhost for development.
+The integrated route is available to Admins and Contributors. Its drafts form a
+shared installation-wide collection, like the shared PDF library; per-user
+ownership is not part of v1. Either role can change or delete any saved draft.
+Important FGS source should therefore be exported periodically and before
+significant shared edits or deletion, in addition to normal application-data
+backups. The standalone shell intentionally has no account system and should
+only be bound to localhost for development.
 
 ## Architectural boundary
 
@@ -47,12 +53,12 @@ publication workflows remain undecided.
 
 ## Deliberate specification adaptations
 
-The project plan says the formal FGS v1 schema should be designed before the
-production editor and prefers YAML. The prototype specification permits JSON
-for the experiment. To avoid accidentally declaring an incompatible v1, files
-use JSON with the explicit version `0.1-prototype`. They contain stable semantic
-IDs, no Forge database IDs, and no local paths. Imported files are strictly
-validated and size-limited.
+New files use formal JSON-based FGS `1.0`. Existing `0.1-prototype` drafts are
+validated and migrated when opened; they are never merely relabelled. Files
+contain stable semantic IDs, no Forge database IDs, and no local paths. Imported
+files are strictly validated and size-limited. FGS v1 formalizes compatibility,
+namespaced extensions, and the separation between portable document identity
+and an editor's local workspace identity.
 
 The mockup's advanced-placement control is omitted because arbitrary placement
 is outside the approved structured-layout scope. The first integration is
@@ -72,12 +78,12 @@ other than the temporary default, set `FORGE_SHEET_DESIGNER_DATA` to a writable
 development directory before starting the shell.
 
 The integrated editor appears as **Sheet Designer** in the main navigation when
-the normal Forge application is running. It remains visible only to Admins while
-document ownership and sharing are undecided.
+the normal Forge application is running. It is visible to Admins and
+Contributors, who work in the same shared draft workspace.
 
 ## Deferred decisions
 
-- Formal human-authored FGS v1 syntax and schema
+- Future FGS capabilities beyond the deliberately narrow v1 contract
 - Ownership, game association, and library import
 - Responsive editing beyond basic stacking on small screens
 - Multi-page output, repeating elements, image blocks, and style controls

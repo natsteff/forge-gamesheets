@@ -82,6 +82,7 @@ Git and remains local to the installation.
 ```ini
 FORGE_GAMESHEETS_BIND_ADDRESS=127.0.0.1
 FORGE_GAMESHEETS_PORT=8000
+FORGE_GAMESHEETS_MODE=full
 FORGE_GAMESHEETS_BASE_URL=
 FORGE_GAMESHEETS_ALLOWED_HOSTS=
 FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS=127.0.0.1
@@ -99,6 +100,28 @@ FORGE_GAMESHEETS_LIBRARY_PATH=/mnt/tabletop/game-sheets
 
 Create the configured data directory and make it writable by `10001:10001`
 before starting Forge. Preserve the existing ownership of the library.
+
+### Run only Sheet Designer
+
+The same image can run as a standalone Designer web application. Set this in
+`.env` before starting the container:
+
+```ini
+FORGE_GAMESHEETS_MODE=designer
+```
+
+Designer-only mode opens directly to Sheet Designer and stores shared drafts in
+the configured data directory under `sheet-designer/`. It does not initialize
+the PDF library, scanner, primary database, accounts, history, or FORGE Reprint
+features. The library mount remains configured but is ignored. An omitted value
+or `full` starts the complete application, so existing installations retain
+their current behavior.
+
+Designer-only mode has no built-in account system. Keep the default localhost
+bind unless a trusted access-control layer protects the service. To return to
+the complete application, set the mode to `full` or remove the setting, then
+recreate the container. Existing application data is not deleted when switching
+modes.
 
 ### Select an access model
 

@@ -35,6 +35,7 @@ def test_health_reports_service_is_available(tmp_path) -> None:
     assert response.json() == {
         "status": "ok",
         "service": "forge-gamesheets",
+        "mode": "full",
         "version": "0.2.0-beta.1",
         "revision": "abc1234",
         "build_date": "2026-09-01",

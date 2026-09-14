@@ -201,14 +201,13 @@ def test_disabled_lookup_never_contacts_bgg(
     game_database: tuple[Database, int],
 ) -> None:
     database, game_id = game_database
-    disabled = BggAssociation(
-        game_id, False, BggMatchState.PENDING, "Carcassonne"
-    )
+    disabled = BggAssociation(game_id, False, BggMatchState.PENDING, "Carcassonne")
     save_bgg_association(database, disabled)
     client = FakeClient(error=AssertionError("must not contact BGG"))
-    assert enrich_game(
-        database, client, game_id=game_id, source_title="Carcassonne"
-    ) == disabled
+    assert (
+        enrich_game(database, client, game_id=game_id, source_title="Carcassonne")
+        == disabled
+    )
     assert client.searches == []
 
 

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from app.sheet_designer.model import normalize_document
+from app.sheet_designer.model import FORMAT_VERSION, normalize_document
 
 
 def expedition_document() -> dict:
     return normalize_document(
         {
             "format": "forge-gamesheets",
-            "format_version": "0.1-prototype",
+            "format_version": FORMAT_VERSION,
             "id": "expedition-score-sheet",
             "title": "Expedition Score Sheet",
             "page": {"size": "letter", "orientation": "portrait"},

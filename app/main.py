@@ -77,10 +77,12 @@ def create_app(
     )
     application.include_router(web_router)
     from app.account_web import router as account_router
+    from app.link_portability_web import router as link_portability_router
     from app.reprint_web import router as reprint_router
 
     application.include_router(account_router)
     application.include_router(reprint_router)
+    application.include_router(link_portability_router)
     application.include_router(sheet_designer_router)
     from app.web import templates
 
@@ -93,6 +95,7 @@ def create_app(
         *web_router.routes,
         *account_router.routes,
         *reprint_router.routes,
+        *link_portability_router.routes,
         *sheet_designer_router.routes,
     ]
     logger = logging.getLogger("uvicorn.access")
@@ -106,6 +109,7 @@ def create_app(
         return {
             "status": "ok",
             "service": "forge-gamesheets",
+            "mode": "full",
             "version": identity.version,
             "revision": identity.revision,
             "build_date": identity.build_date,

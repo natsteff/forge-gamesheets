@@ -71,8 +71,7 @@ def test_scan_results_are_deterministic_and_case_insensitive(tmp_path: Path) -> 
     assert first_result == second_result
     assert [game.name for game in first_result.games] == ["alpha", "Bravo", "zebra"]
     assert [
-        resource.relative_path.name
-        for resource in first_result.games[0].resources
+        resource.relative_path.name for resource in first_result.games[0].resources
     ] == ["alpha.PDF", "Bravo.pdf", "z.pdf"]
 
 
@@ -98,9 +97,7 @@ def test_scan_ignores_files_outside_game_directories(
     result = scan_library(sample_library)
 
     discovered_paths = {
-        resource.relative_path
-        for game in result.games
-        for resource in game.resources
+        resource.relative_path for game in result.games for resource in game.resources
     }
     assert Path("orphan.pdf") not in discovered_paths
 
@@ -120,8 +117,7 @@ def test_scan_ignores_synology_metadata_directories(tmp_path: Path) -> None:
 
     assert [discovered.name for discovered in result.games] == ["Game"]
     assert [
-        resource.relative_path.as_posix()
-        for resource in result.games[0].resources
+        resource.relative_path.as_posix() for resource in result.games[0].resources
     ] == ["Game/Rules.pdf"]
 
 
@@ -149,8 +145,7 @@ def test_scan_does_not_follow_symbolic_links(
 
     assert [discovered.name for discovered in result.games] == ["Safe Game"]
     assert [
-        resource.relative_path.as_posix()
-        for resource in result.games[0].resources
+        resource.relative_path.as_posix() for resource in result.games[0].resources
     ] == ["Safe Game/real.pdf"]
 
 

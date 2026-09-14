@@ -45,7 +45,9 @@ def record_scan(
     """Record exactly one aggregate event for a library scan."""
     if failed:
         record_activity(
-            database, "scan_failed", "Library scan failed",
+            database,
+            "scan_failed",
+            "Library scan failed",
             detail="The library could not be read.",
         )
         return

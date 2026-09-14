@@ -71,9 +71,7 @@ def enrich_game(
         exact = _unique_exact_match(title, candidates)
         if exact is None:
             state = (
-                BggMatchState.UNMATCHED
-                if not candidates
-                else BggMatchState.AMBIGUOUS
+                BggMatchState.UNMATCHED if not candidates else BggMatchState.AMBIGUOUS
             )
             association = BggAssociation(
                 game_id=game_id,
@@ -117,9 +115,7 @@ def normalize_game_name(value: str) -> str:
     """Normalize a title for comparison without changing its display value."""
     decomposed = unicodedata.normalize("NFKD", value)
     without_marks = "".join(
-        character
-        for character in decomposed
-        if not unicodedata.combining(character)
+        character for character in decomposed if not unicodedata.combining(character)
     )
     return " ".join(re.findall(r"[a-z0-9]+", without_marks.casefold()))
 

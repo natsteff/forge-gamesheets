@@ -61,7 +61,7 @@ def render_pdf(document: dict, output_path: Path) -> Path:
                 "producer": "Forge GameSheets",
                 "creationDate": "D:20000101000000Z",
                 "modDate": "D:20000101000000Z",
-                "keywords": "fgs-0.1-prototype",
+                "keywords": "fgs-1.0",
             }
         )
         pdf.save(temporary, garbage=4, deflate=True, no_new_id=True)

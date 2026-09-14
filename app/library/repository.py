@@ -150,9 +150,7 @@ def list_game_categories(database: Database) -> tuple[GameCategory, ...]:
             """
         ).fetchall()
     return tuple(
-        GameCategory(
-            id=row["id"], name=row["name"], game_count=row["game_count"]
-        )
+        GameCategory(id=row["id"], name=row["name"], game_count=row["game_count"])
         for row in rows
     )
 
@@ -181,9 +179,7 @@ def create_game_category(database: Database, *, name: str) -> int | None:
     return int(cursor.lastrowid)
 
 
-def rename_game_category(
-    database: Database, category_id: int, *, name: str
-) -> str:
+def rename_game_category(database: Database, category_id: int, *, name: str) -> str:
     """Rename a category and report saved, duplicate, or missing."""
     try:
         with database.connect() as connection:
@@ -301,8 +297,7 @@ def get_game(database: Database, game_id: int) -> GameDetail | None:
         has_artwork=bool(game["has_artwork"]),
         has_uploaded_artwork=bool(game["has_uploaded_artwork"]),
         categories=tuple(
-            GameCategory(id=row["id"], name=row["name"])
-            for row in category_rows
+            GameCategory(id=row["id"], name=row["name"]) for row in category_rows
         ),
         resources=tuple(
             IndexedResource(
@@ -475,9 +470,7 @@ def list_recent_resources(
     )
 
 
-def record_resource_use(
-    database: Database, resource_id: int, *, action: str
-) -> bool:
+def record_resource_use(database: Database, resource_id: int, *, action: str) -> bool:
     """Record one successful view or download action."""
     if action not in {"view", "download"}:
         raise ValueError("Invalid resource action")
@@ -580,9 +573,12 @@ def save_resource_override(
 ) -> bool:
     """Create or replace display metadata without modifying detected values."""
     with database.connect() as connection:
-        if connection.execute(
-            "SELECT 1 FROM resources WHERE id = ?", (resource_id,)
-        ).fetchone() is None:
+        if (
+            connection.execute(
+                "SELECT 1 FROM resources WHERE id = ?", (resource_id,)
+            ).fetchone()
+            is None
+        ):
             return False
         connection.execute(
             """
@@ -608,14 +604,15 @@ def reset_resource_override(database: Database, resource_id: int) -> bool:
     return cursor.rowcount == 1
 
 
-def save_game_title_override(
-    database: Database, game_id: int, *, title: str
-) -> bool:
+def save_game_title_override(database: Database, game_id: int, *, title: str) -> bool:
     """Create or replace a game display title without renaming its folder."""
     with database.connect() as connection:
-        if connection.execute(
-            "SELECT 1 FROM games WHERE id = ?", (game_id,)
-        ).fetchone() is None:
+        if (
+            connection.execute(
+                "SELECT 1 FROM games WHERE id = ?", (game_id,)
+            ).fetchone()
+            is None
+        ):
             return False
         connection.execute(
             """
@@ -644,9 +641,12 @@ def save_game_categories(
     """Replace a game's managed-category assignments atomically."""
     unique_ids = tuple(dict.fromkeys(category_ids))
     with database.connect() as connection:
-        if connection.execute(
-            "SELECT 1 FROM games WHERE id = ?", (game_id,)
-        ).fetchone() is None:
+        if (
+            connection.execute(
+                "SELECT 1 FROM games WHERE id = ?", (game_id,)
+            ).fetchone()
+            is None
+        ):
             return False
         if unique_ids:
             placeholders = ", ".join("?" for _ in unique_ids)
@@ -714,14 +714,15 @@ def get_game_artwork(database: Database, game_id: int) -> GameArtwork | None:
     )
 
 
-def save_game_artwork_override(
-    database: Database, artwork: GameArtwork
-) -> bool:
+def save_game_artwork_override(database: Database, artwork: GameArtwork) -> bool:
     """Record uploaded artwork after its image file has been validated and saved."""
     with database.connect() as connection:
-        if connection.execute(
-            "SELECT 1 FROM games WHERE id = ?", (artwork.game_id,)
-        ).fetchone() is None:
+        if (
+            connection.execute(
+                "SELECT 1 FROM games WHERE id = ?", (artwork.game_id,)
+            ).fetchone()
+            is None
+        ):
             return False
         connection.execute(
             """

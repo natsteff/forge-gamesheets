@@ -56,7 +56,7 @@
         <a href="{{ url_for('favorites_home') }}"{% if request.url.path == "/favorites" %} aria-current="page"{% endif %}>Favorites</a>
         {% if preferences.recent_limit %}<a href="{{ url_for('recent_home') }}"{% if request.url.path == "/recent" %} aria-current="page"{% endif %}>Recently used</a>{% endif %}
         </div></div>
-        {% if request.state.can_admin %}<a href="{{ url_for('sheet_designer') }}"{% if request.url.path.startswith("/sheet-designer") %} aria-current="page"{% endif %}>Sheet Designer</a>{% endif %}
+        {% if request.state.can_contribute %}<a href="{{ url_for('sheet_designer') }}"{% if request.url.path.startswith("/sheet-designer") %} aria-current="page"{% endif %}>Sheet Designer</a>{% endif %}
         <a href="{{ url_for('activity_history') }}"{% if request.url.path == "/history" %} aria-current="page"{% endif %}>History</a>
         {% if request.state.can_admin %}
         <div class="nav-group">
@@ -64,6 +64,7 @@
         <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-admin" hidden>Admin <span aria-hidden="true">▾</span></button>
         <div class="nav-group-links" id="nav-admin">
         <a href="{{ url_for('reprint_maintenance') }}"{% if request.url.path.startswith("/settings/reprints") %} aria-current="page"{% endif %}>FORGE Reprints</a>
+        <a href="{{ url_for('link_portability') }}"{% if request.url.path.startswith("/settings/metadata-portability") %} aria-current="page"{% endif %}>Metadata portability</a>
         <a href="{{ url_for('settings_home') }}"{% if request.url.path == "/settings" %} aria-current="page"{% endif %}>Settings</a>
         {% if request.state.user %}<a href="{{ url_for('accounts_home') }}"{% if request.url.path == "/settings/users" %} aria-current="page"{% endif %}>User Accounts</a>{% endif %}
         </div></div>

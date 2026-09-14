@@ -54,9 +54,7 @@ def reprint_maintenance(request: Request):
     jobs = tuple(
         {
             **job,
-            "display_time": _format_local_timestamp(
-                job["created_at"], timezone_name
-            ),
+            "display_time": _format_local_timestamp(job["created_at"], timezone_name),
         }
         for job in recent_jobs(request.app.state.database)
     )

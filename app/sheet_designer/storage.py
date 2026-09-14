@@ -9,12 +9,18 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from app.sheet_designer.model import MAX_DOCUMENT_BYTES, normalize_document
+from app.sheet_designer.model import (
+    FORMAT_NAME,
+    FORMAT_VERSION,
+    MAX_DOCUMENT_BYTES,
+    migrate_document,
+    normalize_document,
+)
 from app.sheet_designer.sample import expedition_document
 
 
 class FileDraftStore:
-    """Persist independent prototype sheets atomically beneath an injected root."""
+    """Persist independent FGS sheets atomically beneath an injected root."""
 
     def __init__(self, root: Path) -> None:
         self.root = root
@@ -30,24 +36,28 @@ class FileDraftStore:
     def load(self) -> dict:
         return self.load_document(self._ensure_current())
 
-    def load_document(self, document_id: str) -> dict:
-        path = self._document_path(document_id)
+    def load_document(self, workspace_id: str) -> dict:
+        path = self._document_path(workspace_id)
         try:
             payload = path.read_bytes()
         except FileNotFoundError as error:
             raise ValueError("Sheet not found.") from error
         if path.is_symlink() or len(payload) > MAX_DOCUMENT_BYTES:
             raise ValueError("Saved FGS draft is unavailable or exceeds its limit.")
-        return normalize_document(json.loads(payload))
+        source = json.loads(payload)
+        document = migrate_document(source)
+        if document != source:
+            backup = path.with_suffix(".fgs.v0.1-prototype.bak")
+            if source.get("format_version") == "0.1-prototype" and not backup.exists():
+                self._atomic_write(backup, payload)
+            self._write_document(document, workspace_id=workspace_id)
+        return document
 
     def save(self, document: dict) -> dict:
-        normalized = normalize_document(document)
-        current_id = self._ensure_current()
-        if normalized["id"] != current_id:
-            normalized["id"] = self._unique_id(normalized["title"])
-            normalized = normalize_document(normalized)
-        self._write_document(normalized)
-        self._write_pointer(normalized["id"])
+        normalized = migrate_document(document)
+        workspace_id = self._ensure_current()
+        self._write_document(normalized, workspace_id=workspace_id)
+        self._write_pointer(workspace_id)
         return normalized
 
     def create(
@@ -59,8 +69,8 @@ class FileDraftStore:
         document_id = self._unique_id(title)
         document = normalize_document(
             {
-                "format": "forge-gamesheets",
-                "format_version": "0.1-prototype",
+                "format": FORMAT_NAME,
+                "format_version": FORMAT_VERSION,
                 "id": document_id,
                 "title": title,
                 "page": {"size": page_size, "orientation": orientation},
@@ -94,7 +104,7 @@ class FileDraftStore:
                 ],
             }
         )
-        self._write_document(document)
+        self._write_document(document, workspace_id=document_id)
         self._write_pointer(document_id)
         return document
 
@@ -111,7 +121,7 @@ class FileDraftStore:
             modified = datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat()
             documents.append(
                 {
-                    "id": document["id"],
+                    "id": path.stem,
                     "title": document["title"],
                     "modified": modified,
                 }
@@ -128,8 +138,9 @@ class FileDraftStore:
         document = self.load_document(document_id)
         document["id"] = self._unique_id(f"{document['title']}-copy")
         document["title"] = f"{document['title']} copy"
-        self._write_document(document)
-        self._write_pointer(document["id"])
+        workspace_id = document["id"]
+        self._write_document(document, workspace_id=workspace_id)
+        self._write_pointer(workspace_id)
         return document
 
     def delete(self, document_id: str) -> dict:
@@ -155,16 +166,20 @@ class FileDraftStore:
         if self.legacy_path.is_file() and not self.legacy_path.is_symlink():
             payload = self.legacy_path.read_bytes()
             if len(payload) <= MAX_DOCUMENT_BYTES:
-                document = normalize_document(json.loads(payload))
-                if self._document_path(document["id"]).exists():
-                    document["id"] = self._unique_id(document["title"])
-                self._write_document(document)
-                self._write_pointer(document["id"])
-                return document["id"]
+                document = migrate_document(json.loads(payload))
+                workspace_id = document["id"]
+                if self._document_path(workspace_id).exists():
+                    workspace_id = self._unique_id(document["title"])
+                self._write_document(document, workspace_id=workspace_id)
+                self._write_pointer(workspace_id)
+                return workspace_id
         document = expedition_document()
-        self._write_document(document)
-        self._write_pointer(document["id"])
-        return document["id"]
+        workspace_id = document["id"]
+        if self._document_path(workspace_id).exists():
+            workspace_id = self._unique_id(document["title"])
+        self._write_document(document, workspace_id=workspace_id)
+        self._write_pointer(workspace_id)
+        return workspace_id
 
     def _unique_id(self, title: str) -> str:
         stem = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:40]
@@ -178,7 +193,9 @@ class FileDraftStore:
             raise ValueError("Invalid sheet ID.")
         return self.drafts / f"{document_id}.fgs"
 
-    def _write_document(self, document: dict) -> None:
+    def _write_document(
+        self, document: dict, *, workspace_id: str | None = None
+    ) -> None:
         normalized = normalize_document(document)
         payload = (
             json.dumps(normalized, ensure_ascii=False, indent=2, sort_keys=True).encode(
@@ -187,8 +204,10 @@ class FileDraftStore:
             + b"\n"
         )
         if len(payload) > MAX_DOCUMENT_BYTES:
-            raise ValueError("FGS draft exceeds the prototype size limit.")
-        self._atomic_write(self._document_path(normalized["id"]), payload)
+            raise ValueError("FGS draft exceeds the format size limit.")
+        self._atomic_write(
+            self._document_path(workspace_id or normalized["id"]), payload
+        )
 
     def _write_pointer(self, document_id: str) -> None:
         self._atomic_write(self.current_pointer, f"{document_id}\n".encode())

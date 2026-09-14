@@ -27,6 +27,21 @@ progress; stop Forge before a filesystem copy so the database, drafts, and
 generated outputs represent one consistent point in time. Back up the entire
 directory together.
 
+Sheet Designer drafts are shared system-wide between Admins and Contributors,
+just as the PDF library is shared. Either role can change or delete a draft.
+For important or difficult-to-recreate work, also use **Export .fgs**
+periodically and before significant shared edits or deletion. Keep that portable
+source somewhere outside the live `data/` directory. This complements rather
+than replaces the complete application-data backup.
+
+The Admin-only **Metadata portability** export provides an additional portable
+copy of saved game links, their descriptions, BoardGameGeek associations, and
+app-managed uploaded artwork. It does not contain the database or preserve
+categories, title overrides, favorites, pins, history, settings, accounts,
+sessions, QR restrictions, generated files, or Sheet Designer drafts. Use it for
+targeted migration or recovery, not as a substitute for backing up all of
+`data/`. See [Metadata portability](METADATA_PORTABILITY.md).
+
 ### Git repository
 
 The Git repository contains source code and development history. Real PDFs and

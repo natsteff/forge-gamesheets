@@ -65,23 +65,17 @@ from app.library.filename_parser import (
         (
             "Bunco",
             "Bunco - Tournament Score Sheet.pdf",
-            ParsedFilename(
-                "Tournament Score Sheet", ResourceCategory.TOURNAMENT, None
-            ),
+            ParsedFilename("Tournament Score Sheet", ResourceCategory.TOURNAMENT, None),
         ),
         (
             "Farkle",
             "Farkle - Scoring Reference.pdf",
-            ParsedFilename(
-                "Scoring Reference", ResourceCategory.REFERENCE, "Scoring"
-            ),
+            ParsedFilename("Scoring Reference", ResourceCategory.REFERENCE, "Scoring"),
         ),
         (
             "Game",
             "Game - Quick Reference Card.pdf",
-            ParsedFilename(
-                "Quick Reference Card", ResourceCategory.REFERENCE, "Quick"
-            ),
+            ParsedFilename("Quick Reference Card", ResourceCategory.REFERENCE, "Quick"),
         ),
         (
             "Game",
@@ -106,9 +100,7 @@ from app.library.filename_parser import (
         (
             "Yahtzee",
             "Weird old thing from Bob.pdf",
-            ParsedFilename(
-                "Weird old thing from Bob", ResourceCategory.OTHER, None
-            ),
+            ParsedFilename("Weird old thing from Bob", ResourceCategory.OTHER, None),
         ),
     ],
 )

@@ -40,9 +40,7 @@ def test_initial_reconciliation_indexes_games_and_resources(
 
     assert summary == ReconciliationSummary(games_added=1, resources_added=2)
     with database.connect() as connection:
-        game = connection.execute(
-            "SELECT relative_path, title FROM games"
-        ).fetchone()
+        game = connection.execute("SELECT relative_path, title FROM games").fetchone()
         resources = connection.execute(
             """
             SELECT relative_path, category, title, variant, size_bytes
@@ -116,18 +114,14 @@ def test_reconciliation_removes_missing_resources_and_games(
     assert summary == ReconciliationSummary(games_removed=1, resources_removed=2)
     with database.connect() as connection:
         games = connection.execute("SELECT title FROM games").fetchall()
-        resources = connection.execute(
-            "SELECT relative_path FROM resources"
-        ).fetchall()
+        resources = connection.execute("SELECT relative_path FROM resources").fetchall()
     assert [row["title"] for row in games] == ["Farkle"]
     assert [row["relative_path"] for row in resources] == [
         "Farkle/Farkle - Score Sheet Large Print.pdf"
     ]
 
 
-def test_empty_successful_scan_clears_index(
-    library: Path, database: Database
-) -> None:
+def test_empty_successful_scan_clears_index(library: Path, database: Database) -> None:
     reconcile_scan(database, scan_library(library))
     for path in (library / "Farkle").iterdir():
         path.unlink()

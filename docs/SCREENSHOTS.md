@@ -2,7 +2,7 @@
 
 ## Current set
 
-Feature screenshots reviewed September 13, 2026. The demo uses invented games
+Feature screenshots reviewed September 14, 2026. The demo uses invented games
 (Lantern Vale, Pebble Parade,
 Pocket Orchard, Starship Signals), original sample PDFs and simple cover art,
 example-only resource URLs, and disposable demo accounts. It has no BGG token or
@@ -22,6 +22,13 @@ token sharing were replaced by public-by-default, per-resource QR restrictions.
 Capture replacement Settings and FORGE Reprint images after the interface is
 finalized.
 
+The Metadata portability page was visually reviewed September 14, 2026 using a
+disposable empty library and synthetic Admin. Its navigation label and page do
+not appear in any existing gallery image, so the current ten images remain
+accurate. Add a dedicated `metadata-portability.png` only when a complete-page
+capture can be saved and inspected; do not substitute a cropped viewport that
+hides the import or folder-based discovery workflow.
+
 ## Repeatable capture checklist
 
 1. Use a disposable demo directory outside the repository, with its own library
@@ -32,9 +39,10 @@ finalized.
    assignments and pinned resources. Leave all passphrase fields empty in captures.
 3. Capture the gallery routes: `/`, `/games/{demo-id}`, `/assign-categories`,
    `/r/{demo-resource-id}`, `/history`, `/settings/reprints`, `/settings`,
-   `/settings/users`, `/games/{demo-id}/edit`, and `/sheet-designer`. Discover IDs
-   from the demo; do not assume production IDs. Use an invented or default draft
-   for the designer workspace and Open Sheets captures.
+   `/settings/users`, `/settings/metadata-portability`, `/games/{demo-id}/edit`,
+   and `/sheet-designer`. Discover IDs from the demo; do not assume production
+   IDs. Use an invented or default draft for the designer workspace and Open
+   Sheets captures.
 4. On bulk categories, select games and a category to illustrate the controls;
    no change need be applied. Generate an ordinary demo reprint to show its ready
    state. Do not expose QR links from a live installation. Leave the BGG input
@@ -72,6 +80,15 @@ Standalone Playwright Chromium failed to launch in this Mac agent sandbox with
 not resolve that process restriction. Do not retry it indefinitely, disable
 sandbox protections, or access private browser transports as a workaround.
 
+On September 14, 2026, the in-app browser successfully rendered the disposable
+Metadata portability page in one hidden tab, but its current screenshot method
+returned only the visible viewport even when full-page capture was requested.
+The returned image could be inspected in conversation but was not exposed as a
+local file suitable for repository verification. Do not create repeated tabs or
+empty windows in response. Keep one hidden tab, verify the accessibility tree
+and viewport, and defer the repository image until the supported browser API can
+produce a complete local artifact.
+
 A future repository-owned Playwright capture job on an authorized local runner
 or GitHub Actions would reduce dependency on interactive tooling. That job is
 **not implemented** by this documentation refresh. Pin the browser/environment
@@ -85,3 +102,12 @@ and use the same synthetic fixture if it is added; images still need human revie
   1 skipped. Ruff and `git diff --check`: passed.
 - Only disposable fictional library data and example-only URLs were used. No live
   library, real account details, or guest token was captured.
+
+## Metadata portability review — September 14, 2026
+
+- The new page was rendered from current source using a disposable empty library
+  and synthetic Admin on loopback.
+- Page structure, fonts, spacing, form controls, buttons, and navigation label
+  were visually inspected. No existing gallery screenshot became inaccurate.
+- A new gallery image was deliberately deferred because only a partial viewport
+  could be saved through the available browser path.

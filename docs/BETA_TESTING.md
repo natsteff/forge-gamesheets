@@ -129,6 +129,32 @@ do not submit copyrighted source files without permission.
 3. Confirm focused controls remain visible.
 4. Confirm long game, category, and resource names do not overlap controls.
 
+## Test 8a — Designer-only mode
+
+1. Set `FORGE_GAMESHEETS_MODE=designer` and start the same Compose application.
+2. Confirm `/` opens Sheet Designer and `/health` reports `mode` as `designer`.
+3. Create and reopen a draft, then confirm it persists under the normal `/data`
+   mount after a restart.
+4. Confirm library, scanner, account, history, and reprint pages are unavailable.
+5. Remove the setting or set it to `full`; confirm the normal library application
+   starts with its existing data unchanged.
+
+## Test 8b — metadata portability
+
+1. As an Admin, open **Admin → Metadata portability** and export the ZIP.
+2. Confirm it contains `forge-metadata-manifest.json` plus Windows `.url` and macOS
+   `.webloc` shortcuts for saved links and app-managed uploaded artwork.
+3. Remove or change a few test links, preview a manifest import with **Fill empty
+   fields**, and confirm existing values are preserved.
+4. Preview the same import with **Replace recognized fields** and confirm only
+   represented links will change before applying it.
+5. Optionally place exported shortcuts in matching game folders, use the
+   folder-based shortcut discovery, and confirm it does not modify the read-only
+   PDF library or discover custom descriptions that shortcuts do not contain.
+
+See [Metadata portability](METADATA_PORTABILITY.md) for the expected ZIP
+contents, matching behavior, and backup boundary.
+
 ## Test 9 — build identification
 
 1. Open Settings and record the release, revision, and build date.

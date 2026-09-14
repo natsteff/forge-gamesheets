@@ -17,9 +17,10 @@ folder-based library and turns it into a searchable, browsable collection for
 viewing, downloading, and printing.
 
 FORGE GAMESHEETS is in beta, with local library management, optional FORGE
-Reprints, and an integrated Sheet Designer for creating printable game sheets.
-Core operation does not modify source PDFs, require a cloud service, or store
-PDF contents in its database.
+Reprints, and an integrated Sheet Designer for creating new printable game
+sheets from scratch. The Designer is a separate creation tool, not an editor
+for existing PDFs. Core operation does not modify source PDFs, require a cloud
+service, or store PDF contents in its database.
 
 ## Available features
 
@@ -30,14 +31,17 @@ PDF contents in its database.
 - Optional FORGE Reprint copies with a QR return link and source-rights notice
 - Admin bulk maintenance to create missing, refresh existing, or rebuild all
   eligible FORGE Reprints with durable progress and per-resource results
-- Integrated Sheet Designer with structured headers, score tables, references,
-  checklists, notes, live page preview, local drafts, and PDF or `.fgs` export
+- Integrated Sheet Designer for creating new structured game sheets from
+  scratch, with headers, score tables, references, checklists, notes, live page
+  preview, automatically saved drafts, and PDF or `.fgs` export
 - Editable display titles, document metadata, and game artwork
 - Multiple customizable categories per game
 - Bulk category assignment with filtering, selection, and confirmation before changes
 - Optional trailing folder-category hints, such as `Yahtzee [Dice, Children]`
 - Optional local Admin, Contributor, and Reader accounts with per-resource QR restrictions
 - Token-free manual BGG game URLs, Game/Files links, and external title search
+- Admin metadata portability for game links and uploaded artwork, with a ZIP
+  export, manifest restore, and alternative `.url`/`.webloc` library scan
 - All Games, category, and Uncategorized browsing
 - Favorites, up to ten pinned homepage resources, Recent, and paginated activity
   history for scans, content changes, and PDF use
@@ -286,28 +290,76 @@ Desktop navigation groups **Games** (All games, Categories, Assign game categori
 **Quick access** (Pinned, Favorites, Recently used), **Admin** (FORGE Reprints,
 Settings, User Accounts), and **Account** (My account and Sign out). **Sheet
 Designer** and **History** are separate top-level links. The logo opens Library
-home. Mobile Menu shows the same permitted groups with visible links. Admin and
-Sheet Designer are shown only to Admins; editing options follow role permissions.
+home. Mobile Menu shows the same permitted groups with visible links. Admin is
+shown only to Admins; Sheet Designer is shown to Admins and Contributors.
 Recently used is hidden when its configured limit is zero.
 
 ### Sheet Designer
 
-Admins can open **Sheet Designer** from the main navigation to create printable
-game sheets without editing a source PDF. The structured editor supports headers,
-score tables, references, checklists, and lined notes; sections may be reordered,
+Admins and Contributors can open **Sheet Designer** from the main navigation to
+create a new game sheet from scratch. It does not open, alter, or add content to
+an existing PDF.
+Instead, the editor builds an editable structured FGS document using headers,
+score tables, references, checklists, and lined notes. Sections may be reordered,
 duplicated, deleted, or paired into two columns. Score rows and checklist items
 are editable, and numbered rows such as Round 1 through Round 10 can be generated
 in one step. Letter and A4 output are available in portrait or landscape, with a
 live single-page preview and overflow warning.
 
-Forge saves each draft automatically under `data/sheet-designer/`. **New** creates
-a separate draft, **Open** manages saved drafts and imports portable `.fgs` files,
-and **Export** downloads either a printable PDF or `.fgs` source file. Designer
-PDFs are not automatically added to the indexed game library; place an exported
-PDF in the appropriate game folder and rescan when you want it managed as a normal
-resource. The current `.fgs` format remains a beta format and may change before a
-formal version 1 specification. See the
+Forge automatically saves each working draft under `data/sheet-designer/`. These
+saved drafts are the web Designer's primary working copies and are included when
+the Forge `data/` directory is backed up. This is a system-wide shared collection,
+similar to the shared PDF library: Admins and Contributors can open, change,
+export, duplicate, or delete any saved draft. It is not a private per-user
+workspace. Users do not need to export an `.fgs` file after every edit, but
+important or difficult-to-recreate sheets should be exported periodically and
+before significant shared changes or deletion. **New** creates a separate draft
+and **Open** manages saved drafts or imports an FGS file from another location.
+
+**Export PDF** creates the printable result. Designer PDFs are not automatically
+added to the indexed library; place an exported PDF in the appropriate game
+folder and rescan when it should become a managed resource. **Export .fgs**
+downloads the editable source for portable backup, sharing, transfer to another
+Forge installation, or use with a compatible future editor. A future published
+FGS-library workflow has not yet been defined, so users should not manually move
+the Designer's internal working files out of `data/sheet-designer/`.
+
+Designer source uses **FGS**, Forge's portable, JSON-based formal file format for
+structured GameSheets. FGS remains independent of the Forge web application so
+compatible editors can exchange the same `.fgs` source. See the
+[FGS v1 specification](docs/FGS_V1_SPECIFICATION.md), its
+[machine-readable JSON Schema](docs/schemas/fgs-v1.schema.json), and the
 [Sheet Designer boundary and current limitations](docs/SHEET_DESIGNER_PROTOTYPE.md).
+
+The published image can also run as a Designer-only web application. Set
+`FORGE_GAMESHEETS_MODE=designer`; the default and an omitted value remain
+`full`, so existing installations are unchanged. Designer mode uses the same
+`/data` mount for saved FGS drafts but does not initialize the PDF library,
+scanner, main database, accounts, or reprint features. The existing library
+mount in `compose.yml` is harmless and ignored in this mode. Designer-only mode
+has no account system; retain the default localhost bind unless another trusted
+access-control layer protects it.
+
+### Metadata portability
+
+Admins can open **Admin → Metadata portability** to download a temporary ZIP
+containing app-managed uploaded game artwork, a complete versioned metadata manifest,
+and Windows `.url` and macOS `.webloc` shortcuts. Shortcut names combine the
+source game-directory name and recognized link type. Forge streams the ZIP to
+the browser and does not retain it.
+
+**Import a Forge metadata export** is the recommended method. It restores URLs,
+descriptions, BGG associations, uploaded artwork, and source-directory
+relationships. **Scan library shortcut files** is an alternative recovery or
+initial URL import that reads recognized shortcuts placed in game folders.
+Shortcut scanning discovers URLs but not uploaded artwork or original
+descriptions. Both workflows show additions, replacements, unchanged entries,
+and skipped entries before confirmation. **Fill empty fields** preserves
+existing links and artwork; **Replace recognized fields** overwrites only fields
+represented by valid imported records and never clears absent fields.
+
+See [Metadata portability](docs/METADATA_PORTABILITY.md) for the precise export
+contents, import policies, folder-based discovery naming, and backup boundary.
 
 ### Bulk FORGE Reprint maintenance
 

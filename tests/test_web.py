@@ -110,9 +110,12 @@ def test_reprint_maintenance_explains_operations_and_requires_base_url(web_clien
     assert "Use after changing the server hostname" in page.text
     assert "Use for initial setup, a complete rebuild" in page.text
     assert "Source PDFs are never changed" in page.text
-    assert web_client.post(
-        "/settings/reprints/start", data={"operation": "create_missing"}
-    ).status_code == 409
+    assert (
+        web_client.post(
+            "/settings/reprints/start", data={"operation": "create_missing"}
+        ).status_code
+        == 409
+    )
 
 
 def test_action_buttons_use_shared_theme_tokens_and_components(web_client):
@@ -701,12 +704,12 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
     document.close()
     source_bytes = source.read_bytes()
     app = create_app(
-            Settings(
-                library_path=library,
-                data_path=data,
-                base_url="https://forge.example.test",
-                allowed_hosts=("testserver",),
-            )
+        Settings(
+            library_path=library,
+            data_path=data,
+            base_url="https://forge.example.test",
+            allowed_hosts=("testserver",),
+        )
     )
 
     with TestClient(app, headers={"Origin": "http://testserver"}) as client:
@@ -739,9 +742,7 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
                 "SELECT target_url FROM generated_reprints WHERE resource_id=?",
                 (resource_id,),
             ).fetchone()
-        assert registry["target_url"] == (
-            f"https://forge.example.test/r/{resource_id}"
-        )
+        assert registry["target_url"] == (f"https://forge.example.test/r/{resource_id}")
 
         ready = client.get(generated.headers["location"])
         assert "Your FORGE Reprint is ready" in ready.text
@@ -1007,7 +1008,7 @@ def test_successful_resource_use_is_shown_on_recent_page(
 
     refreshed_home = web_client.get("/")
     recent = web_client.get("/recent")
-    assert "Recently used" not in refreshed_home.text.split('<main', 1)[1]
+    assert "Recently used" not in refreshed_home.text.split("<main", 1)[1]
     assert "Recently used" in recent.text
     assert "Change how many resources appear here in" in recent.text
     assert 'href="http://testserver/settings#recent-limit"' in recent.text

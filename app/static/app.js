@@ -138,3 +138,9 @@ for (const form of document.querySelectorAll("form[data-confirm]")) {
     }
   });
 }
+
+const importReview = document.querySelector("#import-review");
+if (importReview) {
+  const heading = importReview.querySelector("h2");
+  requestAnimationFrame(() => heading?.focus({ preventScroll: false }));
+}

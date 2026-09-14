@@ -85,6 +85,7 @@ def test_grouped_navigation_users_visibility(secured, role):
     assert ('aria-controls="nav-admin"' in page) == (role == "admin")
     assert (">FORGE Reprints</a>" in page) == (role == "admin")
     assert (">User Accounts</a>" in page) == (role == "admin")
+    assert (">Sheet Designer</a>" in page) == (role != "reader")
     assert ">My account</a>" in page
     assert "Your place at the table" in client.get("/account").text
     if role == "admin":
@@ -301,6 +302,53 @@ def test_all_declared_routes_have_explicit_policy(secured):
     assert names <= READ_ROUTES | CONTRIBUTOR_ROUTES | ADMIN_ROUTES | PUBLIC_ROUTES
 
 
+@pytest.mark.parametrize(
+    ("role", "expected"),
+    [("reader", 403), ("contributor", 200), ("admin", 200)],
+)
+def test_sheet_designer_is_available_to_contributors(secured, role, expected):
+    client, _, _ = secured
+    signin(client, role)
+    assert client.get("/sheet-designer").status_code == expected
+
+
+@pytest.mark.parametrize(
+    ("role", "expected"),
+    [("reader", 403), ("contributor", 403), ("admin", 200)],
+)
+def test_game_link_portability_is_admin_only(secured, role, expected):
+    client, _, _ = secured
+    signin(client, role)
+    response = client.get("/settings/metadata-portability")
+    assert response.status_code == expected
+    if role == "admin":
+        assert "Import a Forge metadata export" in response.text
+        exported = client.get("/settings/metadata-portability/export")
+        assert exported.status_code == 200
+        assert exported.headers["content-type"] == "application/zip"
+
+
+def test_metadata_import_review_is_immediate_and_requires_real_changes(secured):
+    client, _, _ = secured
+    signin(client, "admin")
+    exported = client.get("/settings/metadata-portability/export").content
+    response = client.post(
+        "/settings/metadata-portability/import/preview",
+        data={"policy": "replace"},
+        files={
+            "export_file": ("forge-metadata-export.zip", exported, "application/zip")
+        },
+    )
+    assert response.status_code == 200
+    page = response.text
+    assert "No changes have been made yet." in page
+    assert "Nothing needs to be applied." in page
+    assert "Confirm and apply import" not in page
+    assert page.index("Forge metadata export results") < page.index(
+        "Scan library shortcut files"
+    )
+
+
 @pytest.mark.parametrize("role", ["reader", "contributor", "admin"])
 def test_every_mutation_requires_correct_role(secured, role):
     client, _, _ = secured
@@ -428,9 +476,7 @@ def test_qr_access_is_public_scoped_and_individually_restrictable(secured):
         assert "First sample" in document[0].get_text()
 
     signin(client, "admin")
-    response = client.post(
-        "/resources/1/qr-access", data={"requires_sign_in": "1"}
-    )
+    response = client.post("/resources/1/qr-access", data={"requires_sign_in": "1"})
     assert response.status_code == 200 and "QR access updated" in response.text
     client.post("/logout")
     for suffix in ["", "/original", "/reprint"]:

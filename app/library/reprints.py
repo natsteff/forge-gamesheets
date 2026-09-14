@@ -91,8 +91,10 @@ def generate_forge_reprint(
     try:
         with processing_budget.rendering_slot(data_path):
             # Another worker may have completed this while we waited.
-            if not force and destination.is_file() and _generated_pdf_matches(
-                destination, target_url
+            if (
+                not force
+                and destination.is_file()
+                and _generated_pdf_matches(destination, target_url)
             ):
                 return destination
             processing_budget.check_storage_budget(

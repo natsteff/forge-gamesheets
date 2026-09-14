@@ -82,9 +82,7 @@ def test_validation_allows_unconfigured_base_url(tmp_path: Path) -> None:
         "https://forge.example.test:99999",
     ],
 )
-def test_validation_rejects_unsafe_base_urls(
-    tmp_path: Path, base_url: str
-) -> None:
+def test_validation_rejects_unsafe_base_urls(tmp_path: Path, base_url: str) -> None:
     library_path = tmp_path / "library"
     data_path = tmp_path / "data"
     library_path.mkdir()

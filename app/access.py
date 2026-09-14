@@ -44,6 +44,16 @@ READ_ROUTES = {
     "logout_view",
 }
 CONTRIBUTOR_ROUTES = {
+    "sheet_designer",
+    "sheet_designer_document",
+    "sheet_designer_save",
+    "sheet_designer_documents",
+    "sheet_designer_create",
+    "sheet_designer_open",
+    "sheet_designer_duplicate",
+    "sheet_designer_delete",
+    "sheet_designer_fgs",
+    "sheet_designer_pdf",
     "game_bgg_manual",
     "assign_categories",
     "assign_categories_apply",
@@ -66,6 +76,11 @@ CONTRIBUTOR_ROUTES = {
     "game_bgg_lookup_toggle",
 }
 ADMIN_ROUTES = {
+    "link_portability",
+    "link_portability_export",
+    "link_manifest_preview",
+    "link_scan_preview",
+    "link_import_apply",
     "settings_scanning",
     "settings_home",
     "settings_preferences_save",
@@ -85,16 +100,6 @@ ADMIN_ROUTES = {
     "reprint_maintenance_job",
     "reprint_maintenance_cancel",
     "reprint_maintenance_resume",
-    "sheet_designer",
-    "sheet_designer_document",
-    "sheet_designer_save",
-    "sheet_designer_documents",
-    "sheet_designer_create",
-    "sheet_designer_open",
-    "sheet_designer_duplicate",
-    "sheet_designer_delete",
-    "sheet_designer_fgs",
-    "sheet_designer_pdf",
 }
 PUBLIC_ROUTES = {
     "health",

@@ -35,7 +35,7 @@ USER forge-gamesheets
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.runtime:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # Local development keeps the established container test commands available.
 FROM base AS development

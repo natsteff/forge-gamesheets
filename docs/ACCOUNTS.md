@@ -109,11 +109,18 @@ solve login problems.
 ## Security limits and review
 
 Navigation groups Games, Quick access, Admin, and Account into desktop dropdowns,
-with Sheet Designer and History as separate top-level links. The mobile Menu shows
+with Sheet Designer and History as separate top-level links. Sheet Designer is
+available to Admins and Contributors. The mobile Menu shows
 the same permitted groups with directly visible links. Admins can open FORGE
-Reprints, Settings, and User Accounts from Admin and can open the Sheet Designer.
+Reprints, Metadata portability, Settings, and User Accounts from Admin and can
+open the Sheet Designer.
 Account contains personal account actions. Readers and Contributors do not see
-the Admin menu or Sheet Designer.
+the Admin menu; Readers also do not see Sheet Designer.
+
+Sheet Designer drafts are system-wide shared content, comparable to the shared
+PDF library rather than private account documents. Admins and Contributors can
+open, change, export, duplicate, and delete every saved draft. Export important
+`.fgs` source periodically and before significant shared changes or deletion.
 
 Passphrases use Argon2id; sessions are random opaque cookies with server-side
 digests. By default, standard sessions have a 12-hour inactivity limit and a

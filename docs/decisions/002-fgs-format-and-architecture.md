@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted for roadmap and future architecture. This record does not define the
-FGS v1 schema or authorize implementation during Phase 1.5 or BGG integration.
+Accepted. Formal FGS v1 is established. The normative specification is
+[`../FGS_V1_SPECIFICATION.md`](../FGS_V1_SPECIFICATION.md).
 
 ## Decision
 
@@ -79,9 +79,9 @@ FGS remains declarative. It is not an executable scripting language.
 
 ## Representation and versioning
 
-FGS will be a plain-text, human-readable, editable format. YAML is the preferred
-representation unless formal schema work identifies a compelling reason to use
-another structured text format.
+FGS is a plain-text, human-readable, editable format. FGS v1 uses UTF-8 JSON;
+the browser/Python implementation, deterministic export, strict parsing, and
+standard JSON Schema tooling provide the compelling reason anticipated here.
 
 Every production FGS file must contain an explicit format/schema version from
 the first version onward. The importer and renderer must use that version for
