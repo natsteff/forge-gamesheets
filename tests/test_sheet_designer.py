@@ -238,6 +238,11 @@ def test_section_picker_lists_supported_blocks_without_a_text_prompt():
     assert "New sheet" in template
     assert "Open sheets" in template
     assert "data-new-dialog" in template
+    assert "Experimental prototype" not in template
+    assert ">New</button>" in template
+    assert ">Open</button>" in template
+    assert 'class="designer-export-menu"' in template
+    assert template.index("data-open-dialog") < template.index("data-import-file")
 
 
 def test_designer_controls_reuse_forge_form_tokens():
@@ -266,3 +271,4 @@ def test_designer_uses_one_collapsible_scrolling_tool_sidebar():
     assert "grid-template-columns: minmax(20rem, 23rem) minmax(32rem, 1fr)" in styles
     assert "overflow-y: auto" in styles
     assert '$("section-count").textContent' in script
+    assert 'summary::after' in styles

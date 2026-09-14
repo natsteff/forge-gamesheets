@@ -5,21 +5,22 @@
       <img src="{{ url_for('static', path='/brand/forge-wordmark.png') }}" alt="Forge GameSheets">
     </a>
     {% else %}
-    <div>
-      <p class="eyebrow">Experimental prototype</p>
-      <h1>Sheet Designer</h1>
-    </div>
+    <h1>Sheet Designer</h1>
     {% endif %}
     <label class="designer-title">Sheet title
       <input data-document-title maxlength="160" aria-label="Sheet title">
     </label>
     <p class="designer-status" data-save-status role="status">Loading…</p>
     <div class="designer-actions">
-      <button class="secondary-button" data-new-sheet type="button">New sheet</button>
-      <button class="secondary-button" data-open-sheets type="button">Open sheets</button>
-      <label class="secondary-button designer-import">Import .fgs<input data-import-file type="file" accept=".fgs,application/json"></label>
-      <a class="secondary-button" data-export-fgs href="/sheet-designer/export.fgs">Export .fgs</a>
-      <a class="primary-button" data-export-pdf href="/sheet-designer/export.pdf">Export PDF</a>
+      <button class="secondary-button" data-new-sheet type="button">New</button>
+      <button class="secondary-button" data-open-sheets type="button">Open</button>
+      <details class="designer-export-menu">
+        <summary>Export <span aria-hidden="true">▾</span></summary>
+        <div>
+          <a class="primary-button" data-export-pdf href="/sheet-designer/export.pdf">Export PDF</a>
+          <a class="secondary-button" data-export-fgs href="/sheet-designer/export.fgs">Export .fgs</a>
+        </div>
+      </details>
     </div>
   </header>
 
@@ -84,6 +85,11 @@
     <div class="designer-dialog-heading">
       <div><p class="eyebrow">Sheet workspace</p><h2>Open sheets</h2></div>
       <button class="designer-dialog-close" data-close-open type="button" aria-label="Close">×</button>
+    </div>
+    <div class="designer-library-import">
+      <p><strong>Import a sheet</strong></p>
+      <p>Open a Forge Game Sheet file from this device.</p>
+      <label class="secondary-button designer-import">Import .fgs<input data-import-file type="file" accept=".fgs,application/json"></label>
     </div>
     <div class="designer-sheet-list" data-sheet-list></div>
   </dialog>
