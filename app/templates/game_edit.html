@@ -167,7 +167,8 @@
       <input type="hidden" name="enabled" value="{% if lookup_enabled %}0{% else %}1{% endif %}">
       <button class="secondary-button" type="submit">{% if lookup_enabled %}Disable BGG lookup for this game{% else %}Enable BGG lookup for this game{% endif %}</button>
     </form>
-    <p class="settings-note">BGG matching is optional and never changes your game folder or PDFs. <a href="https://boardgamegeek.com" target="_blank" rel="noopener">Powered by BoardGameGeek</a></p>
+    <p class="settings-note">BGG matching is optional and never changes your game folder or PDFs.</p>
+    {% include "_bgg_attribution.html" %}
   </section>
   {% endif %}
 

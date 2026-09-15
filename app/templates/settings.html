@@ -20,7 +20,17 @@
   {% if request.query_params.get('status') == 'scanning-saved' %}<p class="status-banner success" role="status">Scanning preference saved.</p>{% endif %}
 </section>
 
-  {% if status == "qr-access-saved" %}
+  {% if status == "bgg-connected" %}
+    <p class="status-banner success" role="status">BoardGameGeek API connection verified. The configured token was accepted.</p>
+  {% elif error == "bgg-authentication" %}
+    <p class="status-banner warning" role="alert">BoardGameGeek rejected the configured token. Generate or copy the token again, update the private environment file, and restart Forge.</p>
+  {% elif error == "bgg-rate-limited" %}
+    <p class="status-banner warning" role="alert">BoardGameGeek temporarily limited the test request. The token may still be valid; wait before testing again.</p>
+  {% elif error == "bgg-unavailable" %}
+    <p class="status-banner warning" role="alert">BoardGameGeek could not be reached. Local Forge features remain available.</p>
+  {% elif error in ("bgg-not-configured", "bgg-request", "bgg-response") %}
+    <p class="status-banner warning" role="alert">The BoardGameGeek connection could not be verified. Local Forge features remain available.</p>
+  {% elif status == "qr-access-saved" %}
     <p class="status-banner success" role="status">QR access setting saved successfully.</p>
   {% elif status == "session-policy-saved" %}
     <p class="status-banner success" role="status">Sign-in policy saved successfully.</p>
@@ -144,11 +154,13 @@
     <p class="eyebrow">Optional integration</p>
     <h2>BoardGameGeek</h2>
     {% if bgg_configured %}
-      <p><strong>Configured — approval/access not verified.</strong></p>
-      <p class="settings-note">An application token is configured on this server. This does not confirm BGG approval or working API access.</p>
+      <p><strong>Application token configured.</strong></p>
+      <p class="settings-note">The private token is available to this server but is never displayed here. Test it after initial setup or replacement; testing makes one request to BGG.</p>
+      <form action="{{ url_for('settings_bgg_test') }}" method="post"><button class="secondary-button" type="submit">Test BGG connection</button></form>
+      {% include "_bgg_attribution.html" %}
     {% else %}
-      <p><strong>Disabled — no token configured.</strong></p>
-      <p class="settings-note">Local games and PDFs work without BGG. Integration rollout is on hold pending application approval and token-distribution guidance.</p>
+      <p><strong>Disabled: no token configured.</strong></p>
+      <p class="settings-note">This is the default. Local games, PDFs, manual BGG links, and external BGG search continue to work. An administrator may register this installation with BGG and add its private token later.</p>
     {% endif %}
   </section>
 

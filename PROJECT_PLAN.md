@@ -369,11 +369,13 @@ rather than delaying feature progress beforehand.
 
 ## 8. Phase 2 — BoardGameGeek integration
 
-**On hold:** The BGG application has been submitted. Pause further enrichment
-features and public rollout pending approval and guidance on token distribution
-for self-hosted installations. Retain the existing optional client, association
-storage, matching service, and manual workflow; do not remove stored data or
-rewrite migrations. No token is bundled with the application.
+**Approved for controlled testing:** BGG approved Forge GameSheets as a
+non-commercial public-facing XML API application on 2026-09-14. Each independent
+self-hosted operator supplies a separately approved token; no token is bundled
+with the source or container image. Preserve token-free operation as the default
+and complete live connection, pacing, caching, and owner testing before broader
+API rollout. Required Powered by BGG attribution is implemented with BGG's
+provided artwork.
 
 Integration housekeeping is implemented: BGG actions are gated by token
 configuration, unavailable game-page controls are hidden, and Settings shows
@@ -410,6 +412,9 @@ must not depend on BGG availability after enrichment data has been cached.
   entry-level override; do not model applicability as `is_board_game`.
 - **Confirmed:** Store credentials or API configuration only through the
   established application configuration/environment boundary.
+- **Confirmed:** Every independent self-hosted operator is responsible for BGG
+  registration and a private token. Ordinary users of that server do not supply
+  tokens. Never distribute the project owner's token in source or images.
 - **Confirmed:** The BGG ID is an optional stable external identifier available
   to future FGS files and workflows. It is not required for every Forge game or
   every FGS file.

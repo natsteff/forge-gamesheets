@@ -12,7 +12,12 @@ from fastapi.testclient import TestClient
 from markupsafe import escape
 from PIL import Image
 
-from app.bgg.client import BggGame, BggSearchResult, BggUnavailableError
+from app.bgg.client import (
+    BggAuthenticationError,
+    BggGame,
+    BggSearchResult,
+    BggUnavailableError,
+)
 from app.bgg.repository import BggMatchState, get_bgg_association
 from app.build_info import BuildInfo
 from app.config import Settings
@@ -341,11 +346,57 @@ def test_settings_show_bgg_configuration_without_exposing_token(
     assert "private-test-token" not in response.text
     assert "Select the region (e.g. America/Chicago)" in response.text
     expected = (
-        "Configured — approval/access not verified."
+        "Application token configured."
         if configured
-        else "Disabled — no token configured."
+        else "Disabled: no token configured."
     )
     assert expected in response.text
+    assert ("Test BGG connection" in response.text) is configured
+    assert ("/static/brand/powered-by-bgg.png" in response.text) is configured
+
+
+def test_official_powered_by_bgg_asset_is_served(web_client: TestClient) -> None:
+    response = web_client.get("/static/brand/powered-by-bgg.png")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_settings_can_verify_configured_bgg_token(web_client: TestClient) -> None:
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="private-test-token"
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: FakeBggClient(
+        details=BggGame(13, "Catan", 1995, None, None)
+    )
+
+    response = web_client.post("/settings/bgg/test", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/settings?status=bgg-connected"
+    page = web_client.get(response.headers["location"])
+    assert "API connection verified" in page.text
+    assert "private-test-token" not in page.text
+
+
+def test_settings_bgg_test_preserves_token_free_and_rejected_states(
+    web_client: TestClient,
+) -> None:
+    disabled = web_client.post("/settings/bgg/test", follow_redirects=False)
+    assert disabled.headers["location"] == "/settings?error=bgg-not-configured"
+
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="rejected-secret"
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: FakeBggClient(
+        error=BggAuthenticationError("rejected")
+    )
+    rejected = web_client.post("/settings/bgg/test", follow_redirects=False)
+    assert rejected.headers["location"] == "/settings?error=bgg-authentication"
+    page = web_client.get(rejected.headers["location"])
+    assert "rejected the configured token" in page.text
+    assert "rejected-secret" not in page.text
 
 
 @pytest.mark.parametrize("action", ["find", "select", "retry", "unlink", "lookup"])

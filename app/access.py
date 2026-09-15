@@ -83,6 +83,7 @@ ADMIN_ROUTES = {
     "link_import_apply",
     "settings_scanning",
     "settings_home",
+    "settings_bgg_test",
     "settings_preferences_save",
     "settings_footer_reset",
     "settings_category_create",

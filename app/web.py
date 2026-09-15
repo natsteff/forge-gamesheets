@@ -15,7 +15,13 @@ from fastapi.templating import Jinja2Templates
 
 from app import accounts
 from app.activity import PAGE_SIZE, list_activity, record_activity, record_scan
-from app.bgg.client import BggApiError, BggClient
+from app.bgg.client import (
+    BggApiError,
+    BggAuthenticationError,
+    BggClient,
+    BggRateLimitError,
+    BggUnavailableError,
+)
 from app.bgg.matching import enrich_game
 from app.bgg.repository import (
     BggAssociation,
@@ -468,6 +474,31 @@ def settings_home(request: Request) -> HTMLResponse:
             ),
         },
     )
+
+
+@router.post(
+    "/settings/bgg/test",
+    response_class=RedirectResponse,
+    name="settings_bgg_test",
+)
+def settings_bgg_test(request: Request) -> RedirectResponse:
+    """Verify the configured BGG token without exposing or persisting it."""
+    client = _bgg_client(request)
+    if client is None:
+        return _settings_redirect(error="bgg-not-configured")
+    try:
+        game = client.get_game(13)
+    except BggAuthenticationError:
+        return _settings_redirect(error="bgg-authentication")
+    except BggRateLimitError:
+        return _settings_redirect(error="bgg-rate-limited")
+    except BggUnavailableError:
+        return _settings_redirect(error="bgg-unavailable")
+    except BggApiError:
+        return _settings_redirect(error="bgg-request")
+    if game is None:
+        return _settings_redirect(error="bgg-response")
+    return _settings_redirect(status="bgg-connected")
 
 
 @router.post("/settings/preferences", response_class=RedirectResponse)

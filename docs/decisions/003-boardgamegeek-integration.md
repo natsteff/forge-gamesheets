@@ -2,10 +2,11 @@
 
 ## Status
 
-Implementation paused pending BGG application approval and clarification of
-token distribution for self-hosted installations. Existing optional integration
-code is retained; further features and public rollout are on hold. No project
-token is distributed in source or container images.
+Approved for controlled testing. BGG approved Forge GameSheets as a
+non-commercial public-facing XML API application on 2026-09-14. Each independent
+self-hosted operator supplies a separately approved token. No project token is
+distributed in source or container images, and API enrichment remains disabled
+when no token is configured.
 
 Accepted for Phase 2. The initial client requirements were verified against
 official BoardGameGeek documentation on 2026-09-02. Game and Files browser URL
@@ -52,6 +53,11 @@ authorization/configuration, caching policy, and external failure translation.
 No credentials or personal secrets may be embedded in source code. Required
 configuration belongs in the established environment/configuration system and
 must be documented for deployments.
+
+The administrator of each independently hosted Forge server registers that use
+with BGG and privately configures the resulting token. Ordinary users of that
+server do not obtain tokens. Operators controlled by the same owner should use
+separate tokens where available so usage and revocation remain isolated.
 
 ## Matching during library discovery
 

@@ -284,6 +284,16 @@ You can upload artwork you have permission to use through the existing image
 upload. Manual links do not scrape BGG or automatically download images or PDFs.
 API enrichment remains a separate, optional feature requiring token configuration.
 
+#### Optional BoardGameGeek API enrichment
+
+API enrichment is disabled by default. Enabling it adds explicit BGG search,
+selection, and cached metadata actions without changing library scans, local
+files, or token-free manual links. Each administrator of an independently hosted
+Forge server must register that installation with BGG and place its approved
+token in the server's private `.env` file. Tokens are never bundled with Forge,
+stored in its database, included in exports, or displayed in Settings. See
+[BoardGameGeek API setup](docs/BGG_API.md).
+
 ### Navigation
 
 Desktop navigation groups **Games** (All games, Categories, Assign game categories),
@@ -536,10 +546,10 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
 - FORGE Reprint creates a marked derived copy but does not edit, combine, or
   replace source PDFs.
 - Game folders must currently be first-level children of the library root.
-- Manual BGG links and external search work without a token. API enrichment is
-  experimental and its rollout remains on hold pending approval and token
-  distribution guidance. No token is bundled. Configuring one does not verify
-  approval or API access; without it, only API controls are unavailable.
+- Manual BGG links and external search work without a token. Optional API
+  enrichment requires an operator-supplied, BGG-approved token and remains in
+  controlled testing. No token is bundled; without one, only API controls are
+  unavailable.
 - Automatic BGG scan matching and artwork fallback are not yet implemented.
 - Structured FGS files, an editor, and a renderer remain future work.
 - There is no remote synchronization or cloud backup.
