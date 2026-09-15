@@ -2,6 +2,9 @@
 
 FROM python:3.13-slim AS base
 
+LABEL org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.source="https://github.com/natsteff/forge-gamesheets"
+
 ARG FORGE_GAMESHEETS_VERSION=development
 ARG FORGE_GAMESHEETS_REVISION
 ARG FORGE_GAMESHEETS_BUILD_DATE

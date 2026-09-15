@@ -55,6 +55,12 @@ will provide one browsable, searchable place to organize and print them.
     every major release. Automated checks and maintainer-led, AI-assisted review
     are the planned release controls; do not claim independent certification.
     See [security planning](docs/SECURITY_PLAN.md).
+13. **Confirmed:** New Forge GameSheets releases use `AGPL-3.0-only` to keep
+    distributed forks and modified network deployments source-available.
+    Versions through commit `91ba590` were offered under MIT and retain those
+    historical terms. The software license does not apply to user-managed PDFs,
+    artwork, FGS documents, metadata, or databases. See
+    [licensing guidance](docs/LICENSING.md).
 
 ### Current execution sequence
 
@@ -452,6 +458,13 @@ source; a **GameSheet** is a rendered result.
 - **Confirmed:** Future sharing may include both a rendered GameSheet and its
   editable `.fgs` source. Forge distributes tooling, not third-party game
   content, and will not operate a public FGS repository.
+- **Future workflow improvement:** Opening Sheet Designer should lead to a
+  lightweight shared-workspace page rather than automatically reopening the
+  last active draft. Show recent saved sheets with clear **New sheet** and
+  **Import FGS** actions; selecting a sheet opens its editor, where automatic
+  saving continues. A direct address or bookmark may still open a specific
+  sheet. Consider a resume-last-sheet preference only if later testing shows
+  enough value to justify the added setting.
 - **Confirmed:** Investigate `forgegamesheets` as the canonical BGG Files
   discovery convention. Do not scrape BGG Files or automate uploads without an
   officially supported API and a later explicit decision.

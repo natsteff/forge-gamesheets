@@ -83,6 +83,9 @@
     <main class="page-shell" id="main-content" tabindex="-1">
       {% block content %}{% endblock %}
     </main>
-    {% if preferences.footer_text %}<footer class="site-footer">{{ preferences.footer_text }}</footer>{% endif %}
+    <footer class="site-footer">
+      {% if preferences.footer_text %}<span>{{ preferences.footer_text }}</span>{% endif %}
+      <a href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Source code</a>
+    </footer>
   </body>
 </html>

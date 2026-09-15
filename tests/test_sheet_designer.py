@@ -216,6 +216,8 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         assert "Sheet structure" in page.text
         assert "sheet-designer.js" in page.text
         assert "/static/brand/forge-wordmark.png" in page.text
+        assert "Source code" in page.text
+        assert "https://github.com/natsteff/forge-gamesheets" in page.text
         assert client.get("/").url.path == "/sheet-designer"
         assert client.get("/health").json()["mode"] == "designer"
 

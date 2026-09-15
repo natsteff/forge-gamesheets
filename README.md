@@ -589,4 +589,12 @@ content. Testing and review reduce risk but cannot guarantee security.
 
 ## License
 
-Forge GameSheets is available under the [MIT License](LICENSE).
+Forge GameSheets is free software licensed under the
+[GNU Affero General Public License version 3](LICENSE), identified as
+`AGPL-3.0-only`. Anyone may use it, including commercially, but distribution and
+modified network deployments remain subject to the AGPL source-sharing terms.
+
+The AGPL applies to the Forge software, not to PDFs, artwork, FGS documents,
+metadata, databases, or other user content managed with it. Forge versions
+through commit `91ba590` were previously offered under the MIT License that
+accompanied those versions. See [Licensing and version history](docs/LICENSING.md).

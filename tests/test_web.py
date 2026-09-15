@@ -548,6 +548,7 @@ def test_display_preferences_customize_footer_and_recent(
     )
     home = web_client.get("/")
     assert "Nate&#39;s Game Vault" not in home.text
+    assert "Source code" in home.text
     assert ">Recently used</a>" not in home.text
     assert "Recent is disabled" in web_client.get("/recent").text
 

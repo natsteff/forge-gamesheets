@@ -12,6 +12,9 @@
     </label>
     <p class="designer-status" data-save-status role="status">Loading…</p>
     <div class="designer-actions">
+      {% if standalone %}
+      <a class="designer-source-link" href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Source code</a>
+      {% endif %}
       <button class="secondary-button" data-new-sheet type="button">New</button>
       <button class="secondary-button" data-open-sheets type="button">Open</button>
       <details class="designer-export-menu">

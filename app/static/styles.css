@@ -594,7 +594,8 @@ input[type="checkbox"] {
 .maintenance-errors { padding-left: 1.25rem; }
 .maintenance-errors li + li { margin-top: 0.75rem; }
 
-.site-footer { padding-block: 1.5rem 2rem; color: var(--muted); font-size: 0.78rem; }
+.site-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; padding-block: 1.5rem 2rem; color: var(--muted); font-size: 0.78rem; }
+.site-footer a { color: inherit; }
 
 .history-header { max-width: 720px; margin-bottom: 2rem; }
 .history-header h1 { margin-bottom: 0.5rem; }

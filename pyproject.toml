@@ -7,6 +7,7 @@ name = "forge-gamesheets"
 version = "0.0.0"
 description = "Self-hosted library and print-on-demand forge for tabletop game resources"
 readme = "README.md"
+license = "AGPL-3.0-only"
 requires-python = ">=3.13,<3.15"
 dependencies = [
   "argon2-cffi>=25.1,<26",
@@ -19,6 +20,9 @@ dependencies = [
   "qrcode[pil]>=8,<9",
   "uvicorn[standard]>=0.34,<1",
 ]
+
+[project.urls]
+Source = "https://github.com/natsteff/forge-gamesheets"
 
 [project.optional-dependencies]
 dev = [
