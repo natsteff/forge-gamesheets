@@ -14,6 +14,8 @@ PAGE_SIZES = {"letter": (612.0, 792.0), "a4": (595.28, 841.89)}
 MARGIN = 36.0
 GAP = 16.0
 ROW_GAP = 14.0
+SCORE_TABLE_TITLE_HEIGHT = 22.0
+SCORE_TABLE_ROW_HEIGHT = 19.0
 MAX_PDF_BYTES = 8 * 1024 * 1024
 
 
@@ -82,7 +84,7 @@ def _measure_block(block: dict, width: float) -> float:
         return 54.0 if block.get("subtitle") else 40.0
     if block["type"] == "score_table":
         lines = len(block["score_rows"]) + 1 + int(block["show_total"])
-        return 22.0 + lines * 27.0
+        return SCORE_TABLE_TITLE_HEIGHT + lines * SCORE_TABLE_ROW_HEIGHT
     if block["type"] in {"reference", "checklist"}:
         text_width = max(90.0, width - (28.0 if block["type"] == "checklist" else 18.0))
         wrapped = sum(
@@ -141,7 +143,7 @@ def _section_heading(page, title, rect, accent) -> None:
 
 
 def _draw_score_table(page, block, rect, accent) -> None:
-    title_height = 22.0
+    title_height = SCORE_TABLE_TITLE_HEIGHT
     table = pymupdf.Rect(rect.x0, rect.y0 + title_height, rect.x1, rect.y1)
     labels = list(block["score_rows"])
     if block["show_total"]:
@@ -182,6 +184,15 @@ def _draw_score_table(page, block, rect, accent) -> None:
             center=True,
         )
     for index, label in enumerate(labels):
+        calculated = _calculation_kind(label) is not None
+        if calculated:
+            cell = pymupdf.Rect(
+                table.x0,
+                table.y0 + (index + 1) * row_height,
+                table.x1,
+                table.y0 + (index + 2) * row_height,
+            )
+            page.draw_rect(cell, color=None, fill=(0.95, 0.95, 0.93), overlay=False)
         _cell_text(
             page,
             label,
@@ -189,13 +200,22 @@ def _draw_score_table(page, block, rect, accent) -> None:
             table.y0 + (index + 1) * row_height,
             label_width,
             row_height,
-            bold=block["show_total"] and index == len(labels) - 1,
+            bold=calculated or (block["show_total"] and index == len(labels) - 1),
         )
+
+
+def _calculation_kind(label: str) -> str | None:
+    normalized = " ".join(label.split()).casefold()
+    if normalized == "grand total":
+        return "grand_total"
+    if normalized == "total":
+        return "total"
+    return None
 
 
 def _cell_text(page, text, x, y, width, height, *, bold=False, center=False):
     page.insert_textbox(
-        pymupdf.Rect(x + 5, y + 6, x + width - 5, y + height - 2),
+        pymupdf.Rect(x + 5, y + 3, x + width - 5, y + height - 1),
         text,
         fontsize=8.5,
         fontname="hebo" if bold else "helv",

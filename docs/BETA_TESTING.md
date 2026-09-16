@@ -155,6 +155,24 @@ do not submit copyrighted source files without permission.
 See [Metadata portability](METADATA_PORTABILITY.md) for the expected ZIP
 contents, matching behavior, and backup boundary.
 
+## Test 8c — GameSheets and LiveSheets
+
+1. Create or import a GameSheet, export both PDF and FGS, and confirm the saved
+   Designer draft remains independent from the imported source file.
+2. Associate it with an invented library game and confirm its rendered preview,
+   edit action, and eligible LiveSheet action appear on that game page.
+3. Mark it LiveSheet ready and test both single-scorer and individual scoring.
+4. Join through both the QR code and copied URL. Confirm each participant can
+   edit only the names and scores allowed by the selected mode.
+5. Confirm totals refresh, only the host can update milestones and notes, and
+   ending the game removes its temporary session data.
+6. Change the reusable GameSheet and confirm the change affects a new session
+   without rearranging one already in progress.
+
+An LLM may be used to draft an FGS file from a permitted score-sheet image or
+PDF when supplied with the FGS v1 specification. Treat its output as untrusted,
+review it, and verify all labels, calculations, and layout after import.
+
 ## Test 9 — build identification
 
 1. Open Settings and record the release, revision, and build date.

@@ -202,7 +202,7 @@ def test_manual_bgg_without_token(secured):
     client, db, _ = secured
     signin(client, "contributor")
     page = client.get("/games/1")
-    assert "Search for game at BGG" in page.text
+    assert "Open BGG website search" in page.text
     assert "q=First" in page.text
     edit_page = client.get("/games/1/edit").text
     assert "(eg. https://boardgamegeek.com/boardgame/gameID/game-name)" in edit_page
@@ -217,10 +217,13 @@ def test_manual_bgg_without_token(secured):
             "bgg_reference": "https://boardgamegeek.com/boardgame/120677/terra-mystica",
         },
     )
-    assert "Manual BGG link saved" in result.text
+    assert "BoardGameGeek URL saved without API verification" in result.text
+    assert "Unverified BGG association" in result.text
+    assert "Local library entry: First" in result.text
+    assert "Replace BGG association with this URL" in result.text
     page = client.get("/games/1")
     assert "boardgame/120677/terra-mystica/files" in page.text
-    assert "Search for game at BGG" not in page.text
+    assert "Open BGG website search" not in page.text
     with db.connect() as connection:
         row = connection.execute(
             "SELECT * FROM game_bgg_associations WHERE game_id=1"
@@ -236,20 +239,23 @@ def test_manual_bgg_without_token(secured):
         "-1",
     ]:
         response = client.post("/games/1/bgg/manual", data={"bgg_reference": bad})
-        assert "Enter the full BGG game URL" in response.text
-        assert 'class="status-banner warning" role="alert"' in response.text
+        assert "Enter a full game URL" in response.text
+        assert (
+            'class="status-banner warning" id="bgg-reference-error" role="alert"'
+            in response.text
+        )
         assert 'aria-describedby="bgg-reference-error"' in response.text
-        assert "BGG link not saved." in response.text
+        assert "BGG URL not saved." in response.text
     for bad in [
         "53412",
         "https://boardgamegeek.com/boardgame/53412",
         "https://boardgamegeek.com/boardgame/53412/",
     ]:
         response = client.post("/games/1/bgg/manual", data={"bgg_reference": bad})
-        assert "Enter the full BGG game URL" in response.text
+        assert "Enter a full game URL" in response.text
         assert "boardgame/120677/terra-mystica/files" in response.text
     client.post("/games/1/bgg/unlink")
-    assert "Search for game at BGG" in client.get("/games/1").text
+    assert "Open BGG website search" in client.get("/games/1").text
 
 
 def test_contributor_manages_game_resource_links(secured):

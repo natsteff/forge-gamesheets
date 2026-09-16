@@ -16,8 +16,8 @@
       sizes="180x180"
       href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
     >
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=42">
-    <script src="{{ url_for('static', path='/app.js') }}?v=8" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=51">
+    <script src="{{ url_for('static', path='/app.js') }}?v=10" defer></script>
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -57,6 +57,7 @@
         {% if preferences.recent_limit %}<a href="{{ url_for('recent_home') }}"{% if request.url.path == "/recent" %} aria-current="page"{% endif %}>Recently used</a>{% endif %}
         </div></div>
         {% if request.state.can_contribute %}<a href="{{ url_for('sheet_designer') }}"{% if request.url.path.startswith("/sheet-designer") %} aria-current="page"{% endif %}>Sheet Designer</a>{% endif %}
+        {% if request.state.can_contribute and has_ready_livesheets(request) %}<a href="{{ url_for('livesheets_home') }}"{% if request.url.path.startswith("/livesheets") %} aria-current="page"{% endif %}>LiveSheets</a>{% endif %}
         <a href="{{ url_for('activity_history') }}"{% if request.url.path == "/history" %} aria-current="page"{% endif %}>History</a>
         {% if request.state.can_admin %}
         <div class="nav-group">
@@ -85,7 +86,7 @@
     </main>
     <footer class="site-footer">
       {% if preferences.footer_text %}<span>{{ preferences.footer_text }}</span>{% endif %}
-      <a href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Source code</a>
+      <a href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Forge GameSheets on GitHub</a>
     </footer>
   </body>
 </html>

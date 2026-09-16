@@ -18,12 +18,18 @@ from app.bgg.client import (
     BggSearchResult,
     BggUnavailableError,
 )
-from app.bgg.repository import BggMatchState, get_bgg_association
+from app.bgg.repository import (
+    BggAssociation,
+    BggMatchState,
+    get_bgg_association,
+    save_bgg_association,
+)
 from app.build_info import BuildInfo
 from app.config import Settings
 from app.library.scanner import ScanIssue, ScanResult
 from app.main import create_app
 from app.security import CONTENT_SECURITY_POLICY
+from app.sheet_game_associations import save_association
 
 
 class _ExecutableMarkupProbe(HTMLParser):
@@ -33,7 +39,7 @@ class _ExecutableMarkupProbe(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=8"):
+        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=10"):
             self.unsafe.append(tag)
         for name, value in attrs:
             if name.startswith("on") or (value or "").lower().startswith("javascript:"):
@@ -208,6 +214,34 @@ def _game_ids(client: TestClient) -> list[str]:
         ]
 
 
+def test_game_page_lists_associated_gamesheets_and_livesheet_action(web_client):
+    game_id = int(_game_ids(web_client)[1])
+    store = web_client.app.state.sheet_designer_store
+    document = store.load()
+    document["extensions"] = {
+        "io.github.natsteff.livesheet": {"version": 1, "enabled": True}
+    }
+    store.save(document)
+    save_association(web_client.app.state.database, store.current_id(), game_id)
+
+    page = web_client.get(f"/games/{game_id}")
+
+    assert page.status_code == 200
+    assert "GameSheets" in page.text
+    assert "Expedition Score Sheet" in page.text
+    assert "Start LiveSheet" in page.text
+    assert "Edit in Sheet Designer" in page.text
+    assert page.text.index('id="preview-toggle"') < page.text.index(
+        "<h2>GameSheets</h2>"
+    )
+    preview = web_client.get(
+        f"/sheet-designer/documents/{store.current_id()}/preview.webp"
+    )
+    assert preview.status_code == 200
+    assert preview.headers["content-type"] == "image/webp"
+    assert preview.content.startswith(b"RIFF")
+
+
 class FakeBggClient:
     def __init__(
         self,
@@ -293,8 +327,8 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     )
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
-    assert "/static/app.js?v=8" in response.text
-    assert "/static/styles.css?v=42" in response.text
+    assert "/static/app.js?v=10" in response.text
+    assert "/static/styles.css?v=51" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text
@@ -322,9 +356,13 @@ def test_game_edit_explains_unconfigured_bgg_matching(
     response = web_client.get(f"/games/{game_id}/edit")
 
     assert response.status_code == 200
-    assert "Save manual BGG link" in response.text
-    assert "application token" not in response.text
-    assert "Search BoardGameGeek" not in response.text
+    assert "Enter a BGG URL manually" in response.text
+    assert "Save BGG URL" in response.text
+    assert "Open BGG website search" in response.text
+    assert response.text.count("<h2>BoardGameGeek integration</h2>") == 1
+    assert 'id="bgg-integration"' in response.text
+    assert "application token to enable matching" in response.text
+    assert "Find BoardGameGeek match" not in response.text
     assert "Choose a custom image" in response.text
     assert "Recommended: keep artwork with the game" in response.text
     assert "1024 × 1024 WebP" in response.text
@@ -332,6 +370,14 @@ def test_game_edit_explains_unconfigured_bgg_matching(
     assert "cached at 512 × 512" in response.text
     assert "Upload app-managed artwork" in response.text
     assert "not in the read-only library" in response.text
+
+
+def test_file_inputs_use_forge_button_styling() -> None:
+    stylesheet = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
+
+    assert '.metadata-form input[type="file"]::file-selector-button' in stylesheet
+    assert "var(--action-secondary-background)" in stylesheet
+    assert '.metadata-form input[type="file"]:focus-visible' in stylesheet
 
 
 @pytest.mark.parametrize("configured", [False, True])
@@ -352,7 +398,10 @@ def test_settings_show_bgg_configuration_without_exposing_token(
     )
     assert expected in response.text
     assert ("Test BGG connection" in response.text) is configured
-    assert ("/static/brand/powered-by-bgg.png" in response.text) is configured
+    assert "/static/brand/powered-by-bgg.png" in response.text
+    assert response.text.index("BoardGameGeek integration") < response.text.index(
+        "/static/brand/powered-by-bgg.png"
+    )
 
 
 def test_official_powered_by_bgg_asset_is_served(web_client: TestClient) -> None:
@@ -416,8 +465,9 @@ def test_bgg_actions_without_token_do_not_call_client_or_change_state(
     )
     if action == "find":
         assert response.status_code == 200
-        assert "Save manual BGG link" in response.text
-        assert "Search BoardGameGeek" not in response.text
+        assert "Save BGG URL" in response.text
+        assert "Open BGG website search" in response.text
+        assert "Find BoardGameGeek match" not in response.text
     elif action == "unlink":
         assert response.status_code == 303
         assert "unlinked" in response.headers["location"]
@@ -443,7 +493,9 @@ def test_operator_can_search_select_change_and_unlink_bgg_game(
     )
     web_client.app.state.bgg_client_factory = lambda _token: client
 
-    results = web_client.post(f"/games/{game_id}/bgg/find", data={"query": "Farkle"})
+    results = web_client.post(
+        f"/games/{game_id}/bgg/find", data={"query": "Farkle games"}
+    )
     assert results.status_code == 200
     assert "Choose the correct game" in results.text
     assert "Farkle Flip" in results.text
@@ -455,7 +507,8 @@ def test_operator_can_search_select_change_and_unlink_bgg_game(
         follow_redirects=False,
     )
     assert selected.status_code == 303
-    assert selected.headers["location"].endswith("bgg_status=linked")
+    assert "bgg_status=linked" in selected.headers["location"]
+    assert selected.headers["location"].endswith("#bgg-integration")
     association = get_bgg_association(web_client.app.state.database, game_id)
     assert association is not None
     assert association.match_state is BggMatchState.MANUAL
@@ -463,16 +516,136 @@ def test_operator_can_search_select_change_and_unlink_bgg_game(
 
     linked_page = web_client.get(selected.headers["location"])
     assert "BoardGameGeek game linked successfully" in linked_page.text
-    assert "Selected manually" in linked_page.text
-    assert "Unlink BGG game" in linked_page.text
-    assert "Search BoardGameGeek" in linked_page.text
+    assert "Selected and verified using the BGG API" in linked_page.text
+    assert "Remove BGG association" in linked_page.text
+    assert "Refresh BGG information" in linked_page.text
+    assert "Find a different match" in linked_page.text
+    assert "boardgame/822/files" in linked_page.text
+    assert "Find BoardGameGeek match" in linked_page.text
 
     unlinked = web_client.post(f"/games/{game_id}/bgg/unlink", follow_redirects=False)
     assert unlinked.status_code == 303
     assert get_bgg_association(web_client.app.state.database, game_id) is None
 
 
-def test_operator_can_retry_and_disable_bgg_lookup(
+def test_search_automatically_selects_one_unique_exact_bgg_match(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    client = FakeBggClient(
+        results=(
+            BggSearchResult(128174, "Dragon Farkle", 2015),
+            BggSearchResult(3181, "Farkle", 1930),
+            BggSearchResult(128180, "Farkle Flip", 2011),
+        ),
+        details=BggGame(3181, "Farkle", 1930, None, None),
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    response = web_client.post(
+        f"/games/{game_id}/bgg/find",
+        data={"query": "Farkle"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert "bgg_status=matched" in response.headers["location"]
+    assert response.headers["location"].endswith("#bgg-integration")
+    assert client.searches == ["Farkle"]
+    assert client.lookups == [3181]
+    association = get_bgg_association(web_client.app.state.database, game_id)
+    assert association is not None
+    assert association.match_state is BggMatchState.MATCHED
+    assert association.bgg_id == 3181
+
+
+def test_search_from_linked_game_requires_review_before_changing_match(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    save_bgg_association(
+        web_client.app.state.database,
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=BggMatchState.MATCHED,
+            source_title="Farkle",
+            bgg_id=3181,
+            cached_name="Farkle",
+        ),
+    )
+    client = FakeBggClient(
+        results=(BggSearchResult(128180, "Farkle Flip", 2011),),
+        details=BggGame(128180, "Farkle Flip", 2011, None, None),
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    response = web_client.post(
+        f"/games/{game_id}/bgg/find", data={"query": "Farkle Flip"}
+    )
+
+    assert response.status_code == 200
+    assert "Choose the correct game" in response.text
+    assert "BGG ID 128180" in response.text
+    assert "before the current association is changed" in response.text
+    assert client.lookups == []
+    association = get_bgg_association(web_client.app.state.database, game_id)
+    assert association is not None
+    assert association.bgg_id == 3181
+
+
+def test_search_requires_review_when_exact_bgg_title_is_not_unique(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    client = FakeBggClient(
+        results=(
+            BggSearchResult(3181, "Farkle", 1930),
+            BggSearchResult(9999, "FARKLE!", 2024),
+        ),
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    response = web_client.post(f"/games/{game_id}/bgg/find", data={"query": "Farkle"})
+
+    assert response.status_code == 200
+    assert "Choose the correct game" in response.text
+    assert "BGG ID 3181" in response.text
+    assert "BGG ID 9999" in response.text
+    assert client.lookups == []
+    assert get_bgg_association(web_client.app.state.database, game_id) is None
+
+
+def test_exact_bgg_match_with_missing_details_is_not_saved(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    client = FakeBggClient(
+        results=(BggSearchResult(3181, "Farkle", 1930),), details=None
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    response = web_client.post(f"/games/{game_id}/bgg/find", data={"query": "Farkle"})
+
+    assert response.status_code == 200
+    assert "entry is no longer available" in response.text
+    assert client.lookups == [3181]
+    assert get_bgg_association(web_client.app.state.database, game_id) is None
+
+
+def test_internal_matching_and_lookup_state_remain_available_without_ui(
     web_client: TestClient,
 ) -> None:
     game_id = int(_game_ids(web_client)[1])
@@ -486,7 +659,7 @@ def test_operator_can_retry_and_disable_bgg_lookup(
     web_client.app.state.bgg_client_factory = lambda _token: client
 
     retried = web_client.post(f"/games/{game_id}/bgg/retry", follow_redirects=False)
-    assert retried.headers["location"].endswith("bgg_status=matched")
+    assert "bgg_status=matched" in retried.headers["location"]
     assert client.searches == ["Farkle"]
 
     disabled = web_client.post(
@@ -494,14 +667,155 @@ def test_operator_can_retry_and_disable_bgg_lookup(
         data={"enabled": "0"},
         follow_redirects=False,
     )
-    assert disabled.headers["location"].endswith("bgg_status=lookup-disabled")
+    assert "bgg_status=lookup-disabled" in disabled.headers["location"]
     association = get_bgg_association(web_client.app.state.database, game_id)
     assert association is not None
     assert not association.lookup_enabled
     assert association.bgg_id == 822
     disabled_page = web_client.get(disabled.headers["location"])
-    assert "Enable BGG lookup for this game" in disabled_page.text
-    assert "Search BoardGameGeek" not in disabled_page.text
+    assert "Enable BGG lookup for this game" not in disabled_page.text
+    assert "Retry automatic match" not in disabled_page.text
+    assert "Disable BGG lookup" not in disabled_page.text
+    assert "Find a different match" in disabled_page.text
+
+
+def test_operator_can_refresh_selected_bgg_information_without_searching(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    client = FakeBggClient(details=BggGame(822, "Farkle Revised", 2026, None, None))
+    web_client.app.state.bgg_client_factory = lambda _token: client
+    save_bgg_association(
+        web_client.app.state.database,
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=BggMatchState.MANUAL,
+            source_title="Farkle",
+            bgg_id=822,
+            cached_name="Farkle",
+            year_published=1996,
+            last_lookup_at="2026-09-01T00:00:00Z",
+        ),
+    )
+
+    response = web_client.post(f"/games/{game_id}/bgg/refresh", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert "bgg_status=refreshed" in response.headers["location"]
+    assert client.lookups == [822]
+    assert client.searches == []
+    association = get_bgg_association(web_client.app.state.database, game_id)
+    assert association is not None
+    assert association.bgg_id == 822
+    assert association.cached_name == "Farkle Revised"
+    assert association.year_published == 2026
+    page = web_client.get(response.headers["location"])
+    assert "information refreshed without changing the selected game" in page.text
+
+
+def test_manual_bgg_url_replaces_and_verifies_exact_id_without_searching(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    save_bgg_association(
+        web_client.app.state.database,
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=BggMatchState.MATCHED,
+            source_title="Farkle",
+            bgg_id=3181,
+            cached_name="Farkle",
+        ),
+    )
+    client = FakeBggClient(
+        details=BggGame(120677, "Terra Mystica", 2012, "image", "thumbnail")
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    response = web_client.post(
+        f"/games/{game_id}/bgg/manual",
+        data={
+            "bgg_reference": (
+                "https://boardgamegeek.com/boardgame/120677/terra-mystica"
+            )
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert "bgg_status=manual-replaced-verified" in response.headers["location"]
+    assert client.lookups == [120677]
+    assert client.searches == []
+    association = get_bgg_association(web_client.app.state.database, game_id)
+    assert association is not None
+    assert association.bgg_id == 120677
+    assert association.cached_name == "Terra Mystica"
+    assert association.year_published == 2012
+    assert association.url_slug == "terra-mystica"
+    page = web_client.get(response.headers["location"])
+    assert "association replaced and verified" in page.text
+    assert "Terra Mystica" in page.text
+
+
+@pytest.mark.parametrize(
+    ("details", "error", "expected_error"),
+    [
+        (None, None, "manual-not-found"),
+        (None, BggUnavailableError("offline"), "manual-lookup-failed"),
+    ],
+)
+def test_failed_manual_bgg_verification_preserves_existing_association(
+    web_client: TestClient,
+    details: BggGame | None,
+    error: Exception | None,
+    expected_error: str,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    save_bgg_association(
+        web_client.app.state.database,
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=BggMatchState.MATCHED,
+            source_title="Farkle",
+            bgg_id=3181,
+            cached_name="Farkle",
+        ),
+    )
+    client = FakeBggClient(details=details, error=error)
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    response = web_client.post(
+        f"/games/{game_id}/bgg/manual",
+        data={
+            "bgg_reference": (
+                "https://boardgamegeek.com/boardgame/120677/terra-mystica"
+            )
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert f"bgg_error={expected_error}" in response.headers["location"]
+    assert client.lookups == [120677]
+    assert client.searches == []
+    association = get_bgg_association(web_client.app.state.database, game_id)
+    assert association is not None
+    assert association.bgg_id == 3181
+    assert association.cached_name == "Farkle"
+    page = web_client.get(response.headers["location"])
+    assert "BGG association not changed" in page.text
 
 
 def test_bgg_search_failure_does_not_affect_local_game(
@@ -599,7 +913,7 @@ def test_display_preferences_customize_footer_and_recent(
     )
     home = web_client.get("/")
     assert "Nate&#39;s Game Vault" not in home.text
-    assert "Source code" in home.text
+    assert "Forge GameSheets on GitHub" in home.text
     assert ">Recently used</a>" not in home.text
     assert "Recent is disabled" in web_client.get("/recent").text
 

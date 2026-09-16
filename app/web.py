@@ -22,7 +22,7 @@ from app.bgg.client import (
     BggRateLimitError,
     BggUnavailableError,
 )
-from app.bgg.matching import enrich_game
+from app.bgg.matching import enrich_game, normalize_game_name
 from app.bgg.repository import (
     BggAssociation,
     BggMatchState,
@@ -99,6 +99,7 @@ from app.preferences import (
     get_preferences,
     save_preferences,
 )
+from app.sheet_game_associations import list_associated_sheets
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -135,6 +136,15 @@ def _template_preferences(request: Request) -> ApplicationPreferences:
 
 
 templates.env.globals["application_preferences"] = _template_preferences
+
+
+def _has_ready_livesheets(request: Request) -> bool:
+    """Keep navigation absent until the shared workspace has a ready sheet."""
+    store = getattr(request.app.state, "sheet_designer_store", None)
+    return bool(store and store.list_livesheet_documents())
+
+
+templates.env.globals["has_ready_livesheets"] = _has_ready_livesheets
 
 
 @router.get("/", response_class=HTMLResponse, name="library_home")
@@ -845,6 +855,9 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
             "game_resource_links": list_game_resource_links(
                 _database(request), game.id
             ),
+            "associated_sheets": list_associated_sheets(
+                _database(request), request.app.state.sheet_designer_store, game.id
+            ),
             "unavailable_resource_ids": unavailable_resource_ids,
             "pin_status": request.query_params.get("pin"),
         },
@@ -1041,7 +1054,7 @@ def game_artwork_reset(request: Request, game_id: int) -> RedirectResponse:
     name="game_bgg_find",
 )
 async def game_bgg_find(request: Request, game_id: int) -> HTMLResponse:
-    """Search BGG only after an explicit user action and show candidates."""
+    """Select one unique exact BGG match or show candidates for review."""
     game = get_game(_database(request), game_id)
     if game is None:
         raise HTTPException(status_code=404, detail="Game not found")
@@ -1056,6 +1069,44 @@ async def game_bgg_find(request: Request, game_id: int) -> HTMLResponse:
         candidates = client.search_games(query)
     except BggApiError:
         return _game_edit_response(request, game, bgg_error="lookup-failed")
+    existing = get_bgg_association(_database(request), game_id)
+    normalized_query = normalize_game_name(query)
+    exact_matches = tuple(
+        candidate
+        for candidate in candidates
+        if normalize_game_name(candidate.name) == normalized_query
+    )
+    if len(exact_matches) == 1 and not (existing and existing.bgg_id):
+        try:
+            details = client.get_game(exact_matches[0].id)
+        except BggApiError:
+            return _game_edit_response(request, game, bgg_error="lookup-failed")
+        if details is None:
+            return _game_edit_response(request, game, bgg_error="not-found")
+        save_bgg_association(
+            _database(request),
+            BggAssociation(
+                game_id=game_id,
+                lookup_enabled=True,
+                match_state=BggMatchState.MATCHED,
+                source_title=query,
+                bgg_id=details.id,
+                match_confidence=1.0,
+                cached_name=details.name,
+                year_published=details.year_published,
+                image_url=details.image_url,
+                thumbnail_url=details.thumbnail_url,
+                last_lookup_at=_utc_timestamp(),
+            ),
+        )
+        record_activity(
+            _database(request),
+            "bgg_link_updated",
+            game.title,
+            detail="Unique exact BoardGameGeek match selected.",
+            game_id=game_id,
+        )
+        return _game_edit_redirect(game_id, bgg_status="matched")
     return _game_edit_response(
         request,
         game,
@@ -1091,10 +1142,9 @@ async def game_bgg_select(request: Request, game_id: int) -> RedirectResponse:
         return _game_edit_redirect(game_id, bgg_error="lookup-failed")
     if details is None:
         return _game_edit_redirect(game_id, bgg_error="not-found")
-    existing = get_bgg_association(_database(request), game_id)
     association = BggAssociation(
         game_id=game_id,
-        lookup_enabled=existing.lookup_enabled if existing else True,
+        lookup_enabled=True,
         match_state=BggMatchState.MANUAL,
         source_title=game.detected_title,
         bgg_id=details.id,
@@ -1114,6 +1164,55 @@ async def game_bgg_select(request: Request, game_id: int) -> RedirectResponse:
         game_id=game_id,
     )
     return _game_edit_redirect(game_id, bgg_status="linked")
+
+
+@router.post(
+    "/games/{game_id}/bgg/refresh",
+    response_class=RedirectResponse,
+    name="game_bgg_refresh",
+)
+def game_bgg_refresh(request: Request, game_id: int) -> RedirectResponse:
+    """Refresh metadata for the selected BGG ID without changing its match."""
+    game = get_game(_database(request), game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    existing = get_bgg_association(_database(request), game_id)
+    if existing is None or existing.bgg_id is None:
+        return _game_edit_redirect(game_id, bgg_error="not-linked")
+    client = _bgg_client(request)
+    if client is None:
+        return _game_edit_redirect(game_id, bgg_error="not-configured")
+    try:
+        details = client.get_game(existing.bgg_id)
+    except BggApiError:
+        return _game_edit_redirect(game_id, bgg_error="lookup-failed")
+    if details is None:
+        return _game_edit_redirect(game_id, bgg_error="not-found")
+    save_bgg_association(
+        _database(request),
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=existing.match_state,
+            source_title=existing.source_title,
+            bgg_id=details.id,
+            match_confidence=existing.match_confidence,
+            cached_name=details.name,
+            year_published=details.year_published,
+            image_url=details.image_url,
+            thumbnail_url=details.thumbnail_url,
+            last_lookup_at=_utc_timestamp(),
+            url_slug=existing.url_slug,
+        ),
+    )
+    record_activity(
+        _database(request),
+        "bgg_link_updated",
+        game.title,
+        detail="BoardGameGeek information refreshed.",
+        game_id=game_id,
+    )
+    return _game_edit_redirect(game_id, bgg_status="refreshed")
 
 
 @router.post(
@@ -1177,26 +1276,68 @@ async def game_bgg_manual(request: Request, game_id: int):
             raise ValueError
     except ValueError:
         return _game_edit_redirect(game_id, bgg_error="invalid-reference")
-    # Preserve the supplied slug without fetching or guessing BGG metadata.
-    save_bgg_association(
-        _database(request),
-        BggAssociation(
+    database = _database(request)
+    existing = get_bgg_association(database, game_id)
+    client = _bgg_client(request)
+    if client is not None:
+        try:
+            details = client.get_game(bgg_id)
+        except BggApiError:
+            return _game_edit_redirect(game_id, bgg_error="manual-lookup-failed")
+        if details is None or details.id != bgg_id:
+            return _game_edit_redirect(game_id, bgg_error="manual-not-found")
+        association = BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=BggMatchState.MANUAL,
+            source_title=game.detected_title,
+            bgg_id=details.id,
+            match_confidence=1.0,
+            cached_name=details.name,
+            year_published=details.year_published,
+            image_url=details.image_url,
+            thumbnail_url=details.thumbnail_url,
+            last_lookup_at=_utc_timestamp(),
+            url_slug=slug,
+        )
+        status = (
+            "manual-replaced-verified"
+            if existing and existing.bgg_id
+            else "manual-verified"
+        )
+        detail = (
+            "BoardGameGeek association replaced and verified from a supplied URL."
+            if existing and existing.bgg_id
+            else "BoardGameGeek association created and verified from a supplied URL."
+        )
+    else:
+        # Preserve the supplied slug without fetching or guessing BGG metadata.
+        association = BggAssociation(
             game_id=game_id,
             lookup_enabled=False,
             match_state=BggMatchState.MANUAL,
-            source_title=game.title,
+            source_title=game.detected_title,
             bgg_id=bgg_id,
             url_slug=slug,
-        ),
+        )
+        status = "manual-replaced" if existing and existing.bgg_id else "manual-linked"
+        detail = (
+            "BoardGameGeek association replaced from an unverified supplied URL."
+            if existing and existing.bgg_id
+            else "BoardGameGeek association created from an unverified supplied URL."
+        )
+    save_bgg_association(
+        database,
+        association,
     )
     record_activity(
         _database(request),
         "bgg_link_updated",
         game.title,
-        detail="BoardGameGeek link updated.",
+        detail=detail,
         game_id=game_id,
     )
-    return _game_edit_redirect(game_id, bgg_status="manual-linked")
+    return _game_edit_redirect(game_id, bgg_status=status)
 
 
 @router.post(
@@ -1678,7 +1819,9 @@ def _game_edit_redirect(
         }
     )
     suffix = f"?{query}" if query else ""
-    return RedirectResponse(url=f"/games/{game_id}/edit{suffix}", status_code=303)
+    return RedirectResponse(
+        url=f"/games/{game_id}/edit{suffix}#bgg-integration", status_code=303
+    )
 
 
 def _utc_timestamp() -> str:

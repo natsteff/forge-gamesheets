@@ -8,9 +8,11 @@ self-hosted operator supplies a separately approved token. No project token is
 distributed in source or container images, and API enrichment remains disabled
 when no token is configured.
 
-Accepted for Phase 2. The initial client requirements were verified against
-official BoardGameGeek documentation on 2026-09-02. Game and Files browser URL
-behavior will be verified again when those visible links are implemented.
+Accepted for Phase 2. Token configuration, the isolated client, persistent
+associations, explicit exact-title matching with ambiguous-result review,
+metadata refresh, manual URL fallback, and Game/Files navigation are implemented
+for controlled testing. Automatic matching during library discovery and artwork
+fallback remain deferred.
 
 ## Decision
 
@@ -59,9 +61,18 @@ with BGG and privately configures the resulting token. Ordinary users of that
 server do not obtain tokens. Operators controlled by the same owner should use
 separate tokens where available so usage and revocation remain isolated.
 
-## Matching during library discovery
+## Matching policy
 
-For entries where BGG lookup is enabled, Forge should:
+The current Edit game entry workflow performs matching only after an Admin or
+Contributor explicitly requests it. A unique exact normalized-title match may be
+saved automatically. Multiple exact titles, partial matches, and weak results
+require explicit selection. Searches from an already linked entry always require
+explicit selection before replacing it. Refresh uses the stored BGG ID and never
+rematches.
+
+Automatic matching during library discovery remains a future extension. If
+approved later, it should perform the following steps for entries where lookup
+is enabled:
 
 1. Discover the local entry through the existing filesystem scan.
 2. Normalize its detected name for BGG search without changing the local name.
@@ -79,8 +90,8 @@ The model must cleanly represent behavior equivalent to:
 - ambiguous/requires review;
 - manually matched.
 
-Exact database fields and enums will be proposed after the existing schema and
-repository layer are reviewed. Forge must never silently choose a materially
+The implemented association model represents matched, unmatched, ambiguous,
+manual, pending, and failed states. Forge must never silently choose a materially
 uncertain match.
 
 An unsuccessful lookup never blocks import. If BGG is unavailable, rate
@@ -90,9 +101,11 @@ the enrichment state and permit a later retry.
 
 ## Lookup applicability
 
-BGG lookup is enabled by default for ordinary library entries. Users must be
-able to disable it for an entry where BGG does not apply, retry it, manually
-select a match, change an incorrect match, or unlink it.
+Explicit BGG lookup is available for ordinary library entries when a token is
+configured. Users can manually select a match, change an incorrect match, refresh
+the chosen ID, unlink it, or use the token-free manual URL fallback. Per-entry
+lookup toggles remain represented internally for future reviewed bulk matching;
+they are not exposed as competing controls in the current editor.
 
 Use a concept such as `bgg_lookup_enabled`, not `is_board_game`: a tabletop RPG
 may have a useful BGG record while a homemade board game may not.
@@ -148,12 +161,12 @@ For a linked entry, provide actions equivalent to:
 - Change BGG match;
 - Unlink BGG match.
 
-For an unlinked entry, provide **Find on BGG**. Search results must show enough
-information to distinguish similarly named games; publication year is useful
-for this purpose.
+For an unlinked entry, provide **Find BoardGameGeek match**. Search results must
+show enough information to distinguish similarly named games; publication year
+is useful for this purpose.
 
-Game and Files URLs should be derived from the BGG ID, but their current routing
-must be verified before hard-coding them.
+Game and Files URLs are derived from the BGG ID. A saved display slug is retained
+when supplied manually but is not required for either destination.
 
 ## Relationship to FGS and community sharing
 

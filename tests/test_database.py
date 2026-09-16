@@ -54,6 +54,13 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "game_resource_links",
         "generated_reprints",
         "activity_events",
+        "livesheet_sessions",
+        "livesheet_players",
+        "livesheet_scores",
+        "livesheet_checklist_values",
+        "livesheet_note_values",
+        "livesheet_tombstones",
+        "gamesheet_game_associations",
     } <= tables
     assert [tuple(row) for row in migrations] == [
         (1, "create_library_index"),
@@ -81,6 +88,8 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (23, "add_generated_reprint_registry"),
         (24, "add_application_activity_history"),
         (25, "bound_reprint_job_history"),
+        (26, "add_temporary_livesheet_sessions"),
+        (27, "add_gamesheet_game_associations"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -107,7 +116,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 25
+    assert count == 27
 
 
 def test_multi_category_migration_preserves_single_category(database: Database) -> None:

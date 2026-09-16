@@ -66,33 +66,28 @@
       <button type="submit">Save game resource links</button>
     </form>
 
-    <h3>BoardGameGeek links</h3>
-    <p>Paste the full BGG game URL, including its numeric ID and game name. An ID alone or an incomplete URL is not accepted. No API token is needed; the entry is not API-verified and no metadata is fetched.</p>
-    {% if bgg_status == 'manual-linked' %}<p class="status-banner" role="status">Manual BGG link saved; not API-verified.</p>{% elif bgg_status == 'unlinked' %}<p class="status-banner" role="status">BoardGameGeek link removed.</p>{% endif %}
-    <div class="bgg-action-row">{% include "bgg_links.html" %}</div>
-    {% if bgg_association and bgg_association.bgg_id %}<p>BGG ID {{ bgg_association.bgg_id }}{% if bgg_association.match_state == 'manual' and not bgg_association.last_lookup_at %} · Manually supplied; not API-verified{% endif %}</p>{% endif %}
-    <form class="metadata-form" method="post" action="{{ url_for('game_bgg_manual', game_id=game.id) }}">
-      {% if bgg_error == 'invalid-reference' %}<div id="bgg-reference-error" class="status-banner warning" role="alert"><strong>BGG link not saved.</strong> Enter the full BGG game URL including both ID and game name. Your existing link has not changed.</div>{% endif %}
-      <label for="bgg-reference">Full BGG game URL <span>(eg. https://boardgamegeek.com/boardgame/gameID/game-name)</span></label>
-      <input id="bgg-reference" name="bgg_reference" type="url" maxlength="1000" required value="{{ bgg_association.game_url if bgg_association and bgg_association.bgg_id else '' }}"{% if bgg_error == 'invalid-reference' %} aria-invalid="true" aria-describedby="bgg-reference-error" autofocus{% endif %}>
-      <button type="submit">Save manual BGG link</button>
-    </form>
-    {% if bgg_association and bgg_association.bgg_id %}<form method="post" action="{{ url_for('game_bgg_unlink', game_id=game.id) }}"><button class="danger-button" type="submit">Remove BGG link</button></form>{% endif %}
-    <p>You can visit BGG and upload artwork you have permission to use below. Manual linking leaves local titles and artwork unchanged.</p>
   </section>
-  {% if bgg_configured %}
-  <section class="edit-panel bgg-editor">
-    <p class="eyebrow">Optional enrichment</p>
-    <h2>BoardGameGeek</h2>
+
+  <section class="edit-panel bgg-editor artwork-editor" id="bgg-integration">
+    <p class="eyebrow">Game reference</p>
+    <h2>BoardGameGeek integration</h2>
+    {% include "_bgg_attribution.html" %}
+    <p>Associate this library entry with the correct BoardGameGeek game. This does not change the game folder, PDFs, display title, or artwork.</p>
 
     {% if bgg_status == "linked" %}
       <p class="status-banner" role="status">BoardGameGeek game linked successfully.</p>
+    {% elif bgg_status == "manual-linked" %}
+      <p class="status-banner" role="status">BoardGameGeek URL saved without API verification.</p>
+    {% elif bgg_status == "manual-replaced" %}
+      <p class="status-banner" role="status">BoardGameGeek association replaced without API verification.</p>
+    {% elif bgg_status == "manual-verified" %}
+      <p class="status-banner" role="status">BoardGameGeek association saved and verified.</p>
+    {% elif bgg_status == "manual-replaced-verified" %}
+      <p class="status-banner" role="status">BoardGameGeek association replaced and verified.</p>
+    {% elif bgg_status == "refreshed" %}
+      <p class="status-banner" role="status">BoardGameGeek information refreshed without changing the selected game.</p>
     {% elif bgg_status == "unlinked" %}
-      <p class="status-banner" role="status">BoardGameGeek link removed.</p>
-    {% elif bgg_status == "lookup-enabled" %}
-      <p class="status-banner" role="status">BoardGameGeek lookup enabled.</p>
-    {% elif bgg_status == "lookup-disabled" %}
-      <p class="status-banner" role="status">BoardGameGeek lookup disabled.</p>
+      <p class="status-banner" role="status">BoardGameGeek association removed.</p>
     {% elif bgg_status == "matched" %}
       <p class="status-banner" role="status">A unique BoardGameGeek match was found.</p>
     {% elif bgg_status == "ambiguous" %}
@@ -103,46 +98,49 @@
       <p class="status-banner warning" role="status">BoardGameGeek could not be reached. Your local game was not affected.</p>
     {% endif %}
 
-    {% if bgg_error == "not-configured" or not bgg_configured %}
-      <p class="status-banner warning" role="status">Add a BoardGameGeek application token to enable matching. Local games and PDFs continue to work without it.</p>
+    {% if bgg_error == "invalid-reference" %}
+      <p class="status-banner warning" id="bgg-reference-error" role="alert"><strong>BGG URL not saved.</strong> Enter a full game URL containing both its numeric ID and game-name text. The existing association has not changed.</p>
+    {% elif bgg_error == "manual-lookup-failed" %}
+      <p class="status-banner warning" role="alert"><strong>BGG association not changed.</strong> The submitted URL could not be verified because BoardGameGeek could not complete the request. Try again later.</p>
+    {% elif bgg_error == "manual-not-found" %}
+      <p class="status-banner warning" role="alert"><strong>BGG association not changed.</strong> BoardGameGeek did not return a game for the submitted URL.</p>
     {% elif bgg_error == "invalid-query" %}
       <p class="status-banner warning" role="alert">Enter a game name to search.</p>
     {% elif bgg_error == "no-results" %}
       <p class="status-banner warning" role="status">No BoardGameGeek results were found for “{{ bgg_query }}”.</p>
     {% elif bgg_error == "not-found" %}
       <p class="status-banner warning" role="status">That BoardGameGeek entry is no longer available.</p>
+    {% elif bgg_error == "not-linked" %}
+      <p class="status-banner warning" role="status">Select a BoardGameGeek game before refreshing its information.</p>
+    {% elif bgg_error == "not-configured" %}
+      <p class="status-banner warning" role="status">Add a BoardGameGeek application token to enable matching. Local games and PDFs continue to work without it.</p>
     {% elif bgg_error %}
       <p class="status-banner warning" role="status">BoardGameGeek could not complete the request. Try again later.</p>
+    {% elif not bgg_configured %}
+      <p class="status-banner warning" role="status">Add a BoardGameGeek application token to enable matching. Local games and PDFs continue to work without it.</p>
     {% endif %}
 
     {% if bgg_association and bgg_association.bgg_id %}
       <div class="bgg-current-match">
-        <strong>{{ bgg_association.cached_name or "BoardGameGeek game" }}</strong>
+        <strong>{{ bgg_association.cached_name or "Unverified BGG association" }}</strong>
         <span>BGG ID {{ bgg_association.bgg_id }}{% if bgg_association.year_published %} · {{ bgg_association.year_published }}{% endif %}</span>
-        <small>{% if bgg_association.match_state == "manual" %}Selected manually{% else %}Matched automatically{% endif %}</small>
+        <small>{% if bgg_association.last_lookup_at %}Selected and verified using the BGG API{% else %}Saved manually; not API-verified · Local library entry: {{ game.title }}{% endif %}</small>
       </div>
       <div class="bgg-action-row">
-        <form action="{{ url_for('game_bgg_retry', game_id=game.id) }}" method="post">
-          <button class="secondary-button" type="submit">Retry automatic match</button>
-        </form>
+        {% include "bgg_links.html" %}
+        {% if bgg_configured %}<form action="{{ url_for('game_bgg_refresh', game_id=game.id) }}" method="post"><button class="secondary-button" type="submit">Refresh BGG information</button></form>{% endif %}
         <form action="{{ url_for('game_bgg_unlink', game_id=game.id) }}" method="post">
-          <button class="danger-button" type="submit">Unlink BGG game</button>
+          <button class="danger-button" type="submit">Remove BGG association</button>
         </form>
       </div>
-    {% elif bgg_association %}
-      <p class="edit-source">Match state: {{ bgg_association.match_state.value|capitalize }}</p>
-      {% if bgg_configured and bgg_association.lookup_enabled %}
-        <form action="{{ url_for('game_bgg_retry', game_id=game.id) }}" method="post">
-          <button class="secondary-button" type="submit">Retry automatic match</button>
-        </form>
-      {% endif %}
     {% endif %}
 
-    {% if bgg_configured and (not bgg_association or bgg_association.lookup_enabled) %}
-      <form class="metadata-form" action="{{ url_for('game_bgg_find', game_id=game.id) }}" method="post">
-        <label for="bgg-query">Find a game on BoardGameGeek</label>
+    {% if bgg_configured %}
+      <form class="metadata-form" action="{{ url_for('game_bgg_find', game_id=game.id) }}#bgg-integration" method="post">
+        <label for="bgg-query">{% if bgg_association and bgg_association.bgg_id %}Find a different match{% else %}Find this game on BoardGameGeek{% endif %}</label>
         <input id="bgg-query" name="query" value="{{ bgg_query }}" maxlength="200" required>
-        <button type="submit">Search BoardGameGeek</button>
+        {% if bgg_association and bgg_association.bgg_id %}<small class="edit-source">Search results will be shown for review before the current association is changed.</small>{% endif %}
+        <button type="submit">Find BoardGameGeek match</button>
       </form>
     {% endif %}
 
@@ -162,15 +160,22 @@
       </div>
     {% endif %}
 
-    <form class="bgg-lookup-toggle" action="{{ url_for('game_bgg_lookup_toggle', game_id=game.id) }}" method="post">
-      {% set lookup_enabled = not bgg_association or bgg_association.lookup_enabled %}
-      <input type="hidden" name="enabled" value="{% if lookup_enabled %}0{% else %}1{% endif %}">
-      <button class="secondary-button" type="submit">{% if lookup_enabled %}Disable BGG lookup for this game{% else %}Enable BGG lookup for this game{% endif %}</button>
-    </form>
-    <p class="settings-note">BGG matching is optional and never changes your game folder or PDFs.</p>
-    {% include "_bgg_attribution.html" %}
+    <details class="bgg-manual-fallback"{% if bgg_error in ['invalid-reference', 'manual-lookup-failed', 'manual-not-found'] or not bgg_configured %} open{% endif %}>
+      <summary>{% if bgg_configured %}Can’t find the right game? Enter a BGG URL manually{% else %}Enter a BGG URL manually{% endif %}</summary>
+      {% if bgg_configured %}
+        <p>Enter the authoritative BGG game URL to {% if bgg_association and bgg_association.bgg_id %}replace the current association{% else %}create the association{% endif %}. Forge verifies that exact BGG ID without running a title search. If verification fails, the current association is not changed.</p>
+      {% else %}
+        <p>This fallback {% if bgg_association and bgg_association.bgg_id %}replaces the current association{% else %}stores the association{% endif %} without contacting or verifying it through the BGG API.</p>
+      {% endif %}
+      {% if not (bgg_association and bgg_association.bgg_id) %}<div class="bgg-action-row">{% include "bgg_links.html" %}</div>{% endif %}
+      <form class="metadata-form" method="post" action="{{ url_for('game_bgg_manual', game_id=game.id) }}">
+        <label for="bgg-reference">Full BGG game URL <span>(eg. https://boardgamegeek.com/boardgame/gameID/game-name)</span></label>
+        <input id="bgg-reference" name="bgg_reference" type="url" maxlength="1000" required value="{{ bgg_association.game_url if bgg_association and bgg_association.url_slug else '' }}"{% if bgg_error == 'invalid-reference' %} aria-invalid="true" aria-describedby="bgg-reference-error" autofocus{% endif %}>
+        <button type="submit">{% if bgg_association and bgg_association.bgg_id %}Replace BGG association with this URL{% else %}Save BGG URL{% endif %}</button>
+      </form>
+    </details>
+
   </section>
-  {% endif %}
 
   <section class="edit-panel artwork-editor">
     <p class="eyebrow">Game artwork</p>

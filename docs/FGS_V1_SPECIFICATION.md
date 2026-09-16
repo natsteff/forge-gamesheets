@@ -86,6 +86,13 @@ Field length and required-property rules are defined by the schema. Text is
 Unicode. Editors may trim outer whitespace from single-line fields but must not
 otherwise rewrite content.
 
+Forge's optional LiveSheet target recognizes score rows named exactly `Total`
+or `Grand Total`, ignoring capitalization and surrounding whitespace, as
+calculated rows. This does not make runtime scores part of FGS v1. The legacy
+`show_total` and `total_label` representation remains valid; Forge presents that
+summary as a visible row when it is edited and saves new tables with visible
+row-driven totals.
+
 ## Extensions
 
 An `extensions` object maps reverse-domain names, such as

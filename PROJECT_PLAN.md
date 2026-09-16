@@ -463,21 +463,33 @@ source; a **GameSheet** is a rendered result.
 - **Confirmed:** Future sharing may include both a rendered GameSheet and its
   editable `.fgs` source. Forge distributes tooling, not third-party game
   content, and will not operate a public FGS repository.
-- **Future workflow improvement:** Opening Sheet Designer should lead to a
-  lightweight shared-workspace page rather than automatically reopening the
-  last active draft. Show recent saved sheets with clear **New sheet** and
-  **Import FGS** actions; selecting a sheet opens its editor, where automatic
-  saving continues. A direct address or bookmark may still open a specific
-  sheet. Consider a resume-last-sheet preference only if later testing shows
-  enough value to justify the added setting.
+- **Completed:** Opening Sheet Designer leads to a lightweight shared-workspace
+  choice rather than automatically reopening the last active draft. It offers
+  **New sheet**, **Open sheets** (including FGS import), and an explicit
+  **Resume last sheet** action. Selecting a sheet opens its editor, where
+  automatic saving continues.
+- **Completed:** A saved Designer workspace may be associated with one existing
+  indexed game without placing installation-specific IDs in its portable FGS
+  source. Contributors can search, replace, or remove the association in the
+  Designer; associated sheets appear on the game entry with edit and eligible
+  LiveSheet launch actions. The relation follows the game folder identity,
+  survives display-title changes, and is included with application-data backups.
 - **Confirmed:** Investigate `forgegamesheets` as the canonical BGG Files
   discovery convention. Do not scrape BGG Files or automate uploads without an
   officially supported API and a later explicit decision.
+- **Completed:** FGS LiveSheet v1 uses temporary,
+  permission-scoped sessions. The accepted lifecycle, scoring rules, role
+  boundaries, invitation model, and implementation sequence are recorded in
+  [decision 006](docs/decisions/006-fgs-livesheet-v1.md). The persistence,
+  authorization, calculated-row, and reusable-readiness foundations are
+  complete. Conditional navigation, ready-sheet selection, session setup,
+  QR/link invitations, player claiming, single-scorer and individual score
+  entry, automatic refresh, explicit ending, host-only checklist/game-note
+  controls, and the initial visual refinement are implemented.
 
-Major future components are the FGS v1 specification, validation, import and
-export, storage and game association, FGS Library, FGS Editor, FGS Renderer,
-static and browser outputs, version migration, and external community-sharing
-navigation. The exact launch subset will be selected after schema design.
+Remaining future components include richer FGS section types, multi-page output,
+advanced layout, independent editor packaging, additional render targets, version
+migration beyond v1, and external community-sharing navigation.
 
 Representative user stories include quick references, setup guides, writable
 score sheets, resource trackers, character sheets, golf scorecards, tournament
@@ -508,6 +520,12 @@ updates require critical-path and screenshot review under
 - **Future idea:** Advanced layout and print optimization.
 - **Future idea:** Additional FGS render targets and interactive workflows.
 - **Future idea:** Additional external integrations after BGG is stable.
+- **Future release hardening:** When fixed, versioned container releases begin,
+  automatically generate an SPDX JSON SBOM from each final runtime image digest
+  and attach a signed GitHub/OCI attestation. A plain-text inventory may be
+  published as a convenience, but the SPDX document remains authoritative.
+  Do not manually maintain or commit generated SBOMs for moving development
+  images such as `main`.
 
 ## 11. Proposed technical baseline
 
@@ -572,11 +590,6 @@ Suggested early commits after this scaffold:
 - Whether print history records an explicit in-app action or only resource use,
   since browser printing cannot always be observed reliably.
 - Authentication and network exposure expectations for eventual deployment.
-- BGG API authorization requirements, request policy, cache lifetime, and
-  confidence thresholds, to be verified against official documentation before
-  implementation.
-- Formal FGS v1 schema, including semantic content blocks, resource references,
-  calculations, layout hints, page behavior, and compatibility rules.
 
 Open questions should be resolved through small implementation experiments and
 documented decisions, not broad redesigns.

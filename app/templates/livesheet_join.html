@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Join {{ session.title }} · LiveSheet{% endblock %}
+{% block content %}
+<section class="page-heading"><p class="eyebrow">LiveSheet invitation</p><h1>{{ session.title }}</h1></section>
+<form class="panel livesheet-join-form" method="post" action="{{ url_for('livesheet_claim', session_id=session.id) }}">
+<h2>{{ 'Add your name' if session.mode == 'single' else 'Choose your player' }}</h2>{% if session.mode == 'single' %}<p>The host controls scoring, but you can claim and update your own player name.</p>{% endif %}<input type="hidden" name="invite_token" value="{{ session.token }}">
+<div class="join-fields"><label><strong>Your name</strong><input name="name" maxlength="40" required></label><label><strong>Player position</strong><select name="position" required>{% for player in session.players %}{% if not player.claimed %}<option value="{{ player.position }}">Player {{ player.position }}</option>{% endif %}{% endfor %}</select></label></div>
+<button class="primary-button" type="submit">Join game</button></form>
+{% if session.mode == 'single' %}<p class="join-secondary-action"><a class="secondary-button" href="{{ url_for('livesheet_player', session_id=session.id) }}?t={{ session.token }}">Continue without a player name</a></p>{% endif %}
+{% endblock %}

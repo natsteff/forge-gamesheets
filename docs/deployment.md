@@ -89,7 +89,14 @@ FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS=127.0.0.1
 FORGE_GAMESHEETS_DATA_PATH=./data
 FORGE_GAMESHEETS_LIBRARY_PATH=./library
 FORGE_GAMESHEETS_IMAGE_TAG=main
+# Optional; leave empty unless BGG approved a private token for this installation.
+FORGE_GAMESHEETS_BGG_API_TOKEN=
 ```
+
+The BGG token enables API-assisted matching and verification but is not required
+for manual BGG URLs or website search. Keep it only in the untracked `.env` file;
+never commit it or include it in screenshots, logs, or support reports. See
+[BoardGameGeek API setup](BGG_API.md).
 
 Host paths may be absolute:
 

@@ -33,13 +33,19 @@ service, or store PDF contents in its database.
   eligible FORGE Reprints with durable progress and per-resource results
 - Integrated Sheet Designer for creating new structured game sheets from
   scratch, with headers, score tables, references, checklists, notes, live page
-  preview, automatically saved drafts, and PDF or `.fgs` export
+  preview, automatically saved drafts, PDF or `.fgs` export, and optional
+  association with an existing library game
+- Temporary LiveSheet sessions with single-scorer or individual-player entry,
+  QR and copyable-link invitations, automatic totals, and host-managed notes
+  and milestones
 - Editable display titles, document metadata, and game artwork
 - Multiple customizable categories per game
 - Bulk category assignment with filtering, selection, and confirmation before changes
 - Optional trailing folder-category hints, such as `Yahtzee [Dice, Children]`
 - Optional local Admin, Contributor, and Reader accounts with per-resource QR restrictions
-- Token-free manual BGG game URLs, Game/Files links, and external title search
+- Token-free manual BGG game URLs, Game/Files links, and external title search;
+  optional API-assisted search, verification, replacement, and refresh with an
+  operator-supplied BGG application token
 - Admin metadata portability for game links and uploaded artwork, with a ZIP
   export, manifest restore, and alternative `.url`/`.webloc` library scan
 - All Games, category, and Uncategorized browsing
@@ -55,22 +61,32 @@ The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
 ## Screenshots
 
-Screenshots reviewed September 13, 2026, using an invented demonstration library
-and demo accounts. No private library content or third-party game files are
-included. These views show authentication enabled; available controls depend on
-the signed-in role. Click an image to inspect it at full size.
+Core screenshots last captured September 15, 2026, using an invented demonstration library,
+the Designer's default sample sheet, and a public BoardGameGeek association used
+only to demonstrate the integration controls. No private library content,
+credentials, or third-party game files are included. These views show
+authentication enabled; available controls depend on the signed-in role. Click
+an image to inspect it at full size.
+
+The current application also includes LiveSheet setup and play, GameSheet/game
+associations, generated GameSheet previews, and the Designer's About dialog.
+Those newer workflows are not yet represented by dedicated gallery images; the
+[screenshot maintenance guide](docs/SCREENSHOTS.md) records the required safe
+replacement captures.
 
 | Library, pins, and categories | Game resources |
 | --- | --- |
 | ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
 | **Bulk game categories** | **Bulk FORGE Reprint maintenance** |
 | ![Demo games with current categories and bulk assignment controls](docs/images/assign-categories.png) | ![Admin utility showing reprint inventory, guided bulk operations, and recent operation results](docs/images/reprint-maintenance.png) |
-| **User Accounts** | **Game Resource Links and BoardGameGeek** |
-| ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Game editing with official and alternate resource links and manual BoardGameGeek linking](docs/images/bgg-manual.png) |
-| **Activity History** | **Integration and build details** |
-| ![Activity history showing summarized scans, content changes, favorites, pins, and PDF use](docs/images/activity-history.png) | ![Settings showing optional integration status and complete local build identification](docs/images/settings-build.png) |
-| **Sheet Designer** | **Saved sheets and import** |
-| ![Sheet Designer with a compact editing sidebar and live printable-sheet preview](docs/images/sheet-designer.png) | ![Open sheets window with saved drafts, duplication, deletion, and FGS import](docs/images/sheet-designer-open.png) |
+| **User Accounts** | **Activity History** |
+| ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Activity history showing summarized scans, content changes, favorites, pins, and PDF use](docs/images/activity-history.png) |
+| **Integration and build details** | **Sheet Designer** |
+| ![Settings showing optional integration status and complete local build identification](docs/images/settings-build.png) | ![Sheet Designer with a compact editing sidebar and live printable-sheet preview](docs/images/sheet-designer.png) |
+| **Designer startup choices** | **Saved sheets and import** |
+| ![Sheet Designer startup page offering New sheet, Open sheets, and Resume last sheet](docs/images/sheet-designer-startup.png) | ![Open sheets window with saved drafts, duplication, deletion, and FGS import](docs/images/sheet-designer-open.png) |
+| **BoardGameGeek integration** | |
+| ![BoardGameGeek integration section showing a verified association, replacement search, and manual URL override](docs/images/bgg-integration.png) | |
 
 The [screenshot maintenance guide](docs/SCREENSHOTS.md) records the capture
 procedure and review requirements. The Sheet Designer views also show its new
@@ -171,10 +187,19 @@ change only the values needed for the host:
 | --- | --- | --- |
 | `FORGE_GAMESHEETS_BIND_ADDRESS` | `127.0.0.1` | Host address that accepts connections |
 | `FORGE_GAMESHEETS_PORT` | `8000` | Host port used to open Forge |
+| `FORGE_GAMESHEETS_MODE` | `full` | Run the full library application or Designer-only mode |
 | `FORGE_GAMESHEETS_BASE_URL` | unset | Address encoded into FORGE Reprint QR links |
+| `FORGE_GAMESHEETS_ALLOWED_HOSTS` | unset | Additional exact hostnames or IP addresses accepted by Forge |
+| `FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS` | `127.0.0.1` | Trusted reverse-proxy IP or network; never use `*` for ordinary LAN access |
 | `FORGE_GAMESHEETS_DATA_PATH` | `./data` | Writable application state |
 | `FORGE_GAMESHEETS_LIBRARY_PATH` | `./library` | Source PDF library, mounted read-only |
 | `FORGE_GAMESHEETS_IMAGE_TAG` | `main` | Published image channel or fixed release tag |
+| `FORGE_GAMESHEETS_BGG_API_TOKEN` | unset | Optional private, BGG-approved application token for API-assisted matching |
+
+Leave `FORGE_GAMESHEETS_BGG_API_TOKEN` empty unless BoardGameGeek has approved a
+token for this installation. Manual BGG URLs and website search continue to work
+without one. Never commit, publish, log, or include the token in screenshots or
+support reports. See [BoardGameGeek API setup](docs/BGG_API.md).
 
 Published images already include their release, revision, and UTC build date,
 visible in Settings and `/health`; users do not need to configure these values.
@@ -273,10 +298,13 @@ destination.
 
 #### BoardGameGeek links without a token
 
-In **Edit game entry**, paste a full BGG game URL containing both its numeric ID
-and game-name slug. Forge stores the manual association without fetching or
-verifying metadata. Linked games show **View on BGG** and **BGG Files**; unlinked
-games show **Search for game at BGG**, using the local display title in a new tab.
+In **Edit game entry → BoardGameGeek integration**, expand the manual URL fallback
+and paste a full BGG game URL containing both its numeric ID and game-name slug.
+Forge stores the manual association without fetching or verifying metadata.
+Saving another valid URL replaces the prior association and clearly labels the
+result as unverified.
+Linked games show **View on BGG** and **BGG Files**; unlinked games offer **Open
+BGG website search**, using the local display title in a new tab.
 Bare IDs and incomplete URLs are not accepted. Local titles and artwork stay
 unchanged. See [manual BGG links](docs/BGG_MANUAL_LINKS.md).
 
@@ -286,12 +314,19 @@ API enrichment remains a separate, optional feature requiring token configuratio
 
 #### Optional BoardGameGeek API enrichment
 
-API enrichment is disabled by default. Enabling it adds explicit BGG search,
-selection, and cached metadata actions without changing library scans, local
-files, or token-free manual links. Each administrator of an independently hosted
-Forge server must register that installation with BGG and place its approved
-token in the server's private `.env` file. Tokens are never bundled with Forge,
-stored in its database, included in exports, or displayed in Settings. See
+API enrichment is disabled by default. When configured, **Find BoardGameGeek
+match** automatically selects only one unique exact normalized-title match. If
+there is no unique exact match, Forge shows the candidates and requires an
+explicit selection. Searches from an already linked entry always show results
+for review before replacing its association. Linked entries can be refreshed,
+changed, or removed without changing library scans, local files, or token-free
+manual links. The manual URL fallback is also an authoritative override: Forge
+verifies the exact ID from the submitted URL without a title search and replaces
+the association only after verification succeeds. Each
+administrator of an independently hosted Forge server must register that
+installation with BGG and place its approved token in the server's private `.env`
+file. Tokens are never bundled with Forge, stored in its database, included in
+exports, or displayed in Settings. See
 [BoardGameGeek API setup](docs/BGG_API.md).
 
 ### Navigation
@@ -316,6 +351,49 @@ are editable, and numbered rows such as Round 1 through Round 10 can be generate
 in one step. Letter and A4 output are available in portrait or landscape, with a
 live single-page preview and overflow warning.
 
+Sheet Designer works best for portable score tracking, reference information,
+checklists, and notes arranged in structured, single-page sections. FGS v1 is
+not a general page-layout or spreadsheet format: it does not currently support
+free positioning, images, custom formulas, multiple pages, or pixel-perfect
+copies of existing documents. GameSheets can be exported as printable PDFs,
+and compatible score sheets can also be used as temporary interactive
+LiveSheets. The Designer startup page and editor toolbar provide the same short
+**About Sheet Designer** explanation in the application.
+
+**Tip:** An LLM can draft an `.fgs` file from a score-sheet image or PDF when it
+is also given the [FGS v1 specification](docs/FGS_V1_SPECIFICATION.md). Review
+the generated content, import it as untrusted input, and verify every label,
+calculation, and layout before use. Only upload source documents you are
+permitted to share with that service.
+
+Score rows named **Total** or **Grand Total** are visibly recognized as
+calculated LiveSheet rows; dedicated buttons insert them without special syntax.
+The earlier summary-row checkbox is no longer used. An integrated Designer can
+mark a GameSheet as **LiveSheet ready** while keeping all runtime scores and
+player names out of its FGS source. Once at least one saved sheet is ready, the
+full application displays a **LiveSheets** menu item. Contributors and Admins
+can start temporary single-scorer or individual-scoring sessions, invite other
+players using a QR code or copyable link, and deliberately end a game. In
+individual mode, each person claims and edits only one player; single-scorer
+guests receive a read-only view. Scores refresh automatically and are never
+written back to the reusable FGS source. Starting a session always uses the
+latest saved version of that GameSheet. The session keeps an independent
+snapshot, so Designer changes made during a game apply only to subsequently
+started sessions and never disrupt a game already in progress.
+
+In the full application, a saved GameSheet can also be associated with one
+existing library game from the Designer. The game page then presents the sheet
+alongside its other resources, with an edit action and a **Start LiveSheet**
+action when the sheet is ready. This is local application metadata keyed to the
+game folder and the saved Designer workspace; it does not modify the library,
+embed a local game ID in the portable FGS file, or prevent an FGS export from
+being used elsewhere. Removing the association leaves both the game and sheet
+unchanged, while deleting the sheet removes its association.
+When the association window opens, Forge removes common endings such as “Score
+Sheet” from the GameSheet title, uses the remainder as the initial game search,
+and preselects one exact matching game for review. It never saves a suggested
+association until the user confirms it.
+
 Forge automatically saves each working draft under `data/sheet-designer/`. These
 saved drafts are the web Designer's primary working copies and are included when
 the Forge `data/` directory is backed up. This is a system-wide shared collection,
@@ -325,6 +403,8 @@ workspace. Users do not need to export an `.fgs` file after every edit, but
 important or difficult-to-recreate sheets should be exported periodically and
 before significant shared changes or deletion. **New** creates a separate draft
 and **Open** manages saved drafts or imports an FGS file from another location.
+Import always creates a separate saved GameSheet and never replaces the draft
+that was open before the import.
 
 **Export PDF** creates the printable result. Designer PDFs are not automatically
 added to the indexed library; place an exported PDF in the appropriate game
@@ -333,6 +413,12 @@ downloads the editable source for portable backup, sharing, transfer to another
 Forge installation, or use with a compatible future editor. A future published
 FGS-library workflow has not yet been defined, so users should not manually move
 the Designer's internal working files out of `data/sheet-designer/`.
+
+Opening **Sheet Designer** shows a workspace choice instead of immediately
+opening the last document. Choose **New sheet**, **Open sheets** to browse the
+shared repository or import an FGS file, or **Resume last sheet** to explicitly
+continue the most recently used draft. Once a sheet is open, changes continue
+to save automatically.
 
 Designer source uses **FGS**, Forge's portable, JSON-based formal file format for
 structured GameSheets. FGS remains independent of the Forge web application so
@@ -398,9 +484,9 @@ database, uploaded artwork, and regenerable caches. Back up both directories:
 
 - `library/` preserves original PDFs and detected artwork.
 - `data/` preserves titles, categories, favorites, pins, settings, activity,
-  uploaded artwork, Sheet Designer drafts, accounts, sessions, and QR access
-  settings. Preserve the hidden `.authentication-required` marker with the rest
-  of this directory.
+  uploaded artwork, Sheet Designer drafts and their local game associations,
+  accounts, sessions, and QR access settings. Preserve the hidden
+  `.authentication-required` marker with the rest of this directory.
 
 Stop the application before making a simple filesystem copy of `data/`. See
 [Backup and recovery](docs/BACKUP_AND_RECOVERY.md) before upgrades or migration.
@@ -550,8 +636,11 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
   enrichment requires an operator-supplied, BGG-approved token and remains in
   controlled testing. No token is bundled; without one, only API controls are
   unavailable.
-- Automatic BGG scan matching and artwork fallback are not yet implemented.
-- Structured FGS files, an editor, and a renderer remain future work.
+- Automatic BGG matching during library scans and BGG artwork fallback are not
+  yet implemented. Explicit matching from Edit game entry is available.
+- The initial FGS v1 Sheet Designer and PDF renderer are available. Additional
+  section types, workflow refinements, and independent desktop packaging remain
+  future work.
 - There is no remote synchronization or cloud backup.
 - Production deployment and public network exposure have not been approved.
 

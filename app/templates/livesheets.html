@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}LiveSheets · Forge GameSheets{% endblock %}
+{% block content %}
+<section class="page-heading livesheets-intro"><p class="eyebrow">Interactive scoring</p><h1>LiveSheets</h1><p>Start a temporary digital score sheet from the latest saved version of a reusable GameSheet. Scores and player names exist only for the temporary game session. Designer changes made during an active game apply to the next session.</p></section>
+<section class="panel livesheet-library"><div class="section-heading"><div><h2>Ready GameSheets</h2><p>{{ sheets|length }} available</p></div><a class="secondary-button" href="{{ url_for('sheet_designer') }}">Open Sheet Designer</a></div><div class="livesheet-list">
+{% for sheet in sheets %}<article class="livesheet-list-item"><h3>{{ sheet.title }}</h3><a class="primary-button" href="{{ url_for('livesheet_setup', document_id=sheet.id) }}">Start</a></article>{% else %}<p>No GameSheets are marked LiveSheet ready. Open Sheet Designer to prepare one.</p>{% endfor %}
+</div></section>
+{% endblock %}

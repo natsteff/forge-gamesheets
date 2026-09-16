@@ -36,6 +36,9 @@ class FileDraftStore:
     def load(self) -> dict:
         return self.load_document(self._ensure_current())
 
+    def current_id(self) -> str:
+        return self._ensure_current()
+
     def load_document(self, workspace_id: str) -> dict:
         path = self._document_path(workspace_id)
         try:
@@ -95,7 +98,7 @@ class FileDraftStore:
                                 "type": "score_table",
                                 "title": "Score table",
                                 "players": ["Player 1", "Player 2"],
-                                "score_rows": ["Round 1"],
+                                "score_rows": ["Round 1", "Total"],
                                 "show_total": False,
                                 "total_label": "Total",
                             }
@@ -106,6 +109,14 @@ class FileDraftStore:
         )
         self._write_document(document, workspace_id=document_id)
         self._write_pointer(document_id)
+        return document
+
+    def import_document(self, source: dict) -> dict:
+        """Add a portable FGS document without replacing the active draft."""
+        document = migrate_document(source)
+        workspace_id = self._unique_id(document["title"])
+        self._write_document(document, workspace_id=workspace_id)
+        self._write_pointer(workspace_id)
         return document
 
     def list_documents(self) -> dict:
@@ -128,6 +139,21 @@ class FileDraftStore:
             )
         documents.sort(key=lambda item: (item["title"].casefold(), item["id"]))
         return {"current_id": current_id, "documents": documents}
+
+    def list_livesheet_documents(self) -> list[dict]:
+        """Return saved sheets explicitly enabled for interactive scoring."""
+        ready = []
+        for item in self.list_documents()["documents"]:
+            try:
+                document = self.load_document(item["id"])
+            except (ValueError, json.JSONDecodeError):
+                continue
+            setting = document.get("extensions", {}).get(
+                "io.github.natsteff.livesheet", {}
+            )
+            if setting.get("enabled") is True:
+                ready.append({**item, "document": document})
+        return ready
 
     def open(self, document_id: str) -> dict:
         document = self.load_document(document_id)

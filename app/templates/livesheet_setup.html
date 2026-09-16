@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Start {{ sheet.title }} · LiveSheets{% endblock %}
+{% block content %}
+<section class="page-heading livesheet-setup-heading"><p class="eyebrow">LiveSheet setup</p><h1>{{ sheet.title }}</h1><p>Choose how scores will be entered. This session uses the sheet’s latest saved design; later Designer changes apply only to future sessions.</p></section>
+<form class="panel livesheet-setup-form" method="post" action="{{ url_for('livesheet_start', document_id=workspace_id) }}" data-livesheet-setup>
+<fieldset class="mode-fieldset"><legend>Scoring mode</legend><div class="mode-options"><label class="mode-option"><input type="radio" name="mode" value="single" checked><span><strong>Single scorer</strong><small>The host enters every score. Invited players see the full sheet read-only.</small></span></label><label class="mode-option"><input type="radio" name="mode" value="individual"><span><strong>Individual scoring</strong><small>Each person claims one player and can edit only that player’s scores.</small></span></label></div></fieldset>
+<div class="setup-fields"><label><strong>Number of players</strong><input type="number" name="player_count" min="1" max="12" value="2" required><small>Between 1 and 12.</small></label><label data-individual-field hidden><strong>Your player number</strong><input type="number" name="host_position" min="1" max="12" value="1"><small>The column you will score.</small></label><label><strong>Your player name</strong><input name="host_name" maxlength="40" value="Player 1" required><small>Applied to Player 1 in single-scorer mode.</small></label></div>
+<button class="primary-button" type="submit">Start LiveSheet</button></form>
+{% endblock %}

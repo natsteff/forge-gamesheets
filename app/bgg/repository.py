@@ -41,6 +41,11 @@ class BggAssociation:
             f"/{self.url_slug}" if self.url_slug else ""
         )
 
+    @property
+    def files_url(self) -> str:
+        """Return the public Files page without requiring a saved display slug."""
+        return f"{self.game_url}/files"
+
 
 def get_bgg_association(database: Database, game_id: int) -> BggAssociation | None:
     """Return a game's persistent BGG state when one has been created."""

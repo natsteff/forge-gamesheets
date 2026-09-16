@@ -40,8 +40,9 @@ def expedition_document() -> dict:
                                 "Discoveries",
                                 "Objectives",
                                 "Penalties",
+                                "Total",
                             ],
-                            "show_total": True,
+                            "show_total": False,
                             "total_label": "Total",
                         }
                     ],

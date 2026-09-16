@@ -1,4 +1,20 @@
 <div class="designer-app" data-designer-app data-standalone="{{ 'true' if standalone else 'false' }}">
+  <section class="designer-startup" data-startup aria-labelledby="designer-startup-title">
+    <div class="designer-startup-heading">
+      <p class="eyebrow">Sheet workspace</p>
+      <h1 id="designer-startup-title">What would you like to work on?</h1>
+      <p>Create a GameSheet from scratch, choose a saved sheet, or continue the most recently used sheet.</p>
+    </div>
+    <div class="designer-startup-actions">
+      <button class="primary-button" data-start-new type="button"><strong>New sheet</strong><span>Start with a simple blank score sheet.</span></button>
+      <button class="secondary-button" data-start-open type="button"><strong>Open sheets</strong><span>Browse saved sheets or import an FGS file.</span></button>
+      <button class="secondary-button" data-start-resume type="button"><strong>Resume last sheet</strong><span data-resume-description>Loading recent sheet…</span></button>
+    </div>
+    <p class="designer-startup-note">Sheets are saved automatically in this shared Forge workspace. <button class="designer-text-button" data-about-designer type="button">About Sheet Designer</button></p>
+    <div class="designer-message" data-startup-message role="alert" hidden></div>
+  </section>
+
+  <div data-editor-shell hidden>
   <header class="designer-bar">
     {% if standalone %}
     <a class="designer-brand" href="/sheet-designer" aria-label="Forge GameSheets Sheet Designer">
@@ -13,8 +29,11 @@
     <p class="designer-status" data-save-status role="status">Loading…</p>
     <div class="designer-actions">
       {% if standalone %}
-      <a class="designer-source-link" href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Source code</a>
+      <a class="designer-source-link" href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Forge GameSheets on GitHub</a>
       {% endif %}
+      <button class="secondary-button" data-about-designer type="button">About</button>
+      {% if not standalone %}<button class="secondary-button" data-game-link type="button">Associate game</button>{% endif %}
+      {% if not standalone %}<button class="secondary-button" data-livesheet type="button">LiveSheet</button>{% endif %}
       <button class="secondary-button" data-new-sheet type="button">New</button>
       <button class="secondary-button" data-open-sheets type="button">Open</button>
       <details class="designer-export-menu">
@@ -65,6 +84,7 @@
       <div class="sheet-preview" data-sheet-preview></div>
     </section>
   </div>
+  </div>
 
   <dialog class="designer-dialog" data-new-dialog>
     <form data-new-form>
@@ -83,6 +103,62 @@
       </div>
     </form>
   </dialog>
+
+  <dialog class="designer-dialog" data-about-dialog>
+    <div class="designer-dialog-heading">
+      <div><p class="eyebrow">GameSheet basics</p><h2>About Sheet Designer</h2></div>
+      <button class="designer-dialog-close" data-close-about type="button" aria-label="Close">×</button>
+    </div>
+    <p>Sheet Designer creates portable GameSheets for score tracking, reference information, checklists, and notes. It works best for structured, single-page layouts made from full-width or side-by-side sections.</p>
+    <p>FGS v1 is not a general page-layout or spreadsheet tool. It does not currently support free positioning, images, custom formulas, multiple pages, or pixel-perfect copies of existing documents.</p>
+    <p>GameSheets can be exported as printable PDFs. Compatible score sheets can also become temporary interactive LiveSheets.</p>
+    <p><strong>Tip:</strong> An LLM can draft an FGS file from a score-sheet image or PDF when given the FGS v1 specification. Review and verify the result before importing it, and only share source documents you are permitted to upload.</p>
+    <p><a class="text-link" href="https://github.com/natsteff/forge-gamesheets/blob/main/docs/FGS_V1_SPECIFICATION.md" target="_blank" rel="noopener">Read the FGS v1 specification</a></p>
+    <div class="designer-dialog-actions">
+      <button class="primary-button" data-dismiss-about type="button">Close</button>
+    </div>
+  </dialog>
+
+  {% if not standalone %}
+  <dialog class="designer-dialog" data-game-link-dialog>
+    <form data-game-link-form>
+      <div class="designer-dialog-heading">
+        <div><p class="eyebrow">Game library</p><h2>Associate with a game</h2></div>
+        <button class="designer-dialog-close" data-close-game-link type="button" aria-label="Close">×</button>
+      </div>
+      <p>Connect this saved GameSheet to an existing game entry. The association is local to Forge and is not added to exported FGS files.</p>
+      <p class="designer-game-link-current" data-game-link-current></p>
+      <label>Find a game
+        <span class="designer-game-search"><input data-game-search maxlength="200" placeholder="Search game titles"><button class="secondary-button" type="button" data-game-search-button>Search</button></span>
+      </label>
+      <label>Select game<select data-game-results required></select></label>
+      <div class="designer-dialog-actions">
+        <button class="danger-button" data-remove-game-link type="button" hidden>Remove association</button>
+        <button class="secondary-button" data-cancel-game-link type="button">Cancel</button>
+        <button class="primary-button" type="submit">Save association</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="designer-dialog" data-livesheet-dialog>
+    <form data-livesheet-form>
+      <div class="designer-dialog-heading">
+        <div><p class="eyebrow">Interactive scoring</p><h2>Configure LiveSheet</h2></div>
+        <button class="designer-dialog-close" data-close-livesheet type="button" aria-label="Close">×</button>
+      </div>
+      <p>LiveSheet uses this reusable GameSheet to create temporary digital scoring sessions. Scores and player names are never saved in the FGS source.</p>
+      <p>Enabling LiveSheet does not create or freeze a separate copy. Every new session automatically uses the latest saved version of this GameSheet; changes made later in Sheet Designer apply to future sessions.</p>
+      <p class="designer-livesheet-summary" data-livesheet-summary></p>
+      <label class="designer-check"><input data-livesheet-enabled type="checkbox"> Make this GameSheet available for LiveSheet</label>
+      <p class="designer-field-help">Rows named <strong>Total</strong> and <strong>Grand Total</strong> are calculated automatically. Add at least one score table before enabling LiveSheet.</p>
+      <div class="designer-dialog-actions">
+        <a class="secondary-button" data-livesheet-start href="/livesheets" hidden>Open LiveSheets</a>
+        <button class="secondary-button" data-cancel-livesheet type="button">Cancel</button>
+        <button class="primary-button" type="submit">Save LiveSheet setting</button>
+      </div>
+    </form>
+  </dialog>
+  {% endif %}
 
   <dialog class="designer-dialog designer-library-dialog" data-open-dialog>
     <div class="designer-dialog-heading">

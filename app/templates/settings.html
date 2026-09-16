@@ -150,14 +150,14 @@
     <p class="settings-note"><strong>Uncategorized</strong> is automatic and cannot be renamed or deleted.</p>
   </section>
 
-  <section class="settings-section">
+  <section class="settings-section bgg-settings">
     <p class="eyebrow">Optional integration</p>
-    <h2>BoardGameGeek</h2>
+    <h2>BoardGameGeek integration</h2>
+    {% include "_bgg_attribution.html" %}
     {% if bgg_configured %}
       <p><strong>Application token configured.</strong></p>
       <p class="settings-note">The private token is available to this server but is never displayed here. Test it after initial setup or replacement; testing makes one request to BGG.</p>
-      <form action="{{ url_for('settings_bgg_test') }}" method="post"><button class="secondary-button" type="submit">Test BGG connection</button></form>
-      {% include "_bgg_attribution.html" %}
+      <form class="bgg-connection-test" action="{{ url_for('settings_bgg_test') }}" method="post"><button class="secondary-button" type="submit">Test BGG connection</button></form>
     {% else %}
       <p><strong>Disabled: no token configured.</strong></p>
       <p class="settings-note">This is the default. Local games, PDFs, manual BGG links, and external BGG search continue to work. An administrator may register this installation with BGG and add its private token later.</p>

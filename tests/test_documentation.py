@@ -36,6 +36,9 @@ def test_readme_current_capability_contract():
         "immediately requires sign-in",
         "public by default",
         "Create or refresh all reprints",
+        "FORGE_GAMESHEETS_BGG_API_TOKEN",
+        "Temporary LiveSheet sessions",
+        "LLM can draft an `.fgs` file",
     ):
         assert term in text
     for obsolete in (
@@ -69,6 +72,23 @@ def test_project_plan_retains_bulk_reprint_maintenance_design():
         assert term in decision
 
 
+def test_livesheet_decision_records_approved_v1_boundaries():
+    plan = (ROOT / "PROJECT_PLAN.md").read_text()
+    decision = (ROOT / "docs/decisions/006-fgs-livesheet-v1.md").read_text()
+    assert "docs/decisions/006-fgs-livesheet-v1.md" in plan
+    for term in (
+        "Single scorer",
+        "Individual scoring",
+        "Host status never permits",
+        "copyable URL",
+        "Grand Total",
+        "12 hours",
+        "24 hours",
+        "immutable, validated FGS snapshot",
+    ):
+        assert term in decision
+
+
 def test_quick_start_explains_optional_category_import():
     quick_start = (ROOT / "README.md").read_text().split("## Quick start", 1)[1]
     quick_start = quick_start.split("## Self-hosted beta configuration", 1)[0]
@@ -86,15 +106,16 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
     text = (ROOT / "README.md").read_text()
     gallery = text.split("## Screenshots", 1)[1].split("## Requirements", 1)[0]
     images = set(re.findall(r"docs/images/[\w-]+\.png", gallery))
-    assert len(images) == 10
+    assert len(images) == 11
     for name in (
         "users",
         "assign-categories",
-        "bgg-manual",
         "reprint-maintenance",
         "activity-history",
         "sheet-designer",
+        "sheet-designer-startup",
         "sheet-designer-open",
+        "bgg-integration",
     ):
         assert f"docs/images/{name}.png" in images
     for path in images:
@@ -106,6 +127,7 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
     assert "docs/images/settings.png" not in images
     assert "docs/images/forge-reprint.png" not in images
     assert "docs/images/desktop-navigation.png" not in images
+    assert "docs/images/bgg-manual.png" not in images
     assert "docs/images/mobile-navigation.png" not in images
     assert "SCREENSHOTS.md" in gallery
 

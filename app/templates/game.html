@@ -27,7 +27,7 @@
     </p>
   {% endif %}
 
-  {% if sections %}
+  {% if sections or (request.state.can_contribute and associated_sheets) %}
     <div class="resource-view-options">
       <button
         class="secondary-button preview-toggle"
@@ -36,6 +36,36 @@
         aria-pressed="true"
       >Hide previews</button>
     </div>
+  {% endif %}
+
+  {% if request.state.can_contribute and associated_sheets %}
+    <div class="resource-sections gamesheet-resources">
+      <section class="resource-section">
+        <h2>GameSheets</h2>
+        <div class="resource-list">
+          {% for sheet in associated_sheets %}
+            <article class="resource-row">
+              <span class="resource-preview" aria-hidden="true">
+                <img src="{{ url_for('sheet_designer_preview', document_id=sheet.workspace_id) }}" alt="" loading="lazy">
+                <span class="document-icon"></span>
+              </span>
+              <div class="resource-copy">
+                <strong>{{ sheet.title }}</strong>
+                <small>{% if sheet.livesheet_ready %}LiveSheet ready{% else %}Printable GameSheet{% endif %}</small>
+                <small class="resource-warning preview-status" role="status" hidden>Preview unavailable</small>
+              </div>
+              <div class="resource-actions">
+                {% if sheet.livesheet_ready %}<a class="resource-action primary" href="{{ url_for('livesheet_setup', document_id=sheet.workspace_id) }}">Start LiveSheet</a>{% endif %}
+                <a class="resource-action" href="{{ url_for('sheet_designer_edit_document', document_id=sheet.workspace_id) }}">Edit in Sheet Designer</a>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+  {% endif %}
+
+  {% if sections %}
     <div class="resource-sections">
       {% for label, resources in sections %}
         <section class="resource-section">

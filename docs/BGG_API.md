@@ -23,9 +23,10 @@ Add the approved token to the installation's untracked `.env` file:
 FORGE_GAMESHEETS_BGG_API_TOKEN=replace-with-the-private-token
 ```
 
-Restart the Forge container, sign in as an Admin, and use **Settings >
-BoardGameGeek > Test BGG connection**. The test makes one request and reports
-whether BGG accepted the configured token. Forge never displays the token.
+Recreate the Forge container so it receives the changed environment, sign in as
+an Admin, and use **Settings > BoardGameGeek integration > Test BGG connection**.
+The test makes one request and reports whether BGG accepted the configured token.
+Forge never displays the token.
 
 Never put a real token in GitHub, `compose.yml`, `.env.example`, a Docker image,
 a screenshot, application data, or a metadata export. Keep the `.env` file with
@@ -44,6 +45,28 @@ Forge uses only the documented BGG XML API2 over HTTPS at
 use an `Authorization: Bearer` header. Forge caches selected identifiers and
 useful response metadata locally so ordinary use does not depend on BGG being
 available. BGG failures never stop local library operation.
+
+## Matching workflow
+
+Admins and Contributors open **Edit game entry → BoardGameGeek integration** and
+choose **Find BoardGameGeek match**. Forge searches for the entered title and
+automatically saves a result only when exactly one returned title is an exact
+match after conservative normalization. Multiple exact titles, partial matches,
+and other ambiguous results remain unlinked until the user selects a candidate.
+When a game is already linked, every different-match search requires an explicit
+selection so an existing association is never replaced silently.
+
+The manual URL fallback is the authoritative override when title search cannot
+find the intended entry. With a token configured, Forge looks up the exact ID in
+the supplied URL without running another title search. It replaces the current
+association only after that ID is verified; a missing entry or temporary API
+failure leaves the existing association unchanged.
+
+A linked entry offers Game and Files shortcuts, metadata refresh, a different
+match search, and association removal. Refresh looks up the already selected BGG
+ID and cannot silently switch the association. These explicit actions do not run
+during a library scan. The browser returns to the integration section after an
+action so results and errors remain visible.
 
 Do not use private or undocumented BGG APIs. API-derived data must not be used
 to train an AI or language model. A commercial deployment must obtain whatever

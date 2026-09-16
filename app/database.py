@@ -603,6 +603,97 @@ MIGRATIONS += (
 )
 
 
+MIGRATIONS += (
+    Migration(
+        version=26,
+        name="add_temporary_livesheet_sessions",
+        statements=(
+            """CREATE TABLE livesheet_sessions (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                document_title TEXT NOT NULL,
+                fgs_snapshot TEXT NOT NULL,
+                mode TEXT NOT NULL CHECK (mode IN ('single', 'individual')),
+                host_token_hash TEXT NOT NULL UNIQUE,
+                invite_token_hash TEXT NOT NULL UNIQUE,
+                allow_player_rename INTEGER NOT NULL DEFAULT 1
+                    CHECK (allow_player_rename IN (0, 1)),
+                joining_locked INTEGER NOT NULL DEFAULT 0
+                    CHECK (joining_locked IN (0, 1)),
+                created_at INTEGER NOT NULL,
+                last_activity INTEGER NOT NULL,
+                idle_expires_at INTEGER NOT NULL,
+                absolute_expires_at INTEGER NOT NULL
+            )""",
+            """CREATE INDEX livesheet_sessions_expiration
+                ON livesheet_sessions(idle_expires_at, absolute_expires_at)""",
+            """CREATE TABLE livesheet_players (
+                session_id TEXT NOT NULL
+                    REFERENCES livesheet_sessions(id) ON DELETE CASCADE,
+                position INTEGER NOT NULL CHECK (position > 0),
+                name TEXT NOT NULL,
+                token_hash TEXT UNIQUE,
+                claimed_at INTEGER,
+                PRIMARY KEY (session_id, position)
+            )""",
+            """CREATE TABLE livesheet_scores (
+                session_id TEXT NOT NULL
+                    REFERENCES livesheet_sessions(id) ON DELETE CASCADE,
+                block_id TEXT NOT NULL,
+                row_index INTEGER NOT NULL CHECK (row_index >= 0),
+                player_position INTEGER NOT NULL CHECK (player_position > 0),
+                value INTEGER NOT NULL,
+                PRIMARY KEY (
+                    session_id, block_id, row_index, player_position
+                ),
+                FOREIGN KEY (session_id, player_position)
+                    REFERENCES livesheet_players(session_id, position)
+                    ON DELETE CASCADE
+            )""",
+            """CREATE TABLE livesheet_checklist_values (
+                session_id TEXT NOT NULL
+                    REFERENCES livesheet_sessions(id) ON DELETE CASCADE,
+                block_id TEXT NOT NULL,
+                item_index INTEGER NOT NULL CHECK (item_index >= 0),
+                checked INTEGER NOT NULL CHECK (checked IN (0, 1)),
+                PRIMARY KEY (session_id, block_id, item_index)
+            )""",
+            """CREATE TABLE livesheet_note_values (
+                session_id TEXT NOT NULL
+                    REFERENCES livesheet_sessions(id) ON DELETE CASCADE,
+                block_id TEXT NOT NULL,
+                value TEXT NOT NULL,
+                PRIMARY KEY (session_id, block_id)
+            )""",
+            """CREATE TABLE livesheet_tombstones (
+                session_id TEXT PRIMARY KEY,
+                ended_at INTEGER NOT NULL,
+                forget_at INTEGER NOT NULL
+            )""",
+        ),
+    ),
+    Migration(
+        version=27,
+        name="add_gamesheet_game_associations",
+        statements=(
+            """CREATE TABLE gamesheet_game_associations (
+                workspace_id TEXT PRIMARY KEY,
+                game_relative_path TEXT NOT NULL,
+                game_title TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (
+                    strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                ),
+                updated_at TEXT NOT NULL DEFAULT (
+                    strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                )
+            )""",
+            """CREATE INDEX gamesheet_game_associations_path_idx
+               ON gamesheet_game_associations(game_relative_path)""",
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Database:
     """A SQLite database stored beneath the configured data directory."""

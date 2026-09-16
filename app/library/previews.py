@@ -52,7 +52,7 @@ def cached_resource_preview(
             processing_budget.check_storage_budget(
                 data_path, processing_budget.MAX_PREVIEW_BYTES
             )
-            _render_preview(source, temporary)
+            render_pdf_preview(source, temporary)
             processing_budget.check_storage_budget(data_path, 0)
             temporary.replace(destination)
     except (pymupdf.FileDataError, ValueError, OSError) as error:
@@ -66,7 +66,8 @@ def cached_resource_preview(
     return destination
 
 
-def _render_preview(source: Path, temporary: Path) -> None:
+def render_pdf_preview(source: Path, temporary: Path) -> None:
+    """Render the first page of a trusted PDF into a bounded WebP preview."""
     try:
         with pymupdf.open(source) as document:
             validate_pdf_document(document)

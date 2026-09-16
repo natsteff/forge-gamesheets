@@ -129,6 +129,26 @@ def test_workspace_identity_is_separate_from_document_id(tmp_path: Path):
     assert store.path.stem == workspace_id
 
 
+def test_import_creates_a_new_workspace_without_overwriting_current(tmp_path: Path):
+    store = FileDraftStore(tmp_path / "designer")
+    original = store.load()
+    original_workspace = store.list_documents()["current_id"]
+    imported = expedition_document()
+    imported["id"] = "portable-id-different-from-workspace"
+    imported["title"] = "Imported Score Sheet"
+
+    result = store.import_document(imported)
+    workspace = store.list_documents()
+    imported_item = next(
+        item for item in workspace["documents"] if item["title"] == result["title"]
+    )
+
+    assert store.load_document(original_workspace) == original
+    assert imported_item["id"] != imported["id"]
+    assert workspace["current_id"] == imported_item["id"]
+    assert store.load_document(imported_item["id"])["id"] == imported["id"]
+
+
 def test_fgs_conformance_fixtures():
     fixtures = Path(__file__).parent / "fixtures" / "fgs"
     valid = json.loads((fixtures / "v1-valid-minimal.fgs").read_text())
@@ -171,6 +191,8 @@ def test_pdf_is_single_page_correct_size_and_deterministic(tmp_path: Path):
 def test_score_table_summary_row_is_optional_and_renameable(tmp_path: Path):
     document = expedition_document()
     score_table = document["rows"][1]["blocks"][0]
+    score_table["score_rows"].remove("Total")
+    score_table["show_total"] = True
     score_table["total_label"] = "Final score"
     renamed = render_pdf(document, tmp_path / "renamed.pdf")
     with pymupdf.open(renamed) as pdf:
@@ -180,6 +202,52 @@ def test_score_table_summary_row_is_optional_and_renameable(tmp_path: Path):
     hidden = render_pdf(document, tmp_path / "hidden.pdf")
     with pymupdf.open(hidden) as pdf:
         assert "Final score" not in pdf[0].get_text()
+
+
+def test_multiple_compact_score_tables_fit_when_the_rendered_rows_fit(tmp_path: Path):
+    document = expedition_document()
+    document["rows"] = [document["rows"][0]]
+    players = ["Known", "P1", "P2", "P3", "P4", "P5", "P6"]
+    for index, (title, row_count) in enumerate(
+        (("Suspects", 6), ("Weapons", 6), ("Rooms", 9))
+    ):
+        document["rows"].append(
+            {
+                "id": f"row-{index}",
+                "blocks": [
+                    {
+                        "id": f"table-{index}",
+                        "type": "score_table",
+                        "title": title,
+                        "players": players,
+                        "score_rows": [f"Entry {row}" for row in range(row_count)],
+                        "show_total": False,
+                        "total_label": "Total",
+                    }
+                ],
+            }
+        )
+    document["rows"].append(
+        {
+            "id": "row-reference",
+            "blocks": [
+                {
+                    "id": "reference",
+                    "type": "reference",
+                    "title": "Detective Notes",
+                    "items": ["Reminder one", "Reminder two", "Reminder three"],
+                }
+            ],
+        }
+    )
+
+    output = render_pdf(document, tmp_path / "compact-tables.pdf")
+
+    with pymupdf.open(output) as pdf:
+        assert pdf.page_count == 1
+        text = "".join(page.get_text() for page in pdf)
+        assert "Rooms" in text
+        assert "Entry 0" in text
 
 
 def test_pdf_rejects_overflow_instead_of_clipping(tmp_path: Path):
@@ -214,9 +282,13 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         page = client.get("/sheet-designer")
         assert page.status_code == 200
         assert "Sheet structure" in page.text
+        assert "What would you like to work on?" in page.text
+        assert "New sheet" in page.text
+        assert "Open sheets" in page.text
+        assert "Resume last sheet" in page.text
         assert "sheet-designer.js" in page.text
         assert "/static/brand/forge-wordmark.png" in page.text
-        assert "Source code" in page.text
+        assert "Forge GameSheets on GitHub" in page.text
         assert "https://github.com/natsteff/forge-gamesheets" in page.text
         assert client.get("/").url.path == "/sheet-designer"
         assert client.get("/health").json()["mode"] == "designer"
@@ -295,8 +367,13 @@ def test_designer_appears_as_native_forge_contributor_feature(tmp_path: Path):
 def test_score_row_editor_explains_dynamic_line_behavior():
     script = (Path(__file__).parents[1] / "app/static/sheet-designer.js").read_text()
     assert "Score rows (one per line)" in script
-    assert "Press Return to add a row. Delete a line to remove that row." in script
-    assert "Summary row label" in script
+    assert "Press Return to add or remove rows." in script
+    assert "Summary row label" not in script
+    assert "Include a summary row" not in script
+    assert "Add Total row" in script
+    assert "Add Grand Total row" in script
+    assert 'normalized === "total"' in script
+    assert 'normalized === "grand total"' in script
     assert "Generate numbered rows" in script
     assert "Array.from({length: count}" in script
     assert "Math.min(12, Math.max(4, items.length))" in script
@@ -316,11 +393,124 @@ def test_section_picker_lists_supported_blocks_without_a_text_prompt():
     assert "New sheet" in template
     assert "Open sheets" in template
     assert "data-new-dialog" in template
+    assert "data-startup" in template
+    assert "data-start-new" in template
+    assert "data-start-open" in template
+    assert "data-start-resume" in template
+    assert "Resume last sheet" in template
     assert "Experimental prototype" not in template
     assert ">New</button>" in template
     assert ">Open</button>" in template
     assert 'class="designer-export-menu"' in template
     assert template.index("data-open-dialog") < template.index("data-import-file")
+    assert 'requestDocument("/sheet-designer/documents")' in script
+    assert 'requestDocument("/sheet-designer/document")' in script
+    assert 'fetch("/sheet-designer/document").then' not in script
+
+
+def test_designer_explains_its_scope_from_startup_and_editor():
+    root = Path(__file__).parents[1]
+    template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
+    script = (root / "app/static/sheet-designer.js").read_text()
+    assert template.count("data-about-designer") == 2
+    assert "About Sheet Designer" in template
+    assert "structured, single-page layouts" in template
+    assert "not a general page-layout or spreadsheet tool" in template
+    assert "temporary interactive LiveSheets" in template
+    assert "An LLM can draft an FGS file" in template
+    assert "only share source documents you are permitted to upload" in template
+    assert "FGS_V1_SPECIFICATION.md" in template
+    assert '$("about-dialog").showModal()' in script
+
+
+def test_integrated_designer_can_mark_a_sheet_livesheet_ready():
+    root = Path(__file__).parents[1]
+    template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
+    script = (root / "app/static/sheet-designer.js").read_text()
+    assert "Configure LiveSheet" in template
+    assert "Make this GameSheet available for LiveSheet" in template
+    assert "does not create or freeze a separate copy" in template
+    assert "Scores and player names are never saved in the FGS source" in template
+    assert "io.github.natsteff.livesheet" in script
+    assert 'if ($("livesheet"))' in script
+    assert 'requestDocument("/sheet-designer/documents/import"' in script
+    assert "{% if not standalone %}" in template
+
+
+def test_integrated_designer_can_associate_current_sheet_with_a_game(tmp_path: Path):
+    library = tmp_path / "library"
+    data = tmp_path / "data"
+    (library / "Farkle").mkdir(parents=True)
+    data.mkdir()
+    app = create_app(
+        Settings(library_path=library, data_path=data, allowed_hosts=("testserver",))
+    )
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
+        document = client.app.state.sheet_designer_store.load()
+        document["title"] = "Farkle Score Sheet"
+        client.app.state.sheet_designer_store.save(document)
+        with client.app.state.database.connect() as connection:
+            game_id = connection.execute(
+                "SELECT id FROM games WHERE relative_path='Farkle'"
+            ).fetchone()["id"]
+        initial = client.get("/sheet-designer/game-association")
+        saved = client.post(
+            "/sheet-designer/game-association", json={"game_id": game_id}
+        )
+        associated = client.get("/sheet-designer/game-association")
+        removed = client.delete("/sheet-designer/game-association")
+
+    assert initial.status_code == 200
+    assert initial.json()["association"] is None
+    assert initial.json()["query"] == "Farkle"
+    assert initial.json()["suggested_game_id"] == game_id
+    assert initial.json()["games"] == [{"id": game_id, "title": "Farkle"}]
+    assert saved.status_code == 200
+    assert associated.json()["association"] == {
+        "game_id": game_id,
+        "game_title": "Farkle",
+        "available": True,
+    }
+    assert removed.status_code == 200
+
+
+def test_deleting_a_sheet_removes_its_local_game_association(tmp_path: Path):
+    library = tmp_path / "library"
+    data = tmp_path / "data"
+    (library / "Farkle").mkdir(parents=True)
+    data.mkdir()
+    app = create_app(
+        Settings(library_path=library, data_path=data, allowed_hosts=("testserver",))
+    )
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
+        store = client.app.state.sheet_designer_store
+        workspace_id = store.current_id()
+        with client.app.state.database.connect() as connection:
+            game_id = connection.execute("SELECT id FROM games").fetchone()["id"]
+        client.post("/sheet-designer/game-association", json={"game_id": game_id})
+
+        response = client.delete(f"/sheet-designer/documents/{workspace_id}")
+        with client.app.state.database.connect() as connection:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM gamesheet_game_associations WHERE workspace_id=?",
+                (workspace_id,),
+            ).fetchone()[0]
+
+    assert response.status_code == 200
+    assert count == 0
+
+
+def test_game_association_controls_are_integrated_only():
+    template = (
+        Path(__file__).parents[1] / "app/templates/_sheet_designer_workspace.html"
+    ).read_text()
+    script = (Path(__file__).parents[1] / "app/static/sheet-designer.js").read_text()
+    assert "Associate with a game" in template
+    assert "not added to exported FGS files" in template
+    assert "data-game-link" in template
+    assert 'requestDocument("/sheet-designer/game-association"' in script
+    assert "encodeURIComponent(query)" in script
+    assert 'query === null' in script
 
 
 def test_designer_controls_reuse_forge_form_tokens():

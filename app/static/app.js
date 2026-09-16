@@ -139,6 +139,62 @@ for (const form of document.querySelectorAll("form[data-confirm]")) {
   });
 }
 
+for (const button of document.querySelectorAll("[data-copy-target]")) {
+  button.addEventListener("click", async () => {
+    const source = document.getElementById(button.dataset.copyTarget);
+    const status = button.parentElement.querySelector(".copy-status");
+    try {
+      await navigator.clipboard.writeText(source.value);
+      if (status) status.textContent = "Link copied.";
+    } catch {
+      source.select();
+      if (status) status.textContent = "Copy the selected link.";
+    }
+  });
+}
+
+if (document.querySelector("[data-live-refresh]")) {
+  window.setInterval(() => {
+    const active = document.activeElement;
+    if (!active || !active.closest("form")) window.location.reload();
+  }, 5000);
+}
+
+const liveSheetSetup = document.querySelector("[data-livesheet-setup]");
+if (liveSheetSetup) {
+  const fields = [...liveSheetSetup.querySelectorAll("[data-individual-field]")];
+  const updateMode = () => {
+    const individual = liveSheetSetup.elements.mode.value === "individual";
+    fields.forEach((field) => { field.hidden = !individual; });
+    liveSheetSetup.elements.host_name.required = true;
+  };
+  liveSheetSetup.addEventListener("change", updateMode);
+  updateMode();
+}
+
+for (const form of document.querySelectorAll(".autosave-form")) {
+  let initial = new URLSearchParams(new FormData(form)).toString();
+  const submitIfChanged = () => {
+    const current = new URLSearchParams(new FormData(form)).toString();
+    if (current !== initial && form.reportValidity()) {
+      initial = current;
+      form.requestSubmit();
+    }
+  };
+  form.addEventListener("change", submitIfChanged);
+  form.addEventListener("focusout", submitIfChanged);
+  form.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") {
+      event.preventDefault();
+      submitIfChanged();
+    }
+  });
+}
+
+for (const input of document.querySelectorAll("[data-auto-submit]")) {
+  input.addEventListener("change", () => input.form.requestSubmit());
+}
+
 const importReview = document.querySelector("#import-review");
 if (importReview) {
   const heading = importReview.querySelector("h2");

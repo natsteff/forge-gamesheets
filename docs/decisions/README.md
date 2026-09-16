@@ -11,3 +11,4 @@ approved in `PROJECT_PLAN.md` do not need to be duplicated.
 - [003 — BoardGameGeek is an optional enrichment service](003-boardgamegeek-integration.md)
 - [004 — Local accounts and resource-scoped QR access](004-local-accounts-and-sharing.md)
 - [005 — Bulk FORGE Reprint maintenance](005-bulk-forge-reprint-maintenance.md)
+- [006 — FGS LiveSheet v1 temporary sessions](006-fgs-livesheet-v1.md)
