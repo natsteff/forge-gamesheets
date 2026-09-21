@@ -90,6 +90,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (25, "bound_reprint_job_history"),
         (26, "add_temporary_livesheet_sessions"),
         (27, "add_gamesheet_game_associations"),
+        (28, "refresh_default_footer_tagline"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -104,7 +105,11 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "Trivia",
         "Video",
     ]
-    assert tuple(preferences) == ("Organize. Customize. Print. Play.", 6, "UTC")
+    assert tuple(preferences) == (
+        "Collect. Create. Print. Play. Or Go Live with LiveSheets.",
+        6,
+        "UTC",
+    )
 
 
 def test_initialize_is_idempotent(database: Database) -> None:
@@ -116,7 +121,25 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 27
+    assert count == 28
+
+
+def test_tagline_migration_preserves_custom_footer(database: Database) -> None:
+    database.initialize()
+    with database.connect() as connection:
+        connection.execute(
+            "UPDATE application_preferences SET footer_text = ? WHERE id = 1",
+            ("Our custom game-night footer",),
+        )
+        connection.execute("DELETE FROM schema_migrations WHERE version = 28")
+
+    database.initialize()
+
+    with database.connect() as connection:
+        footer_text = connection.execute(
+            "SELECT footer_text FROM application_preferences WHERE id = 1"
+        ).fetchone()[0]
+    assert footer_text == "Our custom game-night footer"
 
 
 def test_multi_category_migration_preserves_single_category(database: Database) -> None:

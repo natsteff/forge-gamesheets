@@ -286,7 +286,7 @@ def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
     assert "library/Game Name/Game Name - Rules.pdf" in response.text
     assert "/static/brand/forge-wordmark.png" in response.text
     assert "/static/brand/favicon-32.png" in response.text
-    assert "Organize. Customize. Print. Play." in response.text
+    assert "Collect. Create. Print. Play. Or Go Live with LiveSheets." in response.text
     assert "The <span>FORGE</span> is fired up!" in response.text
     assert '<p class="eyebrow">Game library</p>' not in response.text
 
@@ -926,7 +926,10 @@ def test_invalid_display_preferences_are_rejected(web_client: TestClient) -> Non
     )
 
     assert response.headers["location"] == "/settings?error=invalid-preferences"
-    assert "Organize. Customize. Print. Play." in web_client.get("/").text
+    assert (
+        "Collect. Create. Print. Play. Or Go Live with LiveSheets."
+        in web_client.get("/").text
+    )
 
     invalid_timezone = web_client.post(
         "/settings/preferences",

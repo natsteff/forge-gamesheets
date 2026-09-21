@@ -8,19 +8,22 @@
 
 # Forge GameSheets
 
-**Organize. Customize. Print. Play.**
+**Collect. Create. Print. Play. Or Go Live with LiveSheets.**
 
-Forge GameSheets is a self-hosted manager for PDF-based game resources, including
-rulebooks, score sheets, player aids, quick references, and print-and-play
-materials. Similar to Plex or Jellyfin for game documents, it scans your existing
-folder-based library and turns it into a searchable, browsable collection for
-viewing, downloading, and printing.
+Forge GameSheets is a self-hosted home for the documents and custom sheets used
+at your gaming table. Organize and search PDF rulebooks, score sheets, player
+aids, references, and print-and-play files—all from a browser.
 
-FORGE GAMESHEETS is in beta, with local library management, optional FORGE
-Reprints, and an integrated Sheet Designer for creating new printable game
-sheets from scratch. The Designer is a separate creation tool, not an editor
-for existing PDFs. Core operation does not modify source PDFs, require a cloud
-service, or store PDF contents in its database.
+Need a sheet that doesn’t exist yet? Use the visual Sheet Designer to build one
+from scratch, then save it as a portable FGS file or export it as a printable
+PDF. Compatible GameSheets can also become temporary LiveSheets with automatic
+totals and live updates across devices. One person can score while everyone
+else follows along, or each player can enter and track their own scores.
+
+Forge GameSheets is currently in beta. Your source PDFs and saved GameSheets
+remain under your control: the application works locally, does not require a
+cloud service, and does not modify source PDFs. Sheet Designer creates new
+sheets; it is not an editor for existing PDF files.
 
 ## Available features
 

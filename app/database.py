@@ -691,6 +691,17 @@ MIGRATIONS += (
                ON gamesheet_game_associations(game_relative_path)""",
         ),
     ),
+    Migration(
+        version=28,
+        name="refresh_default_footer_tagline",
+        statements=(
+            """UPDATE application_preferences
+               SET footer_text = 'Collect. Create. Print. Play. Or Go Live with '
+                   || 'LiveSheets.',
+                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+               WHERE footer_text = 'Organize. Customize. Print. Play.'""",
+        ),
+    ),
 )
 
 

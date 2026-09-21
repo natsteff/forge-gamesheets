@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.database import Database
 
-DEFAULT_FOOTER_TEXT = "Organize. Customize. Print. Play."
+DEFAULT_FOOTER_TEXT = "Collect. Create. Print. Play. Or Go Live with LiveSheets."
 MAX_FOOTER_LENGTH = 120
 MAX_RECENT_LIMIT = 15
 

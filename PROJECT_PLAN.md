@@ -9,7 +9,7 @@ Status labels used below:
 ## 1. Project identity
 
 - **Confirmed:** Product name: **Forge GameSheets**
-- **Confirmed:** Tagline: **Organize. Customize. Print. Play.**
+- **Confirmed:** Tagline: **Collect. Create. Print. Play. Or Go Live with LiveSheets.**
 - **Confirmed:** Repository and container naming: `forge-gamesheets`
 - **Confirmed:** The product is a self-hosted printable-game-resource library
   and, in later phases, a print-on-demand document forge.
