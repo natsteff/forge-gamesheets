@@ -1,0 +1,20 @@
+import {build} from "esbuild";
+import {cp,mkdir,rm,readFile,writeFile} from "node:fs/promises";
+import {createHash} from "node:crypto";
+import {fileURLToPath} from "node:url";
+import {dirname,join} from "node:path";
+
+const root=dirname(dirname(fileURLToPath(import.meta.url)));
+const destination=join(root,"dist");
+await rm(destination,{recursive:true,force:true});
+await mkdir(join(destination,"fonts"),{recursive:true});
+await mkdir(join(destination,"licenses"),{recursive:true});
+await build({entryPoints:[join(root,"src/browser.mjs")],bundle:true,format:"esm",platform:"browser",target:"es2022",outfile:join(destination,"browser.mjs")});
+await build({entryPoints:[join(root,"src/cli.mjs")],bundle:true,format:"esm",platform:"node",target:"node20",outfile:join(destination,"cli.mjs")});
+for(const file of ["NotoSans-Regular.ttf","NotoSans-Bold.ttf","NotoSerif-Bold.ttf","OFL.txt"]) await cp(join(root,"fonts",file),join(destination,"fonts",file));
+for(const file of ["pdf-lib-MIT.txt","fontkit-MIT.txt","standard-fonts-MIT.txt","upng-MIT.txt","pako-MIT.txt","tslib-0BSD.txt"]) await cp(join(root,"licenses",file),join(destination,"licenses",file));
+await cp(join(root,"THIRD_PARTY_NOTICES.md"),join(destination,"THIRD_PARTY_NOTICES.md"));
+const files=["browser.mjs","cli.mjs","fonts/NotoSans-Regular.ttf","fonts/NotoSans-Bold.ttf","fonts/NotoSerif-Bold.ttf","fonts/OFL.txt","THIRD_PARTY_NOTICES.md","licenses/pdf-lib-MIT.txt","licenses/fontkit-MIT.txt","licenses/standard-fonts-MIT.txt","licenses/upng-MIT.txt","licenses/pako-MIT.txt","licenses/tslib-0BSD.txt"];
+const hashes={};
+for(const file of files) hashes[file]=createHash("sha256").update(await readFile(join(destination,file))).digest("hex");
+await writeFile(join(destination,"manifest.json"),JSON.stringify({package:"@forge-gamesheets/fgs-renderer",version:"0.1.0",profile:"fgs-page-1.0",files:hashes},null,2)+"\n");

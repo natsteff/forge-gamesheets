@@ -11,7 +11,7 @@ from app.sheet_designer.model import (
     migrate_document,
     normalize_document,
 )
-from app.sheet_designer.rendering import PageOverflowError, render_pdf
+from app.sheet_designer.shared_rendering import PageOverflowError, render_pdf
 from app.sheet_designer.storage import FileDraftStore
 
 __all__ = [

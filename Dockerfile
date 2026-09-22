@@ -21,6 +21,7 @@ WORKDIR /app
 # not yet been rebuilt after a base-package advisory.
 RUN apt-get update \
     && apt-get upgrade --yes \
+    && apt-get install --yes --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md ./

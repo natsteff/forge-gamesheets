@@ -16,6 +16,9 @@
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.0")
+    .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
+  let previewRevision = 0;
 
   const calculationKind = (label) => {
     const normalized = String(label).trim().replace(/\s+/g, " ").toLowerCase();
@@ -131,11 +134,20 @@
 
   function preview() {
     const page = $("sheet-preview");
-    page.className = `sheet-preview page-${model.page.size} page-${model.page.orientation}`;
-    page.innerHTML = model.rows.map((row) => `<div class="preview-row columns-${row.blocks.length}">${row.blocks.map(previewBlock).join("")}</div>`).join("");
-    requestAnimationFrame(() => {
-      if (page.scrollHeight > page.clientHeight + 8) message("This content does not fit on one page. Remove content or use landscape orientation.", "overflow");
-      else if ($("message").dataset.kind === "overflow") message("");
+    const fitMessage = $("fit-message");
+    const revision = ++previewRevision;
+    page.className = "sheet-preview is-print-profile";
+    printEngine.then((engine) => {
+      if (revision !== previewRevision) return;
+      const result = engine.layout(model);
+      page.innerHTML = engine.toSvg(result);
+      fitMessage.textContent = result.fits ? "" : `Section "${result.overflow}" does not fit on one page.`;
+      fitMessage.hidden = result.fits;
+    }).catch((error) => {
+      if (revision === previewRevision) {
+        fitMessage.hidden = true;
+        message(`Page preview unavailable: ${error.message}`);
+      }
     });
   }
 
@@ -263,6 +275,7 @@
     $("document-title").value = model.title;
     $("page-size").value = model.page.size;
     $("orientation").value = model.page.orientation;
+    $("accent").value = model.theme.accent;
     $("undo").disabled = !history.length;
     $("redo").disabled = !future.length;
     structure(); preview(); properties();
@@ -388,6 +401,7 @@
   $("document-title").addEventListener("change", (event) => commit((draft) => { draft.title = event.target.value; }));
   $("page-size").addEventListener("change", (event) => commit((draft) => { draft.page.size = event.target.value; }));
   $("orientation").addEventListener("change", (event) => commit((draft) => { draft.page.orientation = event.target.value; }));
+  $("accent").addEventListener("change", (event) => commit((draft) => { draft.theme.accent = event.target.value; }));
   $("add-block").addEventListener("click", addBlock);
   $("new-sheet").addEventListener("click", async () => {
     if (!await flushSave()) return;

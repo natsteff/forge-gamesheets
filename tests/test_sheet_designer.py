@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -19,8 +20,12 @@ from app.sheet_designer.model import (
     migrate_document,
     normalize_document,
 )
-from app.sheet_designer.rendering import PAGE_SIZES, PageOverflowError, render_pdf
 from app.sheet_designer.sample import expedition_document
+from app.sheet_designer.shared_rendering import (
+    PAGE_SIZES,
+    PageOverflowError,
+    render_pdf,
+)
 from app.sheet_designer.standalone import create_standalone_app
 from app.sheet_designer.storage import FileDraftStore
 
@@ -188,6 +193,53 @@ def test_pdf_is_single_page_correct_size_and_deterministic(tmp_path: Path):
     assert "Milestones" in text
 
 
+def test_pdf_category_labels_use_the_shared_bold_font(tmp_path: Path):
+    output = render_pdf(expedition_document(), tmp_path / "font-check.pdf")
+    with pymupdf.open(output) as pdf:
+        spans = [
+            span
+            for block in pdf[0].get_text("dict")["blocks"]
+            if "lines" in block
+            for line in block["lines"]
+            for span in line["spans"]
+        ]
+    assert any(
+        span["text"] == "Routes" and "NotoSans-Bold" in span["font"] for span in spans
+    )
+
+
+def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
+    document = expedition_document()
+    document["theme"]["accent"] = "#a52f23"
+    output = render_pdf(document, tmp_path / "accent-check.pdf")
+    with pymupdf.open(output) as pdf:
+        spans = [
+            span
+            for block in pdf[0].get_text("dict")["blocks"]
+            if "lines" in block
+            for line in block["lines"]
+            for span in line["spans"]
+        ]
+        assert "fgs-page-1.0" in pdf.metadata["creator"]
+    assert any(
+        span["text"] == "Expedition Score Sheet" and span["color"] == 0xA52F23
+        for span in spans
+    )
+    assert any(
+        span["text"] == "Score table" and span["color"] == 0xA52F23
+        for span in spans
+    )
+    assert any(span["text"] == "Routes" and span["color"] != 0xA52F23 for span in spans)
+
+
+def test_pinned_renderer_files_match_the_build_manifest():
+    root = Path(__file__).resolve().parents[1] / "app" / "static" / "fgs-renderer"
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["profile"] == "fgs-page-1.0"
+    for name, expected in manifest["files"].items():
+        assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected
+
+
 def test_score_table_summary_row_is_optional_and_renameable(tmp_path: Path):
     document = expedition_document()
     score_table = document["rows"][1]["blocks"][0]
@@ -287,6 +339,9 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         assert "Open sheets" in page.text
         assert "Resume last sheet" in page.text
         assert "sheet-designer.js" in page.text
+        renderer = client.get("/static/fgs-renderer/browser.mjs")
+        assert renderer.status_code == 200
+        assert "javascript" in renderer.headers["content-type"]
         assert "/static/brand/forge-wordmark.png" in page.text
         assert "Forge GameSheets on GitHub" in page.text
         assert "https://github.com/natsteff/forge-gamesheets" in page.text
@@ -540,3 +595,26 @@ def test_designer_uses_one_collapsible_scrolling_tool_sidebar():
     assert "overflow-y: auto" in styles
     assert '$("section-count").textContent' in script
     assert "summary::after" in styles
+
+
+def test_fit_warning_is_independent_of_autosave_messages():
+    root = Path(__file__).parents[1]
+    template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
+    script = (root / "app/static/sheet-designer.js").read_text()
+
+    assert 'data-fit-message role="status" hidden' in template
+    assert 'const fitMessage = $("fit-message")' in script
+    assert "fitMessage.hidden = result.fits" in script
+    assert (
+        'message(`Section "${result.overflow}" does not fit on one page.' not in script
+    )
+
+
+def test_designer_edits_the_portable_accent_color():
+    root = Path(__file__).parents[1]
+    template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
+    script = (root / "app/static/sheet-designer.js").read_text()
+
+    assert 'data-accent type="color"' in template
+    assert '$("accent").value = model.theme.accent' in script
+    assert 'draft.theme.accent = event.target.value' in script

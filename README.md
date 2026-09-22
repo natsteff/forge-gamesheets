@@ -38,6 +38,8 @@ sheets; it is not an editor for existing PDF files.
   scratch, with headers, score tables, references, checklists, notes, live page
   preview, automatically saved drafts, PDF or `.fgs` export, and optional
   association with an existing library game
+- A versioned FGS Page Rendering Profile and pinned shared renderer used by the
+  Designer preview and PDF export and by the browser-only FGS Studio
 - Temporary LiveSheet sessions with single-scorer or individual-player entry,
   QR and copyable-link invitations, automatic totals, and host-managed notes
   and milestones
@@ -61,6 +63,14 @@ sheets; it is not an editor for existing PDF files.
 - GitHub-published container images with revision and build-date information
 
 The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
+The [FGS document specification](docs/FGS_V1_SPECIFICATION.md) defines file
+content; the [Page Rendering Profile](docs/FGS_PAGE_RENDERING_PROFILE_1_0.md)
+defines single-page appearance and fit. The renderer's editable source and
+tests live in the [FGS Renderer package](packages/fgs-renderer/README.md). Forge includes
+a verified, version-pinned build; the source package is not required to run the
+published image. When changing rendering, build and test that package, run
+`python3 scripts/sync_fgs_renderer.py` from this repository, and commit the
+updated `app/static/fgs-renderer/` artifacts together with relevant tests.
 
 ## Screenshots
 
@@ -378,7 +388,8 @@ full application displays a **LiveSheets** menu item. Contributors and Admins
 can start temporary single-scorer or individual-scoring sessions, invite other
 players using a QR code or copyable link, and deliberately end a game. In
 individual mode, each person claims and edits only one player; single-scorer
-guests receive a read-only view. Scores refresh automatically and are never
+guests can claim and edit their own displayed name but cannot change scores.
+Scores refresh automatically and are never
 written back to the reusable FGS source. Starting a session always uses the
 latest saved version of that GameSheet. The session keeps an independent
 snapshot, so Designer changes made during a game apply only to subsequently

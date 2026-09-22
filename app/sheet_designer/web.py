@@ -19,7 +19,11 @@ from app.library.previews import PreviewUnavailable
 from app.library.repository import list_games
 from app.sheet_designer.model import DocumentValidationError, normalize_document
 from app.sheet_designer.previews import cached_sheet_preview
-from app.sheet_designer.rendering import PageOverflowError, render_pdf
+from app.sheet_designer.shared_rendering import (
+    PageOverflowError,
+    RendererUnavailableError,
+    render_pdf,
+)
 from app.sheet_designer.storage import FileDraftStore
 from app.sheet_game_associations import (
     get_association,
@@ -250,6 +254,8 @@ def export_pdf(request: Request):
         render_pdf(current, output)
     except PageOverflowError as error:
         raise HTTPException(409, str(error)) from error
+    except RendererUnavailableError as error:
+        raise HTTPException(503, str(error)) from error
     return FileResponse(
         Path(output),
         media_type="application/pdf",

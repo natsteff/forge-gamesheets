@@ -10,6 +10,7 @@ __pycache__/
 htmlcov/
 dist/
 build/
+.pnpm-store/
 
 # Local application state and private game-library content
 data/*

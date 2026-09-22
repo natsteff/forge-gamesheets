@@ -990,6 +990,7 @@ input[type="checkbox"] {
 .designer-toolbar { display: flex; justify-content: center; align-items: end; gap: 0.75rem; margin-bottom: 1rem; }
 .designer-toolbar label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.78rem; font-weight: 750; }
 .designer-toolbar select { min-width: 8.5rem; }
+.designer-toolbar input[type="color"] { width: 3.5rem; height: 2.75rem; padding: 0.25rem; }
 .designer-toolbar button { width: auto; }
 .designer-message { max-width: 48rem; margin: 0 auto 1rem; padding: 0.75rem; border: 1px solid #c25a42; border-radius: 0.4rem; background: #fff2ee; color: #7e2d1c; }
 .sheet-preview {
@@ -1000,6 +1001,11 @@ input[type="checkbox"] {
 .sheet-preview.page-a4 { aspect-ratio: 210 / 297; }
 .sheet-preview.page-landscape { width: min(100%, 62rem); aspect-ratio: 11 / 8.5; }
 .sheet-preview.page-a4.page-landscape { aspect-ratio: 297 / 210; }
+@font-face { font-family: "FGS sans"; src: url("/static/fgs-renderer/fonts/NotoSans-Regular.ttf") format("truetype"); }
+@font-face { font-family: "FGS bold"; src: url("/static/fgs-renderer/fonts/NotoSans-Bold.ttf") format("truetype"); }
+@font-face { font-family: "FGS serif"; src: url("/static/fgs-renderer/fonts/NotoSerif-Bold.ttf") format("truetype"); }
+.sheet-preview.is-print-profile { width: min(100%, 48rem); height: auto; aspect-ratio: auto; padding: 0; overflow: visible; }
+.sheet-preview.is-print-profile svg { display: block; width: 100%; height: auto; }
 .preview-row { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 0.7rem; }
 .preview-row.columns-2 { grid-template-columns: 1fr 1fr; }
 .preview-header { text-align: center; }

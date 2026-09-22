@@ -68,6 +68,12 @@ six-digit sRGB color (`#rrggbb`).
 or two equal-width blocks in array order. It contains no coordinates. FGS v1
 guarantees semantic interoperability, not pixel-identical rendering.
 
+Applications that want consistent page layout may implement the separate,
+versioned [FGS Page Rendering Profile 1.0](FGS_PAGE_RENDERING_PROFILE_1_0.md). The profile is a
+local release candidate and does not add fields to FGS 1.0 or change its semantic
+compatibility promise. A future minor FGS version may allow a document to pin
+a page rendering profile explicitly.
+
 ## Blocks
 
 Every block has a globally unique `id`, `type`, `title`, and optional

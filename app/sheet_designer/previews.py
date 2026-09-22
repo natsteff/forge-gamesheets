@@ -6,7 +6,11 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.library.previews import PreviewUnavailable, render_pdf_preview
-from app.sheet_designer.rendering import PageOverflowError, render_pdf
+from app.sheet_designer.shared_rendering import (
+    PageOverflowError,
+    RendererUnavailableError,
+    render_pdf,
+)
 from app.sheet_designer.storage import FileDraftStore
 
 
@@ -31,7 +35,13 @@ def cached_sheet_preview(
         render_pdf(document, temporary_pdf)
         render_pdf_preview(temporary_pdf, temporary_preview)
         temporary_preview.replace(destination)
-    except (PageOverflowError, PreviewUnavailable, ValueError, OSError) as error:
+    except (
+        PageOverflowError,
+        RendererUnavailableError,
+        PreviewUnavailable,
+        ValueError,
+        OSError,
+    ) as error:
         raise PreviewUnavailable("GameSheet preview could not be generated") from error
     finally:
         temporary_pdf.unlink(missing_ok=True)
