@@ -2,10 +2,9 @@
 
 ## Status
 
-Accepted for incremental implementation. The persistence and authorization
-foundation plus Designer row recognition and reusable readiness configuration
-are implemented; public launch, invitation, live-update, and end-game interfaces
-remain subsequent milestones.
+Accepted. LiveSheet v1 launch, invitations, score and name updates, host-managed
+checklists and notes, and end-game deletion are implemented. The deferred items
+identified below are not part of the current interface.
 
 ## Purpose
 
@@ -31,9 +30,11 @@ The host selects a mode before sharing an invitation.
 
 ### Single scorer
 
-- The host edits every player name and score.
+- The host edits every score and can edit player names.
 - The host edits milestones, checklists, and game notes.
-- Everyone joining through the invitation receives a live read-only view.
+- An invited participant may claim an available player position and edit only
+  that position's displayed name; scoring remains read-only for them. A guest
+  may also continue without claiming a name and view the complete sheet.
 
 ### Individual scoring
 
@@ -42,8 +43,8 @@ The host selects a mode before sharing an invitation.
 - Every other participant claims an available position and can edit only that
   position's name and score column.
 - Everyone sees the complete sheet.
-- Only the host edits milestones, checklists, and game notes, controls joining,
-  releases positions, or ends the session.
+- Only the host edits milestones, checklists, and game notes or ends the session.
+  Joining controls and position release are not exposed in the current interface.
 - Host status never permits editing another player's name or scores.
 
 The shared invitation allows read access and, in individual mode, claiming an
@@ -52,15 +53,16 @@ Player selection alone is not authorization.
 
 ## Invitations
 
-The host interface will present the same invitation as both a QR code and a
-copyable URL. A native browser share action may also be offered. This supports
+The host interface presents the same invitation as both a QR code and a
+copyable URL. A native browser share action remains optional. This supports
 text messages, accessibility, and testing without a QR scan.
 
 Host, invitation, and claimed-player credentials are cryptographically random
 bearer secrets. Store only their hashes. Never include scores or player names in
 an invitation URL, and prevent application logs from retaining these secrets.
-Locking or regenerating an invitation stops new claims without automatically
-disconnecting already claimed players.
+Joining-lock and invitation-regeneration controls, if added later, must stop
+new claims without automatically disconnecting already claimed players. They
+are not exposed in the current interface.
 
 ## LiveSheet v1 score calculations
 
@@ -104,15 +106,19 @@ standalone surface.
   notes, checklist state, and all bearer-token hashes.
 - A data-free tombstone may retain only the random session ID and end time for
   24 hours so old links can say the session ended instead of appearing broken.
-- Cleanup runs at application startup and periodically once routes are exposed.
+- Expired sessions are rejected on access. A cleanup function exists, but it is
+  not yet called at application startup or on a periodic schedule; automatic
+  removal of expired rows and old tombstones remains an implementation gap.
 
 Deletion is an application-lifecycle guarantee, not forensic erasure. A backup
 taken during an active game may contain that session until the operator's backup
 retention expires. Documentation must state this before the feature is exposed.
 
-Before ending, the host will be offered explicit print or download actions.
-LiveSheet v1 does not automatically retain completed-game history. Saving named
-results, winners, or reusable completed sessions is intentionally deferred.
+The current interface confirms ending and deletes the session; it does not
+offer a dedicated print or download action beforehand. That export workflow
+remains a future decision. LiveSheet v1 does not automatically retain
+completed-game history. Saving named results, winners, or reusable completed
+sessions is intentionally deferred.
 
 ## Update transport
 
@@ -122,7 +128,7 @@ real multiplayer behavior demonstrates that their additional reverse-proxy,
 reconnection, and conflict complexity is justified. The server remains the
 authority for permissions, values, totals, and revision ordering.
 
-## Implementation sequence
+## Implementation sequence and current status
 
 1. Durable temporary-session schema, immutable snapshots, token hashing,
    permission enforcement, calculations, expiration, and deletion.
@@ -130,7 +136,8 @@ authority for permissions, values, totals, and revision ordering.
 3. Authenticated host launch/setup interface.
 4. QR and copyable invitation, read-only viewer, and player-position claiming.
 5. Live score, milestone, and note interface with synchronized updates.
-6. End-game review, explicit print/download, deletion, and operational cleanup.
+6. End-game deletion is implemented. A dedicated review or print/download
+   workflow and automatic expiry cleanup wiring are deferred.
 
-Each milestone requires narrow authorization, validation, expiry, concurrency,
-and failure tests before the next public capability is exposed.
+The implemented behavior has authorization, validation, expiry, concurrency,
+and failure tests. Any later capability needs corresponding tests.
