@@ -238,6 +238,9 @@ def test_pinned_renderer_files_match_the_build_manifest():
     assert manifest["profile"] == "fgs-page-1.0"
     for name, expected in manifest["files"].items():
         assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected
+    source = Path(__file__).resolve().parents[1] / "packages" / "fgs-renderer"
+    for name, expected in manifest["sourceFiles"].items():
+        assert hashlib.sha256((source / name).read_bytes()).hexdigest() == expected
 
 
 def test_score_table_summary_row_is_optional_and_renameable(tmp_path: Path):

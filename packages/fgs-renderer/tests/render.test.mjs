@@ -32,6 +32,10 @@ test("built artifacts and third-party notices match the pinned manifest",async()
     const actual=createHash("sha256").update(await readFile(join(output,file))).digest("hex");
     assert.equal(actual,expected,file);
   }
+  for(const [file,expected] of Object.entries(manifest.sourceFiles)) {
+    const actual=createHash("sha256").update(await readFile(join(root,file))).digest("hex");
+    assert.equal(actual,expected,file);
+  }
 });
 
 test("one display list specifies bold category labels for both outputs",async()=>{

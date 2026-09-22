@@ -16,6 +16,10 @@ def main() -> None:
     manifest = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
     if manifest["profile"] != "fgs-page-1.0":
         raise ValueError("Unexpected FGS Page Rendering Profile")
+    for name, expected in manifest["sourceFiles"].items():
+        actual = hashlib.sha256((SOURCE.parent / name).read_bytes()).hexdigest()
+        if actual != expected:
+            raise ValueError(f"Renderer source changed since the build: {name}")
     for name, expected in manifest["files"].items():
         actual = hashlib.sha256((SOURCE / name).read_bytes()).hexdigest()
         if actual != expected:

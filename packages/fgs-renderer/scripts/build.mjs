@@ -17,4 +17,7 @@ await cp(join(root,"THIRD_PARTY_NOTICES.md"),join(destination,"THIRD_PARTY_NOTIC
 const files=["browser.mjs","cli.mjs","fonts/NotoSans-Regular.ttf","fonts/NotoSans-Bold.ttf","fonts/NotoSerif-Bold.ttf","fonts/OFL.txt","THIRD_PARTY_NOTICES.md","licenses/pdf-lib-MIT.txt","licenses/fontkit-MIT.txt","licenses/standard-fonts-MIT.txt","licenses/upng-MIT.txt","licenses/pako-MIT.txt","licenses/tslib-0BSD.txt"];
 const hashes={};
 for(const file of files) hashes[file]=createHash("sha256").update(await readFile(join(destination,file))).digest("hex");
-await writeFile(join(destination,"manifest.json"),JSON.stringify({package:"@forge-gamesheets/fgs-renderer",version:"0.1.0",profile:"fgs-page-1.0",files:hashes},null,2)+"\n");
+const sourceFiles=["src/browser.mjs","src/cli.mjs","src/index.mjs","scripts/build.mjs","package.json","pnpm-lock.yaml",...files.filter((file)=>file.startsWith("fonts/")||file.startsWith("licenses/")||file==="THIRD_PARTY_NOTICES.md")];
+const sourceHashes={};
+for(const file of sourceFiles) sourceHashes[file]=createHash("sha256").update(await readFile(join(root,file))).digest("hex");
+await writeFile(join(destination,"manifest.json"),JSON.stringify({package:"@forge-gamesheets/fgs-renderer",version:"0.1.0",profile:"fgs-page-1.0",sourceFiles:sourceHashes,files:hashes},null,2)+"\n");

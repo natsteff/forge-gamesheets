@@ -55,9 +55,10 @@ content, and PDF validity on the same synthetic fixtures in both products.
 Images rendered at a fixed DPI are reviewed regression evidence, not the
 normative standard: PDF viewers may antialias identical geometry differently.
 
-The renderer package creates a manifest with SHA-256 hashes for its bundled
-browser, Node, and font artifacts. Each consuming repository pins that build;
-the copies must be verified against the manifest. Any change to layout or
+The renderer package creates a manifest with SHA-256 hashes for its source and
+bundled browser, Node, font, and notice artifacts. Forge checks that its source
+still matches the pinned build; each consumer verifies its copied artifacts.
+Any change to layout or
 appearance requires a new page-rendering-profile ID and reviewed conformance
 fixtures.
 The profile ID currently appears in PDF producer metadata, not in FGS 1.0
