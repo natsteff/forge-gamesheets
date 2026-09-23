@@ -1,13 +1,13 @@
 {
   "package": "@forge-gamesheets/fgs-renderer",
-  "version": "0.1.0",
-  "profile": "fgs-page-1.0",
+  "version": "0.2.0",
+  "profile": "fgs-page-1.1",
   "sourceFiles": {
-    "src/browser.mjs": "6aac87365531c76ceba845824f112ba0ba70d7af2c55e524a6d1bd3d5493b27e",
+    "src/browser.mjs": "a529756e5fcf7bb197d58b8aaac4a37b575e06af6c1bd6aae618c231c5eb286d",
     "src/cli.mjs": "41a7ca4158bf119f071bbb6cdee2f4420c0971e976c11904b21d0ec42335ff02",
-    "src/index.mjs": "089e64a5934baa44133604a89d70c47fb86b288a4638f8eaa67895b5abe7be89",
-    "scripts/build.mjs": "7e85c209e18150116a87a0bda2631306cb28fdfe1c31c514e177f9db7a8b9777",
-    "package.json": "3fba178b42ec7aa3c5efa6fb8420e175d2fef21d1cac0f8b7755a3f118559681",
+    "src/index.mjs": "257e341e75a2c94bbaa8b67b12473ca88e18a08073673ff1f7637b45509870c0",
+    "scripts/build.mjs": "8e4d4aa4c4c972ff12bdec4fcf537f28ab40318170348ebcb71b6d5a78409457",
+    "package.json": "11f19f703c34b0fe5fc81beee0e850ffc887bc8d266da574dddf1989aeec886e",
     "pnpm-lock.yaml": "34840bfcfd38b829e1a3e4a7c66af9549f28dc797f7839ccd83068a2ad46ccff",
     "fonts/NotoSans-Regular.ttf": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
     "fonts/NotoSans-Bold.ttf": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a",
@@ -22,8 +22,8 @@
     "licenses/tslib-0BSD.txt": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
   },
   "files": {
-    "browser.mjs": "f040f6c92380b4bc611578fe87a82e24403ae8f61941d28a6b0e99a819aafaca",
-    "cli.mjs": "978e1527905a8a250b1e0486953ef956281c3d8354909aa0d397893c588a604d",
+    "browser.mjs": "915176ded1fe3083487789ea6914b3f3cf71a34f63eb7b43c05bcd487acef10c",
+    "cli.mjs": "d43035847c595bb1fbbcb084de2b795ae6085522f490039380a9af88eddf89e4",
     "fonts/NotoSans-Regular.ttf": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
     "fonts/NotoSans-Bold.ttf": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a",
     "fonts/NotoSerif-Bold.ttf": "3b2086a869bcded2aeb4416fc281ceec9d6ce3c06756cda19f8f763636204e7d",

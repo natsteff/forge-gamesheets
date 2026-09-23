@@ -77,7 +77,7 @@ def document(request: Request):
 async def save_document(request: Request):
     try:
         return JSONResponse(_store(request).save(await request.json()))
-    except (DocumentValidationError, json.JSONDecodeError) as error:
+    except (DocumentValidationError, json.JSONDecodeError, ValueError) as error:
         raise HTTPException(422, str(error)) from error
 
 
@@ -154,6 +154,20 @@ def edit_document(request: Request, document_id: str):
     return RedirectResponse("/sheet-designer?resume=1", status_code=303)
 
 
+@router.get("/sheet-designer/livesheet-setup", name="sheet_designer_livesheet_setup")
+def current_livesheet_setup(request: Request):
+    """Open setup for the draft selected in the Designer, not the sheet index."""
+    if getattr(request.app.state, "database", None) is None:
+        raise HTTPException(404, "LiveSheets require the full application.")
+    store = _store(request)
+    workspace_id = store.current_id()
+    document = store.load_document(workspace_id)
+    setting = document.get("extensions", {}).get("io.github.natsteff.livesheet", {})
+    if setting.get("enabled") is not True:
+        raise HTTPException(404, "This GameSheet is not LiveSheet-ready.")
+    return RedirectResponse(f"/livesheets/{workspace_id}/setup", status_code=303)
+
+
 def _suggested_game_query(title: str) -> str:
     query = re.sub(
         r"\s+(?:game\s*sheet|score\s*sheet|scores?)\s*$", "", title, flags=re.I
@@ -226,9 +240,7 @@ async def game_association_save(request: Request):
     return JSONResponse({"saved": True})
 
 
-@router.delete(
-    "/sheet-designer/game-association", name="sheet_game_association_remove"
-)
+@router.delete("/sheet-designer/game-association", name="sheet_game_association_remove")
 def game_association_remove(request: Request):
     remove_association(_database(request), _store(request).current_id())
     return JSONResponse({"removed": True})

@@ -45,6 +45,47 @@ def test_navigation_appears_only_when_a_sheet_is_ready(client):
     assert ">Start</a>" in page.text
 
 
+def test_designer_opens_setup_for_its_current_ready_sheet(client):
+    assert client.get("/sheet-designer/livesheet-setup").status_code == 404
+    document = _enable_current(client)
+    response = client.get("/sheet-designer/livesheet-setup", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/livesheets/{document['id']}/setup"
+    assert "Configure LiveSheet" in client.get("/sheet-designer").text
+    assert (
+        'href="/sheet-designer/livesheet-setup"' in client.get("/sheet-designer").text
+    )
+
+
+def test_live_session_keeps_its_fgs_1_1_logo_and_footer_snapshot(client):
+    document = _enable_current(client)
+    document["format_version"] = "1.1"
+    document["footer"] = "Created by Example"
+    document["rows"][0]["blocks"][0]["logo"] = {
+        "media_type": "image/png",
+        "data": (
+            "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEUlEQVR4nGP8"
+            "z8Dwn4GBgQEADQUCAOAHawIAAAAASUVORK5CYII="
+        ),
+        "alt": "Expedition logo",
+        "decorative": False,
+    }
+    assert client.post("/sheet-designer/document", json=document).status_code == 200
+    started = client.post(
+        f"/livesheets/{document['id']}/start",
+        data={"mode": "single", "player_count": "2"},
+        follow_redirects=False,
+    )
+    assert started.status_code == 303
+    changed = client.get("/sheet-designer/document").json()
+    del changed["rows"][0]["blocks"][0]["logo"]
+    del changed["footer"]
+    assert client.post("/sheet-designer/document", json=changed).status_code == 200
+    active = client.get(started.headers["location"]).text
+    assert 'alt="Expedition logo"' in active
+    assert "Created by Example" in active
+
+
 def test_imported_sheet_with_a_different_internal_id_can_start(client):
     original = client.get("/sheet-designer/document").json()
     imported = {**original, "id": "portable-triple-yahtzee", "title": "Triple Yahtzee"}

@@ -1,11 +1,13 @@
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb } from "pdf-lib";
 
-// FGS Page Rendering Profile 1.0. All geometry is in PDF points (1/72 inch).
+// FGS Page Rendering Profile 1.1. All geometry is in PDF points (1/72 inch).
 export const PROFILE = Object.freeze({
-  id: "fgs-page-1.0",
+  id: "fgs-page-1.1",
   pages: { letter: [612, 792], a4: [595.28, 841.89] },
   margin: 36, columnGap: 16, rowGap: 14,
+  footerReserve: 22, footerSize: 8, footerLineHeight: 11,
+  logoWidth: 48, logoHeight: 32, logoGap: 8,
   titleSize: 20, sectionSize: 11, bodySize: 8.5,
   tableTitleHeight: 22, tableRowHeight: 19,
   tableLabelFraction: .26, tableLabelMinimum: 68,
@@ -85,10 +87,11 @@ export function createPrintEngine(fontData) {
   }
 
   function layout(document) {
-    if (!document || document.format !== "forge-gamesheets" || document.format_version !== "1.0") throw new Error("Expected validated FGS 1.0");
+    if (!document || document.format !== "forge-gamesheets" || !["1.0","1.1"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0 or 1.1");
     const page = PROFILE.pages[document.page.size];
     if (!page) throw new Error("Unsupported page size");
     const [width, height] = document.page.orientation === "landscape" ? [page[1], page[0]] : page;
+    if (document.footer && document.format_version !== "1.1") throw new Error("An author footer requires FGS 1.1");
     const commands = [];
     const accent = document.theme.accent;
     parseColor(accent);
@@ -131,10 +134,22 @@ export function createPrintEngine(fontData) {
     };
     const drawBlock = (block, x, y, blockWidth) => {
       if (block.type === "header") {
-        if (widthOf(block.title,"serif",PROFILE.titleSize)>blockWidth-10) throw new Error(`Page heading "${block.title}" is too wide for this layout.`);
-        if (block.subtitle && widthOf(block.subtitle,"sans",10)>blockWidth-10) throw new Error(`Subtitle in "${block.title}" is too wide for this layout.`);
-        text(block.title,x+blockWidth/2,y+25,"serif",PROFILE.titleSize,accentText,"middle");
-        if (block.subtitle) text(block.subtitle,x+blockWidth/2,y+43,"sans",10,MUTED,"middle");
+        if (block.logo && document.format_version !== "1.1") throw new Error("A header logo requires FGS 1.1");
+        const titleWidth = block.logo
+          ? blockWidth - 2 * (PROFILE.logoWidth + PROFILE.logoGap)
+          : blockWidth - 10;
+        if (widthOf(block.title,"serif",PROFILE.titleSize)>titleWidth) throw new Error(`Page heading "${block.title}" is too wide for this layout.`);
+        if (block.subtitle && widthOf(block.subtitle,"sans",10)>titleWidth) throw new Error(`Subtitle in "${block.title}" is too wide for this layout.`);
+        if (block.logo) {
+          const image = atob(block.logo.data);
+          const dimension = (at) => (((image.charCodeAt(at)*256+image.charCodeAt(at+1))*256+image.charCodeAt(at+2))*256+image.charCodeAt(at+3));
+          const ratio = Math.min(PROFILE.logoWidth/dimension(16),PROFILE.logoHeight/dimension(20));
+          const w=dimension(16)*ratio,h=dimension(20)*ratio;
+          commands.push({type:"image",data:block.logo.data,alt:block.logo.alt,decorative:block.logo.decorative,x:x+(PROFILE.logoWidth-w)/2,y:y+(PROFILE.logoHeight-h)/2,w,h});
+        }
+        const titleCenter=x+blockWidth/2;
+        text(block.title,titleCenter,y+25,"serif",PROFILE.titleSize,accentText,"middle");
+        if (block.subtitle) text(block.subtitle,titleCenter,y+43,"sans",10,MUTED,"middle");
         return;
       }
       if (widthOf(block.title,"serif",PROFILE.sectionSize)>blockWidth) throw new Error(`Section heading "${block.title}" is too wide for this layout.`);
@@ -173,13 +188,21 @@ export function createPrintEngine(fontData) {
       if(columns!==1&&columns!==2) throw new Error("FGS rows must have one or two blocks");
       const blockWidth=(width-2*PROFILE.margin-(columns===2?PROFILE.columnGap:0))/columns;
       const blockHeight=Math.max(...row.blocks.map((block)=>measure(block,blockWidth)));
-      if(cursor+blockHeight>height-PROFILE.margin+0.001) return {profile:PROFILE.id,width,height,fits:false,overflow:row.blocks[0].title,commands,blockBounds};
+      if(cursor+blockHeight>height-PROFILE.margin-(document.footer?PROFILE.footerReserve:0)+0.001) return {profile:PROFILE.id,width,height,fits:false,overflow:row.blocks[0].title,commands,blockBounds};
       row.blocks.forEach((block,index)=>{
         const x=PROFILE.margin+index*(blockWidth+PROFILE.columnGap);
         blockBounds.push({id:block.id,x,y:cursor,width:blockWidth,height:blockHeight});
         drawBlock(block,x,cursor,blockWidth);
       });
       cursor+=blockHeight+PROFILE.rowGap;
+    }
+    if (document.footer) {
+      const lines = document.footer.split("\n");
+      for (const [index, value] of lines.entries()) {
+        if (widthOf(value,"sans",PROFILE.footerSize)>width-2*PROFILE.margin) throw new Error("Author footer is too wide for the page.");
+        const baseline = height-PROFILE.margin+10+(index-(lines.length-1))*PROFILE.footerLineHeight;
+        text(value,width/2,baseline,"sans",PROFILE.footerSize,MUTED,"middle");
+      }
     }
     return {profile:PROFILE.id,width,height,fits:true,commands,blockBounds};
   }
@@ -189,6 +212,7 @@ export function createPrintEngine(fontData) {
     for(const command of result.commands) {
       if(command.type==="rect") parts.push(`<rect x="${numbers(command.x)}" y="${numbers(command.y)}" width="${numbers(command.w)}" height="${numbers(command.h)}" fill="${command.color}"/>`);
       else if(command.type==="line") parts.push(`<path d="M${numbers(command.x1)} ${numbers(command.y1)}L${numbers(command.x2)} ${numbers(command.y2)}" stroke="${command.color}" stroke-width="${command.thickness}" fill="none"/>`);
+      else if(command.type==="image") parts.push(`<image x="${numbers(command.x)}" y="${numbers(command.y)}" width="${numbers(command.w)}" height="${numbers(command.h)}" href="data:image/png;base64,${command.data}" ${command.decorative?'aria-hidden="true"':`role="img" aria-label="${escapeXml(command.alt)}"`}/>`);
       else parts.push(`<text x="${numbers(command.x)}" y="${numbers(command.y)}" text-anchor="${command.anchor}" fill="${command.color}" font-family="FGS ${command.font}" font-size="${command.size}">${escapeXml(command.value)}</text>`);
     }
     parts.push("</svg>");
@@ -205,6 +229,11 @@ export function createPrintEngine(fontData) {
     for(const command of result.commands) {
       if(command.type==="rect") page.drawRectangle({x:command.x,y:result.height-command.y-command.h,width:command.w,height:command.h,color:parseColor(command.color)});
       else if(command.type==="line") page.drawLine({start:{x:command.x1,y:result.height-command.y1},end:{x:command.x2,y:result.height-command.y2},thickness:command.thickness,color:parseColor(command.color)});
+      else if(command.type==="image") {
+        const bytes=Uint8Array.from(atob(command.data),ch=>ch.charCodeAt(0));
+        const logo=await pdf.embedPng(bytes);
+        page.drawImage(logo,{x:command.x,y:result.height-command.y-command.h,width:command.w,height:command.h});
+      }
       else {
         const font=fonts[command.font];
         const textWidth=widthOf(command.value,command.font,command.size);

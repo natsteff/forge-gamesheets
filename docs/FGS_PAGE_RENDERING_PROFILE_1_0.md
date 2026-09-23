@@ -1,6 +1,7 @@
 # FGS Page Rendering Profile 1.0
 
-Status: **local release candidate; not yet published**. Profile ID: `fgs-page-1.0`. This is a
+Status: superseded by [Profile 1.1](FGS_PAGE_RENDERING_PROFILE_1_1.md).
+Profile ID: `fgs-page-1.0`. This is a
 versioned appearance contract for
 FGS 1.0 documents, separate from the [FGS document specification](FGS_V1_SPECIFICATION.md).
 It does not change the meaning or schema of an `.fgs` file. Forge GameSheets

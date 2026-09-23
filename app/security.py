@@ -13,7 +13,7 @@ from app.config import ConfigurationError, normalize_host
 
 CONTENT_SECURITY_POLICY = (
     "default-src 'none'; script-src 'self'; script-src-attr 'none'; "
-    "style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; "
+    "style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; "
     "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 )
 

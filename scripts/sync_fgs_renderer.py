@@ -14,7 +14,7 @@ DESTINATION = ROOT / "app" / "static" / "fgs-renderer"
 
 def main() -> None:
     manifest = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
-    if manifest["profile"] != "fgs-page-1.0":
+    if manifest["profile"] != "fgs-page-1.1":
         raise ValueError("Unexpected FGS Page Rendering Profile")
     for name, expected in manifest["sourceFiles"].items():
         actual = hashlib.sha256((SOURCE.parent / name).read_bytes()).hexdigest()

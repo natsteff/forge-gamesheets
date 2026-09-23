@@ -58,6 +58,55 @@ test("one display list specifies bold category labels for both outputs",async()=
   assert.deepEqual(pdf,await engine.toPdf(layout,document.title));
 });
 
+test("FGS 1.1 reserves footer space in preview and PDF without changing old sheets",async()=>{
+  const old=engine.layout(sheet());
+  const document=sheet();
+  document.format_version="1.1";
+  document.footer="Created by Example\nexample.test";
+  const layout=engine.layout(document);
+  assert.equal(layout.fits,true);
+  assert.equal(old.commands.some((item)=>item.value==="Created by Example"),false);
+  const credit=layout.commands.find((item)=>item.value==="Created by Example");
+  assert.equal(credit.font,"sans");
+  assert.equal(credit.anchor,"middle");
+  assert.match(engine.toSvg(layout),/Created by Example/);
+  assert.equal((await PDFDocument.load(await engine.toPdf(layout))).getPageCount(),1);
+});
+
+test("a footer can make an otherwise fitting one-page sheet overflow",async()=>{
+  const document=sheet();
+  document.rows=[
+    {id:"row-notes-1",blocks:[{id:"notes-1",type:"notes",title:"Notes 1",lines:20}]},
+    {id:"row-notes-2",blocks:[{id:"notes-2",type:"notes",title:"Notes 2",lines:7}]},
+  ];
+  assert.equal(engine.layout(document).fits,true);
+  document.format_version="1.1";
+  document.footer="Created by Example";
+  const layout=engine.layout(document);
+  assert.equal(layout.fits,false);
+  assert.equal(layout.overflow,"Notes 2");
+  await assert.rejects(engine.toPdf(layout),/does not fit/);
+});
+
+test("FGS 1.1 logo uses one identical image box in SVG and PDF",async()=>{
+  const document=sheet();
+  document.format_version="1.1";
+  document.rows[0].blocks[0].logo={media_type:"image/png",data:"iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEUlEQVR4nGP8z8Dwn4GBgQEADQUCAOAHawIAAAAASUVORK5CYII=",alt:"Test game logo",decorative:false};
+  const withoutLogo=engine.layout(sheet()).commands.find((item)=>item.value==="Test Game");
+  const layout=engine.layout(document);
+  const logo=layout.commands.find((item)=>item.type==="image");
+  const title=layout.commands.find((item)=>item.value==="Test Game");
+  assert.ok(logo);
+  assert.equal(logo.w,48);
+  assert.equal(logo.h,24);
+  assert.equal(title.x,withoutLogo.x);
+  assert.equal(title.anchor,"middle");
+  assert.match(engine.toSvg(layout),/aria-label="Test game logo"/);
+  assert.equal((await PDFDocument.load(await engine.toPdf(layout))).getPageCount(),1);
+  document.rows[0].blocks[0].title="A very long heading that would overlap the logo when centered";
+  assert.throws(()=>engine.layout(document),/too wide for this layout/);
+});
+
 test("pale accent rules retain their color while heading text is darkened",async()=>{
   const document=sheet();
   document.theme.accent="#ffff00";

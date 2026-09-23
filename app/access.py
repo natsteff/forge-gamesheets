@@ -51,6 +51,7 @@ CONTRIBUTOR_ROUTES = {
     "sheet_designer_create",
     "sheet_designer_import",
     "sheet_designer_edit_document",
+    "sheet_designer_livesheet_setup",
     "sheet_designer_preview",
     "sheet_game_association",
     "sheet_game_association_save",

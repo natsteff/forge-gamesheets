@@ -20,4 +20,5 @@ for(const file of files) hashes[file]=createHash("sha256").update(await readFile
 const sourceFiles=["src/browser.mjs","src/cli.mjs","src/index.mjs","scripts/build.mjs","package.json","pnpm-lock.yaml",...files.filter((file)=>file.startsWith("fonts/")||file.startsWith("licenses/")||file==="THIRD_PARTY_NOTICES.md")];
 const sourceHashes={};
 for(const file of sourceFiles) sourceHashes[file]=createHash("sha256").update(await readFile(join(root,file))).digest("hex");
-await writeFile(join(destination,"manifest.json"),JSON.stringify({package:"@forge-gamesheets/fgs-renderer",version:"0.1.0",profile:"fgs-page-1.0",sourceFiles:sourceHashes,files:hashes},null,2)+"\n");
+const packageInfo=JSON.parse(await readFile(join(root,"package.json"),"utf8"));
+await writeFile(join(destination,"manifest.json"),JSON.stringify({package:packageInfo.name,version:packageInfo.version,profile:"fgs-page-1.1",sourceFiles:sourceHashes,files:hashes},null,2)+"\n");

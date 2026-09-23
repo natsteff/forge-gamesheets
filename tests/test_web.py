@@ -109,6 +109,7 @@ def test_browser_security_headers(web_client, path):
     assert response.headers["referrer-policy"] == "same-origin"
     assert "unsafe-inline" not in CONTENT_SECURITY_POLICY
     assert "unsafe-eval" not in CONTENT_SECURITY_POLICY
+    assert "img-src 'self' data:" in CONTENT_SECURITY_POLICY
 
 
 def test_reprint_maintenance_explains_operations_and_requires_base_url(web_client):
@@ -328,7 +329,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=10" in response.text
-    assert "/static/styles.css?v=53" in response.text
+    assert "/static/styles.css?v=54" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text

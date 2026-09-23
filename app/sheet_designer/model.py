@@ -2,17 +2,24 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import copy
 import re
+from io import BytesIO
 from typing import Any
+
+from PIL import Image, UnidentifiedImageError
 
 FORMAT_NAME = "forge-gamesheets"
 FORMAT_VERSION = "1.0"
+FORMAT_VERSION_1_1 = "1.1"
 PROTOTYPE_VERSION = "0.1-prototype"
 MAX_DOCUMENT_BYTES = 256 * 1024
 MAX_ROWS = 30
 MAX_BLOCKS = 40
 MAX_TEXT = 4000
+MAX_LOGO_BYTES = 128 * 1024
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 _EXT = re.compile(
     r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
@@ -28,7 +35,7 @@ def migrate_document(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise DocumentValidationError("The FGS document must be an object.")
     version = value.get("format_version")
-    if version == FORMAT_VERSION:
+    if version in {FORMAT_VERSION, FORMAT_VERSION_1_1}:
         return normalize_document(value)
     if version != PROTOTYPE_VERSION:
         raise DocumentValidationError(f"Unsupported FGS format version: {version!r}.")
@@ -38,7 +45,12 @@ def migrate_document(value: Any) -> dict[str, Any]:
 
 
 def normalize_document(value: Any) -> dict[str, Any]:
-    return _normalize(value, FORMAT_VERSION, strict=True)
+    if not isinstance(value, dict):
+        raise DocumentValidationError("The FGS document must be an object.")
+    version = value.get("format_version")
+    if version not in {FORMAT_VERSION, FORMAT_VERSION_1_1}:
+        raise DocumentValidationError(f"Unsupported FGS format version: {version!r}.")
+    return _normalize(value, version, strict=True)
 
 
 def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
@@ -55,6 +67,7 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
             "theme",
             "rows",
             "extensions",
+            *({"footer"} if version == FORMAT_VERSION_1_1 else set()),
         },
         "document",
         strict,
@@ -99,7 +112,7 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
                 raise DocumentValidationError(
                     f"A document may contain at most {MAX_BLOCKS} blocks."
                 )
-            normalized_blocks.append(_block(block, ids, strict))
+            normalized_blocks.append(_block(block, ids, strict, version))
         target = {
             "id": _unique_id(row.get("id"), ids, "row ID"),
             "blocks": normalized_blocks,
@@ -115,18 +128,41 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
         "theme": {"accent": accent.lower()},
         "rows": normalized_rows,
     }
+    logos = [
+        block for row in normalized_rows for block in row["blocks"] if "logo" in block
+    ]
+    if len(logos) > 1:
+        raise DocumentValidationError("FGS 1.1 allows one header logo per sheet.")
+    if version == FORMAT_VERSION_1_1 and "footer" in value:
+        footer = value["footer"]
+        if (
+            not isinstance(footer, str)
+            or not 1 <= len(footer) <= 160
+            or footer.count("\n") > 1
+            or any(
+                (ord(char) < 32 and char != "\n") or ord(char) == 127
+                for char in footer
+            )
+            or any(not line.strip() for line in footer.split("\n"))
+        ):
+            raise DocumentValidationError(
+                "Footer must be one or two nonempty lines, at most 160 characters."
+            )
+        result["footer"] = footer
     _extensions(page, result["page"])
     _extensions(theme, result["theme"])
     _extensions(value, result)
     return result
 
 
-def _block(value: Any, ids: set[str], strict: bool) -> dict[str, Any]:
+def _block(value: Any, ids: set[str], strict: bool, version: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise DocumentValidationError("Every block must be an object.")
     kind = value.get("type")
     extras = {
-        "header": {"subtitle"},
+        "header": {"subtitle", "logo"}
+        if version == FORMAT_VERSION_1_1
+        else {"subtitle"},
         "score_table": {"players", "score_rows", "show_total", "total_label"},
         "reference": {"items"},
         "checklist": {"items"},
@@ -146,6 +182,8 @@ def _block(value: Any, ids: set[str], strict: bool) -> dict[str, Any]:
         result["subtitle"] = _text(
             value.get("subtitle", ""), "header subtitle", 240, empty=True
         )
+        if "logo" in value and version == FORMAT_VERSION_1_1:
+            result["logo"] = _logo(value["logo"])
     elif kind == "score_table":
         players, rows, total = (
             value.get("players"),
@@ -180,6 +218,71 @@ def _block(value: Any, ids: set[str], strict: bool) -> dict[str, Any]:
         result["lines"] = lines
     _extensions(value, result)
     return result
+
+
+def _logo(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != {
+        "media_type",
+        "data",
+        "alt",
+        "decorative",
+    }:
+        raise DocumentValidationError(
+            "Header logo requires media type, PNG data, alt text, and decorative flag."
+        )
+    if value["media_type"] != "image/png" or not isinstance(value["decorative"], bool):
+        raise DocumentValidationError(
+            "Header logo must be a PNG with a decorative flag."
+        )
+    alt = value["alt"]
+    if (
+        not isinstance(alt, str)
+        or len(alt) > 120
+        or any(ord(c) < 32 or ord(c) == 127 for c in alt)
+    ):
+        raise DocumentValidationError("Header logo alt text is invalid.")
+    if value["decorative"] and alt or not value["decorative"] and not alt.strip():
+        raise DocumentValidationError(
+            "Describe the logo or mark it decorative with empty alt text."
+        )
+    encoded = value["data"]
+    if not isinstance(encoded, str) or len(encoded) > (MAX_LOGO_BYTES * 4 // 3 + 4):
+        raise DocumentValidationError("Header logo exceeds the 128 KiB limit.")
+    try:
+        content = base64.b64decode(encoded, validate=True)
+        if (
+            base64.b64encode(content).decode("ascii") != encoded
+            or len(content) > MAX_LOGO_BYTES
+        ):
+            raise ValueError("Noncanonical or oversized logo")
+        with Image.open(BytesIO(content)) as image:
+            if image.format != "PNG" or image.width > 1024 or image.height > 1024:
+                raise ValueError("Invalid PNG dimensions")
+            if getattr(image, "n_frames", 1) != 1:
+                raise ValueError("Animated logos are unsupported")
+            if (
+                image.width < 1
+                or image.height < 1
+                or image.width * image.height > 1_000_000
+            ):
+                raise ValueError("Invalid PNG dimensions")
+            image.load()
+    except (
+        ValueError,
+        binascii.Error,
+        UnidentifiedImageError,
+        OSError,
+        Image.DecompressionBombError,
+    ) as error:
+        raise DocumentValidationError(
+            "Header logo must be a valid PNG up to 128 KiB and 1024 pixels per side."
+        ) from error
+    return {
+        "media_type": "image/png",
+        "data": encoded,
+        "alt": alt,
+        "decorative": value["decorative"],
+    }
 
 
 def _keys(value, allowed, label, strict):

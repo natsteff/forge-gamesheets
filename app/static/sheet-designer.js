@@ -16,8 +16,9 @@
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
-  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.0")
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.1&layout=2")
     .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
+  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.1&layout=2");
   let previewRevision = 0;
 
   const calculationKind = (label) => {
@@ -158,13 +159,33 @@
     const {block, row, rowIndex, blockIndex} = found;
     $("properties-title").textContent = blockName[block.type];
     let fields = `<label>Heading<input data-field="title" maxlength="160" value="${escape(block.title)}"></label>`;
-    if (block.type === "header") fields += `<label>Subtitle<input data-field="subtitle" maxlength="240" value="${escape(block.subtitle)}"></label>`;
+    if (block.type === "header") fields += `<label>Subtitle<input data-field="subtitle" maxlength="240" value="${escape(block.subtitle)}"></label><div class="designer-logo-upload"><span>Header logo (PNG or JPEG)</span><button class="secondary-button" data-logo-trigger type="button">Choose logo</button><input data-logo-upload type="file" accept="image/png,image/jpeg" hidden><small>${block.logo ? "Current logo attached" : "No logo selected"}</small></div><label>Logo description (leave blank if decorative)<input data-logo-alt maxlength="120" value="${escape(block.logo?.alt || "")}"></label>${block.logo ? '<button class="secondary-button" data-remove-logo type="button">Remove logo</button>' : ""}`;
     if (block.type === "score_table") fields += `<label>Players<input data-player-count type="number" min="1" max="12" value="${block.players.length}"></label>${textList("Player headings (one per line)", block.players, "players")}${textList("Score rows (one per line)", scoreLabels(block), "score_rows")}<p class="designer-field-help">Press Return to add or remove rows. A row named <strong>Total</strong> becomes a calculated subtotal; <strong>Grand Total</strong> adds the subtotals.</p><div class="designer-calculation-actions"><button class="secondary-button" data-add-total type="button">＋ Add Total row</button><button class="secondary-button" data-add-grand-total type="button">＋ Add Grand Total row</button></div><fieldset class="designer-row-generator"><legend>Generate numbered rows</legend><label>Label<input data-row-prefix maxlength="60" value="Round"></label><div><label>Start<input data-row-start type="number" min="-999" max="999" value="1"></label><label>Number of rows<input data-row-count type="number" min="1" max="30" value="10"></label></div><button class="secondary-button" data-generate-rows type="button">Generate rows</button></fieldset>`;
     if (block.type === "reference" || block.type === "checklist") fields += `${textList(`${block.type === "checklist" ? "Checklist items" : "Reminders"} (one per line)`, block.items, "items")}<p class="designer-field-help">Each line appears as a separate ${block.type === "checklist" ? "checkbox" : "reminder"}.</p>`;
     if (block.type === "notes") fields += `<label>Writing lines<input data-field="lines" type="number" min="1" max="20" value="${block.lines}"></label>`;
     fields += `<div class="designer-property-actions"><button class="secondary-button" data-duplicate type="button">Duplicate</button>${row.blocks.length === 1 && rowIndex < model.rows.length - 1 && model.rows[rowIndex + 1].blocks.length === 1 ? '<button class="secondary-button" data-pair type="button">Pair with next</button>' : ""}${row.blocks.length === 2 ? '<button class="secondary-button" data-unpair type="button">Use full width</button>' : ""}${model.rows.length === 1 && row.blocks.length === 1 ? "" : '<button class="danger-button" data-delete type="button">Delete</button>'}</div>`;
     $("properties-panel").innerHTML = fields;
     root.querySelectorAll("[data-field]").forEach((input) => input.addEventListener("change", () => commit(() => { block[input.dataset.field] = input.type === "number" ? Number(input.value) : input.value; })));
+    root.querySelector("[data-logo-trigger]")?.addEventListener("click", () => root.querySelector("[data-logo-upload]").click());
+    root.querySelector("[data-logo-upload]")?.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        const alt = root.querySelector("[data-logo-alt]").value.trim();
+        const logo = await (await logoTools).prepareHeaderLogo(file, alt, !alt);
+        commit((draft) => {
+          draft.format_version = "1.1";
+          draft.rows.flatMap((item) => item.blocks).forEach((item) => {if (item.id !== block.id) delete item.logo;});
+          const target = draft.rows.flatMap((item) => item.blocks).find((item) => item.id === block.id);
+          if (target) target.logo = logo;
+        });
+      } catch (error) { message(error.message); }
+    });
+    root.querySelector("[data-logo-alt]")?.addEventListener("change", (event) => {
+      if (!block.logo) return;
+      commit(() => {block.logo.alt = event.target.value.trim();block.logo.decorative = !block.logo.alt;});
+    });
+    root.querySelector("[data-remove-logo]")?.addEventListener("click", () => commit(() => {delete block.logo;}));
     root.querySelectorAll("[data-list]").forEach((input) => {
       if (input.dataset.list === "score_rows" || input.dataset.list === "items") return;
       input.addEventListener("change", () => commit(() => { block[input.dataset.list] = input.value.split("\n").map((item) => item.trim()).filter(Boolean); }));
@@ -265,7 +286,7 @@
       if (block.score_rows.length && !confirm(`Replace the existing ${block.score_rows.length} score row${block.score_rows.length === 1 ? "" : "s"}?`)) return;
       commit(() => { block.score_rows = Array.from({length: count}, (_, index) => `${prefix} ${start + index}`); });
     });
-    root.querySelector("[data-duplicate]").addEventListener("click", () => commit((draft) => { const copy = clone(block); copy.id = id(block.type); copy.title = `${copy.title} copy`; draft.rows.splice(rowIndex + 1, 0, {id: id("row"), blocks: [copy]}); selected = copy.id; }));
+    root.querySelector("[data-duplicate]").addEventListener("click", () => commit((draft) => { const copy = clone(block); copy.id = id(block.type); copy.title = `${copy.title} copy`; delete copy.logo; draft.rows.splice(rowIndex + 1, 0, {id: id("row"), blocks: [copy]}); selected = copy.id; }));
     root.querySelector("[data-delete]")?.addEventListener("click", () => commit((draft) => { row.blocks.splice(blockIndex, 1); if (!row.blocks.length) draft.rows.splice(rowIndex, 1); selected = draft.rows[0]?.blocks[0]?.id || null; }));
     root.querySelector("[data-pair]")?.addEventListener("click", () => commit((draft) => { row.blocks.push(draft.rows[rowIndex + 1].blocks[0]); draft.rows.splice(rowIndex + 1, 1); }));
     root.querySelector("[data-unpair]")?.addEventListener("click", () => commit((draft) => { const moved = row.blocks.splice(blockIndex, 1)[0]; draft.rows.splice(rowIndex + 1, 0, {id: id("row"), blocks: [moved]}); }));
@@ -276,6 +297,7 @@
     $("page-size").value = model.page.size;
     $("orientation").value = model.page.orientation;
     $("accent").value = model.theme.accent;
+    $("footer").value = model.footer || "";
     $("undo").disabled = !history.length;
     $("redo").disabled = !future.length;
     structure(); preview(); properties();
@@ -402,6 +424,11 @@
   $("page-size").addEventListener("change", (event) => commit((draft) => { draft.page.size = event.target.value; }));
   $("orientation").addEventListener("change", (event) => commit((draft) => { draft.page.orientation = event.target.value; }));
   $("accent").addEventListener("change", (event) => commit((draft) => { draft.theme.accent = event.target.value; }));
+  $("footer").addEventListener("change", (event) => commit((draft) => {
+    const footer = event.target.value.trim();
+    if (footer) { draft.format_version = "1.1"; draft.footer = footer; }
+    else delete draft.footer;
+  }));
   $("add-block").addEventListener("click", addBlock);
   $("new-sheet").addEventListener("click", async () => {
     if (!await flushSave()) return;

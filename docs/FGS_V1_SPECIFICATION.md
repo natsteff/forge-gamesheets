@@ -2,6 +2,10 @@
 
 Status: Version 1.0
 
+FGS 1.1 adds an optional header logo and author footer; see the separate
+[FGS 1.1 specification](FGS_V1_1_SPECIFICATION.md). This 1.0 definition
+remains valid for existing files.
+
 FGS is the portable, application-independent source format for a GameSheet.
 Forge GameSheets is one editor and renderer, but a conforming file must not
 depend on a Forge installation, database, library, web route, or local path.
@@ -70,7 +74,7 @@ guarantees semantic interoperability, not pixel-identical rendering.
 
 Applications that want consistent page layout may implement the separate,
 versioned [FGS Page Rendering Profile 1.0](FGS_PAGE_RENDERING_PROFILE_1_0.md). The profile is a
-local release candidate and does not add fields to FGS 1.0 or change its semantic
+separate rendering contract and does not add fields to FGS 1.0 or change its semantic
 compatibility promise. A future minor FGS version may allow a document to pin
 a page rendering profile explicitly.
 
@@ -107,8 +111,9 @@ alter standard-field meanings, execute code, or grant resource access. An
 editor unable to preserve an extension must refuse to save the enclosing
 object.
 
-## Deferred from v1
+## Deferred from 1.0
 
-Images, resource references, absolute placement, custom fonts, calculations,
+FGS 1.1 adds one header logo and an author footer. General images, resource
+references, absolute placement, custom fonts, calculations,
 page breaks, repeating page elements, multiple pages, saved field values,
 scripts, HTML, ownership, and Forge library metadata are future capabilities.

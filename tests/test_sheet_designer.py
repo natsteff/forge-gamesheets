@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
+from io import BytesIO
 from pathlib import Path
 
 import pymupdf
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from app.config import Settings
 from app.main import create_app
 from app.sheet_designer.commands import delete_block, move_row
 from app.sheet_designer.model import (
     FORMAT_VERSION,
+    FORMAT_VERSION_1_1,
     PROTOTYPE_VERSION,
     DocumentValidationError,
     migrate_document,
@@ -28,6 +32,61 @@ from app.sheet_designer.shared_rendering import (
 )
 from app.sheet_designer.standalone import create_standalone_app
 from app.sheet_designer.storage import FileDraftStore
+
+
+def test_fgs_1_1_footer_round_trips_without_changing_1_0(tmp_path: Path):
+    store = FileDraftStore(tmp_path / "drafts")
+    original = store.load()
+    assert original["format_version"] == FORMAT_VERSION
+    updated = {
+        **original,
+        "format_version": FORMAT_VERSION_1_1,
+        "footer": "Created by Example\n2026",
+    }
+    assert store.save(updated)["footer"] == "Created by Example\n2026"
+    assert store.load()["format_version"] == FORMAT_VERSION_1_1
+    with pytest.raises(DocumentValidationError):
+        normalize_document({**original, "footer": "Invalid on 1.0"})
+    with pytest.raises(DocumentValidationError):
+        normalize_document({**updated, "footer": "three\nlines\nhere"})
+
+
+def test_fgs_1_1_header_logo_is_validated_and_portable(tmp_path: Path):
+    store = FileDraftStore(tmp_path / "drafts")
+    source = store.load()
+    source["format_version"] = FORMAT_VERSION_1_1
+    image = BytesIO()
+    Image.new("RGBA", (4, 2), "red").save(image, format="PNG")
+    logo = {
+        "media_type": "image/png",
+        "data": base64.b64encode(image.getvalue()).decode("ascii"),
+        "alt": "Expedition logo",
+        "decorative": False,
+    }
+    source["rows"][0]["blocks"][0]["logo"] = logo
+    assert store.save(source)["rows"][0]["blocks"][0]["logo"] == logo
+    assert store.load()["rows"][0]["blocks"][0]["logo"] == logo
+    source["footer"] = "Created by Example"
+    output = render_pdf(source, tmp_path / "logo-footer.pdf")
+    with pymupdf.open(output) as pdf:
+        assert len(pdf[0].get_images()) == 1
+        assert "Created by Example" in pdf[0].get_text()
+    bad = json.loads(json.dumps(source))
+    bad["rows"][0]["blocks"][0]["logo"]["data"] = "not PNG"
+    with pytest.raises(DocumentValidationError):
+        normalize_document(bad)
+    animated = BytesIO()
+    Image.new("RGBA", (4, 2), "red").save(
+        animated,
+        format="PNG",
+        save_all=True,
+        append_images=[Image.new("RGBA", (4, 2), "blue")],
+    )
+    bad["rows"][0]["blocks"][0]["logo"]["data"] = base64.b64encode(
+        animated.getvalue()
+    ).decode("ascii")
+    with pytest.raises(DocumentValidationError, match="valid PNG"):
+        normalize_document(bad)
 
 
 def test_expedition_fixture_round_trips_through_portable_store(tmp_path: Path):
@@ -95,7 +154,7 @@ def test_workspace_backs_up_prototype_before_in_place_migration(tmp_path: Path):
 def test_untrusted_fgs_requires_supported_version_and_unique_ids():
     document = expedition_document()
     document["format_version"] = "2.0"
-    with pytest.raises(DocumentValidationError, match="1.0"):
+    with pytest.raises(DocumentValidationError, match="Unsupported FGS format version"):
         normalize_document(document)
 
     document = expedition_document()
@@ -220,14 +279,13 @@ def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
             for line in block["lines"]
             for span in line["spans"]
         ]
-        assert "fgs-page-1.0" in pdf.metadata["creator"]
+        assert "fgs-page-1.1" in pdf.metadata["creator"]
     assert any(
         span["text"] == "Expedition Score Sheet" and span["color"] == 0xA52F23
         for span in spans
     )
     assert any(
-        span["text"] == "Score table" and span["color"] == 0xA52F23
-        for span in spans
+        span["text"] == "Score table" and span["color"] == 0xA52F23 for span in spans
     )
     assert any(span["text"] == "Routes" and span["color"] != 0xA52F23 for span in spans)
 
@@ -235,7 +293,7 @@ def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
 def test_pinned_renderer_files_match_the_build_manifest():
     root = Path(__file__).resolve().parents[1] / "app" / "static" / "fgs-renderer"
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["profile"] == "fgs-page-1.0"
+    assert manifest["profile"] == "fgs-page-1.1"
     for name, expected in manifest["files"].items():
         assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected
     source = Path(__file__).resolve().parents[1] / "packages" / "fgs-renderer"
@@ -477,7 +535,10 @@ def test_designer_explains_its_scope_from_startup_and_editor():
     assert "temporary interactive LiveSheets" in template
     assert "An LLM can draft an FGS file" in template
     assert "only share source documents you are permitted to upload" in template
-    assert "FGS_V1_SPECIFICATION.md" in template
+    assert "FGS_V1_1_SPECIFICATION.md" in template
+    assert "<h2>Footer</h2>" in template
+    assert "data-logo-trigger" in script
+    assert 'data-logo-upload type="file" accept="image/png,image/jpeg" hidden' in script
     assert '$("about-dialog").showModal()' in script
 
 
@@ -568,7 +629,7 @@ def test_game_association_controls_are_integrated_only():
     assert "data-game-link" in template
     assert 'requestDocument("/sheet-designer/game-association"' in script
     assert "encodeURIComponent(query)" in script
-    assert 'query === null' in script
+    assert "query === null" in script
 
 
 def test_designer_controls_reuse_forge_form_tokens():
@@ -620,4 +681,4 @@ def test_designer_edits_the_portable_accent_color():
 
     assert 'data-accent type="color"' in template
     assert '$("accent").value = model.theme.accent' in script
-    assert 'draft.theme.accent = event.target.value' in script
+    assert "draft.theme.accent = event.target.value" in script
