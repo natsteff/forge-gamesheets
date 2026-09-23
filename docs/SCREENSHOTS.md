@@ -12,10 +12,12 @@ panel correctly says Local development build: this was a local source run, not
 a published-container verification.
 
 The gallery does not yet include dedicated current captures for LiveSheets,
-GameSheet-to-game association and rendered previews, or the Sheet Designer About
-dialog. Existing Designer and game-page captures remain useful for their core
-layouts but predate those added controls. Do not describe the gallery as complete
-coverage until the replacement captures below have been created and inspected.
+GameSheet-to-game association and rendered previews, the Sheet Designer About
+dialog, or FGS 1.1 logo and Footer controls. Existing Designer and game-page
+captures remain useful for their core layouts but predate those added controls.
+Do not describe the gallery as complete coverage until the replacement captures
+below have been created and inspected. Use only a disposable fictional sheet for
+the logo/Footer capture; do not publish a personal game logo or author credit.
 
 The README gallery contains library-overview, game-resources, assign-categories,
 reprint-maintenance, users, activity-history, settings-build, sheet-designer,
@@ -89,7 +91,8 @@ hides the import or folder-based discovery workflow.
    the temporary server when finished. Do not commit demo databases or PDF files.
 
 The next complete refresh should add or replace captures for: the current
-Designer toolbar and About dialog; title-assisted game association; a game page
+Designer toolbar, FGS 1.1 logo and Footer controls, and About dialog;
+title-assisted game association; a game page
 with an associated GameSheet preview; the LiveSheets list; session setup; and an
 active single-scorer or individual-scoring sheet. It should also recapture desktop
 and mobile navigation because the conditional LiveSheets link is new.

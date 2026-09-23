@@ -40,6 +40,8 @@ sheets; it is not an editor for existing PDF files.
   association with an existing library game
 - A versioned FGS Page Rendering Profile and pinned shared renderer used by the
   Designer preview and PDF export and by the browser-only FGS Studio
+- FGS 1.1 author footers and a single portable header logo, included in
+  GameSheet PDFs and LiveSheet presentation
 - Temporary LiveSheet sessions with single-scorer or individual-player entry,
   QR and copyable-link invitations, automatic totals, and host-managed notes
   and milestones
@@ -63,8 +65,9 @@ sheets; it is not an editor for existing PDF files.
 - GitHub-published container images with revision and build-date information
 
 The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
-The [FGS document specification](docs/FGS_V1_SPECIFICATION.md) defines file
-content; the [Page Rendering Profile](docs/FGS_PAGE_RENDERING_PROFILE_1_0.md)
+The [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md) and
+[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md) define file content;
+the [Page Rendering Profile](docs/FGS_PAGE_RENDERING_PROFILE_1_1.md)
 defines single-page appearance and fit. The renderer's editable source and
 tests live in the [FGS Renderer package](packages/fgs-renderer/README.md). Forge includes
 a verified, version-pinned build; the source package is not required to run the
@@ -82,8 +85,10 @@ authentication enabled; available controls depend on the signed-in role. Click
 an image to inspect it at full size.
 
 The current application also includes LiveSheet setup and play, GameSheet/game
-associations, generated GameSheet previews, and the Designer's About dialog.
-Those newer workflows are not yet represented by dedicated gallery images; the
+associations, generated GameSheet previews, the Designer's About dialog, and
+FGS 1.1 logo and Footer controls. Those newer workflows are not yet represented
+by dedicated gallery images; the existing Designer image shows an earlier
+version of the editor. The
 [screenshot maintenance guide](docs/SCREENSHOTS.md) records the required safe
 replacement captures.
 
@@ -365,16 +370,21 @@ in one step. Letter and A4 output are available in portrait or landscape, with a
 live single-page preview and overflow warning.
 
 Sheet Designer works best for portable score tracking, reference information,
-checklists, and notes arranged in structured, single-page sections. FGS v1 is
-not a general page-layout or spreadsheet format: it does not currently support
-free positioning, images, custom formulas, multiple pages, or pixel-perfect
-copies of existing documents. GameSheets can be exported as printable PDFs,
+checklists, and notes arranged in structured, single-page sections. FGS is
+not a general page-layout or spreadsheet format: it does not support
+free positioning, general image sections, custom formulas, multiple pages, or
+pixel-perfect copies of existing documents. FGS 1.1 supports one header logo
+and a one- or two-line Footer. The logo is embedded in the portable `.fgs` file;
+the title remains centered independently of it. The Footer occupies a reserved
+strip at the bottom of the page and is separate from FORGE Reprint attribution.
+GameSheets can be exported as printable PDFs,
 and compatible score sheets can also be used as temporary interactive
 LiveSheets. The Designer startup page and editor toolbar provide the same short
 **About Sheet Designer** explanation in the application.
 
 **Tip:** An LLM can draft an `.fgs` file from a score-sheet image or PDF when it
-is also given the [FGS v1 specification](docs/FGS_V1_SPECIFICATION.md). Review
+is also given the [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md) and
+[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md). Review
 the generated content, import it as untrusted input, and verify every label,
 calculation, and layout before use. Only upload source documents you are
 permitted to share with that service.
@@ -437,8 +447,10 @@ to save automatically.
 Designer source uses **FGS**, Forge's portable, JSON-based formal file format for
 structured GameSheets. FGS remains independent of the Forge web application so
 compatible editors can exchange the same `.fgs` source. See the
-[FGS v1 specification](docs/FGS_V1_SPECIFICATION.md), its
-[machine-readable JSON Schema](docs/schemas/fgs-v1.schema.json), and the
+[FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md),
+[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md), their
+[1.0](docs/schemas/fgs-v1.schema.json) and
+[1.1](docs/schemas/fgs-v1.1.schema.json) JSON Schemas, and the
 [Sheet Designer boundary and current limitations](docs/SHEET_DESIGNER_PROTOTYPE.md).
 
 The published image can also run as a Designer-only web application. Set
