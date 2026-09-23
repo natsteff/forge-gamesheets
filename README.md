@@ -685,8 +685,9 @@ print-history decision.
 FORGE GAMESHEETS is developed with assistance from OpenAI Codex under the
 direction of a maintainer with a degree in software development and professional
 experience in software testing, test management, and security. Development
-includes automated testing and incremental changes, with OWASP ASVS-based
-security reviews planned for major releases.
+includes automated testing and incremental changes. Maintainer-led,
+AI-assisted OWASP ASVS self-assessments are planned for major releases; these
+are not independent audits or certifications.
 The source is openly available for inspection and contributions.
 
 Before publishing Docker images, [GitHub Actions](.github/workflows/publish-container.yml)
@@ -695,9 +696,9 @@ Dependency audit findings block publication. Container scans report High and
 Critical findings and block publication for Critical vulnerabilities with an
 available fix. The workflow publishes the same image that passed these checks.
 
-These safeguards complement, but do not replace, code review, targeted security
-testing, and planned OWASP ASVS-based reviews for major releases. Passing checks
-is not a security certification or a guarantee that no vulnerabilities exist.
+These safeguards and scoped self-assessments reduce risk but cannot guarantee
+that no vulnerabilities exist. Independent security testing is not currently
+part of the release process.
 
 Documentation checks run with the test suite to catch broken local references,
 missing screenshot files, and selected stale feature claims. Major updates also

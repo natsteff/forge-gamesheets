@@ -1,6 +1,11 @@
 """Checks for the published-container deployment contract."""
 
+import json
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).parents[1]
 
@@ -53,6 +58,7 @@ def test_publish_workflow_verifies_before_registry_login_and_push() -> None:
         "run: ruff check .",
         '"pip-audit==2.10.1"',
         "python -m pip_audit --local --skip-editable",
+        "pnpm --dir packages/fgs-renderer audit --prod",
         "aquasecurity/trivy-action@v0.36.0",
         "severity: CRITICAL",
         'exit-code: "1"',
@@ -61,9 +67,10 @@ def test_publish_workflow_verifies_before_registry_login_and_push() -> None:
         assert gate in workflow
 
     registry_login = workflow.index("Sign in to GitHub Container Registry")
+    renderer_audit = workflow.index("Audit renderer dependencies")
     blocking_scan = workflow.index("Block fixed critical container vulnerabilities")
     publish = workflow.index("Publish the verified image")
-    assert blocking_scan < registry_login < publish
+    assert renderer_audit < blocking_scan < registry_login < publish
     assert workflow.count("docker/build-push-action@v6") == 1
     assert "docker push" in workflow[publish:]
 
@@ -88,7 +95,9 @@ def test_published_runtime_excludes_development_stage() -> None:
     assert ".[dev]" not in base
     assert "COPY tests" not in base
     assert "COPY tests" in development
-    assert dockerfile.rstrip().endswith("FROM base AS runtime")
+    runtime = dockerfile.split("FROM base AS runtime", 1)[1]
+    assert "python -m pip uninstall --yes pip" in runtime
+    assert runtime.rstrip().endswith("USER forge-gamesheets")
     compose = (PROJECT_ROOT / "compose.yml").read_text()
     assert "target: ${FORGE_GAMESHEETS_BUILD_TARGET:-runtime}" in compose
     workflow = (PROJECT_ROOT / ".github/workflows/publish-container.yml").read_text()
@@ -102,6 +111,62 @@ def test_base_image_installs_current_debian_security_updates() -> None:
     cleanup = dockerfile.index("rm -rf /var/lib/apt/lists/*")
     application_install = dockerfile.index("pip install --no-cache-dir .")
     assert update < upgrade < cleanup < application_install
+
+
+def test_runtime_uses_supported_node_lts_instead_of_debian_node20() -> None:
+    dockerfile = (PROJECT_ROOT / "Dockerfile").read_text()
+    assert "FROM node:24-trixie-slim AS node-runtime" in dockerfile
+    assert (
+        "COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node"
+        in dockerfile
+    )
+    assert "COPY --from=node-runtime /usr/local/LICENSE" in dockerfile
+    assert "RUN node /usr/local/lib/forge/check-node-runtime.mjs" in dockerfile
+    check = (PROJECT_ROOT / "scripts/check_node_runtime.mjs").read_text()
+    assert 'versions.node?.startsWith("24.")' in check
+    assert "[24, 17, 0]" in check
+    assert "[7, 29, 0]" in check
+    assert "apt-get install --yes --no-install-recommends nodejs" not in dockerfile
+
+    workflow = (PROJECT_ROOT / ".github/workflows/publish-container.yml").read_text()
+    assert "Record copied Node runtime versions" in workflow
+    assert "node /usr/local/lib/forge/check-node-runtime.mjs" in workflow
+    assert workflow.index("Record copied Node runtime versions") < workflow.index(
+        "Sign in to GitHub Container Registry"
+    )
+
+
+@pytest.mark.parametrize(
+    ("node_version", "undici_version", "accepted"),
+    [
+        ("24.21.0", "7.29.1", True),
+        ("24.16.9", "7.29.1", False),
+        ("24.21.0", "7.28.9", False),
+        ("24.17.x", "7.29.1", False),
+        ("20.20.0", "7.29.1", False),
+    ],
+)
+def test_node_runtime_guard_rejects_unpatched_versions(
+    node_version: str, undici_version: str, accepted: bool
+) -> None:
+    if not shutil.which("node"):
+        pytest.skip("Node is unavailable outside the container")
+    versions = json.dumps({"node": node_version, "undici": undici_version})
+    script = PROJECT_ROOT / "scripts/check_node_runtime.mjs"
+    result = subprocess.run(
+        [
+            "node",
+            "--input-type=module",
+            "-e",
+            f"Object.defineProperty(process, 'versions', {{value: {versions}}}); "
+            "await import(process.argv[1]);",
+            str(script),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert (result.returncode == 0) is accepted
 
 
 def test_proxy_trust_is_explicit_and_not_wildcard() -> None:

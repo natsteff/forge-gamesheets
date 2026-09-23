@@ -29,6 +29,11 @@ jobs:
           python-version: "3.13"
           cache: pip
 
+      - name: Set up Node for renderer tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - name: Install application and security tools
         run: python -m pip install ".[dev]" "pip-audit==2.10.1"
 
@@ -40,6 +45,14 @@ jobs:
 
       - name: Audit Python dependencies
         run: python -m pip_audit --local --skip-editable
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+
+      - name: Audit renderer dependencies
+        run: pnpm --dir packages/fgs-renderer audit --prod
 
       - name: Prepare build identity
         id: identity
@@ -89,6 +102,12 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: false
           exit-code: "0"
+
+      - name: Record copied Node runtime versions
+        run: |
+          echo "### Renderer runtime" >> "$GITHUB_STEP_SUMMARY"
+          docker run --rm forge-gamesheets:security-review \
+            node /usr/local/lib/forge/check-node-runtime.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Block fixed critical container vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0

@@ -35,9 +35,9 @@ trusted LAN, or an appropriately protected proxy/VPN, not direct public access.
 
 Future release checklists should record the assessment and its remaining limits.
 
-The container publication workflow must run tests, lint, a Python dependency
-audit, and a container vulnerability scan before authenticating to the registry
-and publishing an image. Known fixed critical container vulnerabilities block
+The container publication workflow must run tests, lint, Python and renderer
+dependency audits, and a container vulnerability scan before authenticating to
+the registry and publishing an image. Known fixed critical vulnerabilities block
 publication. High and unfixed critical findings remain visible and require
 owner review; a non-blocking scanner result is not automatic acceptance. Record
 exceptions explicitly rather than maintaining an unexplained ignore list.
@@ -54,13 +54,37 @@ The 2026-09-03 owner-authorized secondary AI pass is recorded in
 [the review follow-up](SECURITY_REVIEW_FOLLOWUP.md). This is a separate AI review,
 not third-party certification.
 
-Dependency policy: every publication must audit resolved Python dependencies and
-scan the exact runtime image that will be pushed. Production images exclude
+Dependency policy: every publication must audit resolved Python and locked FGS
+Renderer dependencies, then scan the exact runtime image that will be pushed.
+Production images exclude
 development tools/tests; local builds retain a development target. Do not treat
 version ranges as reproducible builds. Before the next major release, review a
 lock/update strategy, digest-pinned base images, and immutable Action references
 with a deliberate refresh process. Do not freeze old vulnerable dependencies
 merely to obtain repeatability.
+
+The FGS PDF CLI uses a supported Node LTS executable copied from the official
+multi-platform Node image rather than Debian 13's end-of-life Node 20 package.
+The build and publication workflow check the Node 24 major version and minimum
+versions that resolve the two reviewed advisories (Node 24.17.0 and Undici
+7.29.0), and the workflow records actual Node, Undici, and OpenSSL versions.
+Because a copied executable is not recorded as a Debian package, the container
+vulnerability scan does not inventory Node: at each release checkpoint, review
+newer Node security releases separately. A lower container finding count alone
+does not prove the Node runtime is free of vulnerabilities.
+
+The 2026-09-23 local arm64 and amd64 candidate scans reported no critical
+findings, no Python high findings after removing build-only pip from the runtime
+stage, and 44 high Debian package entries from eight distinct advisories. The
+scanner listed no fixed Debian version for those entries. On 2026-09-23 the
+owner reviewed the eight underlying advisories and accepted the remaining High
+findings for this trusted-network beta release. The affected functions concern
+local privileged mount/namespace or ACL operations, systemd-homed, infocmp, and
+Perl Archive::Tar; Forge does not invoke those functions in its normal runtime,
+which runs without root privileges or Linux capabilities. This is a scoped
+release decision, not blanket acceptance for future releases. Refresh the scan
+of the exact published image and reassess when Debian packages, the base image,
+or Forge's deployment boundary changes.
 
 Remaining decisions/fixes, in priority order:
 
