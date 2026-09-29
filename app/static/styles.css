@@ -588,6 +588,9 @@ input[type="checkbox"] {
 .maintenance-summary div { padding: 0.85rem; border: 1px solid var(--line); border-radius: 0.65rem; background: var(--paper); }
 .maintenance-summary dt { color: var(--muted); font-size: 0.78rem; font-weight: 750; }
 .maintenance-summary dd { margin: 0.2rem 0 0; font-size: 1.5rem; font-weight: 800; }
+.maintenance-help summary { color: var(--forge-dark); font-weight: 750; cursor: pointer; }
+.maintenance-help[open] summary { margin-bottom: 0.75rem; }
+.maintenance-help li { margin-bottom: 0.5rem; }
 .maintenance-options { display: grid; gap: 0.8rem; }
 .maintenance-options label { display: grid; grid-template-columns: auto 1fr; column-gap: 0.6rem; padding: 0.85rem; border: 1px solid var(--line); border-radius: 0.65rem; }
 .maintenance-options input { grid-row: 1 / 3; }
@@ -614,6 +617,23 @@ input[type="checkbox"] {
 .edit-source { color: var(--muted); }
 .edit-source code { overflow-wrap: anywhere; }
 .metadata-form { display: grid; gap: 0.55rem; }
+.links-row .resource-copy { flex: 1 1 16rem; }
+.links-row-actions { flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+@media (max-width: 1100px) {
+  .links-row { flex-wrap: wrap; }
+  .links-row-actions { margin-left: 0; flex-shrink: 1; }
+}
+.directory-link { min-width: 0; padding: 1.1rem; border: 1px solid var(--line); border-radius: 0.8rem; background: var(--surface); }
+.directory-link h3, .directory-link h4 { margin: 0 0 0.5rem; }
+.link-destination { overflow-wrap: anywhere; color: var(--muted); font-size: 0.85rem; }
+.links-shortcuts, .directory-link-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
+.directory-link-actions form { margin: 0; }
+.links-category { margin-top: 1.75rem; }
+.links-delete { margin-top: 1rem; }
+.links-delete summary { cursor: pointer; color: var(--forge-dark); font-weight: 700; }
+.links-category-editor { margin-bottom: 1rem; }
+.links-edit-form { max-width: 42rem; }
+.links-edit-form textarea { width: 100%; box-sizing: border-box; padding: 0.75rem 0.85rem; border: 1px solid var(--line); border-radius: 0.65rem; color: var(--ink); background: var(--surface); font: inherit; resize: vertical; }
 .metadata-form label { margin-top: 0.65rem; font-weight: 750; }
 .metadata-form label span { color: var(--muted); font-weight: 400; }
 .metadata-form label.checkbox-option > span { color: var(--ink); }
@@ -642,6 +662,9 @@ input[type="checkbox"] {
 .metadata-form input[type="file"]::file-selector-button:hover { filter: brightness(0.94); }
 .metadata-form input[type="file"]:focus-visible { outline: 2px solid var(--action-focus-ring); outline-offset: 2px; }
 .metadata-form button { margin-top: 1rem; }
+.metadata-form .links-form-actions { margin-top: 1rem; align-items: center; }
+.metadata-form .links-form-actions button,
+.metadata-form .links-form-actions a { margin: 0; }
 .game-link-field-group {
   display: grid;
   gap: 0.55rem;

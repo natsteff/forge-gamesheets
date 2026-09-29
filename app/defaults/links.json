@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "categories": [
+    {"key": "gamesheet_sources", "name": "Gamesheet Sources", "position": 1},
+    {"key": "live_scoring", "name": "Live Scoring", "position": 2},
+    {"key": "other", "name": "Other", "position": 3}
+  ],
+  "links": [
+    {"key": "printable_paper", "name": "Printable Paper", "url": "https://www.printablepaper.net/", "description": "General printable templates and score sheets.", "category_key": "gamesheet_sources", "source_type": "third_party", "enabled": true, "position": 1, "forge_favorite": false, "favorite_position": null},
+    {"key": "hasbro_game_refills", "name": "Hasbro Game Refills", "url": "https://consumercare.hasbro.com/en-us/game-refill", "description": "Downloadable refill and score sheets for supported Hasbro games.", "category_key": "gamesheet_sources", "source_type": "official", "enabled": true, "position": 2, "forge_favorite": false, "favorite_position": null},
+    {"key": "daisy_paper", "name": "Daisy Paper Score Sheets", "url": "https://daisypaper.com/score-sheets/", "description": "Printable game and score sheets.", "category_key": "gamesheet_sources", "source_type": "third_party", "enabled": true, "position": 3, "forge_favorite": false, "favorite_position": null},
+    {"key": "gamescore_printable", "name": "GameScore Cards Scoresheets", "url": "https://gamescore.cards/scoresheets/", "description": "Printable score sheets for supported games.", "category_key": "gamesheet_sources", "source_type": "third_party", "enabled": true, "position": 4, "forge_favorite": false, "favorite_position": null},
+    {"key": "all_printable_pages", "name": "All Printable Pages Scoring Sheets", "url": "https://allprintablepages.com/scoring-sheets/", "description": "Printable scoring sheets and related templates.", "category_key": "gamesheet_sources", "source_type": "third_party", "enabled": true, "position": 5, "forge_favorite": false, "favorite_position": null},
+    {"key": "limestone_games", "name": "Limestone Games Printables", "url": "https://limestonegames.com/printables/", "description": "Printable game resources.", "category_key": "gamesheet_sources", "source_type": "third_party", "enabled": true, "position": 6, "forge_favorite": false, "favorite_position": null},
+    {"key": "scorecard", "name": "Scorecard.gg", "url": "https://scorecard.gg/games/", "description": "Browser-based scorekeeping for supported games.", "category_key": "live_scoring", "source_type": "third_party", "enabled": true, "position": 1, "forge_favorite": false, "favorite_position": null},
+    {"key": "bg_stats", "name": "BG Stats Score Sheets", "url": "https://www.bgstatsapp.com/score-sheets/", "description": "Digital score sheets associated with Board Game Stats.", "category_key": "live_scoring", "source_type": "third_party", "enabled": true, "position": 2, "forge_favorite": false, "favorite_position": null},
+    {"key": "gamescore_digital", "name": "GameScore Cards", "url": "https://gamescore.cards/", "description": "Digital scorekeeping and related game-score resources.", "category_key": "live_scoring", "source_type": "third_party", "enabled": true, "position": 3, "forge_favorite": false, "favorite_position": null},
+    {"key": "score_anything", "name": "Score Anything", "url": "https://apps.apple.com/us/app/score-anything-scorekeeper/id1541777240", "description": "General-purpose scorekeeping app available through the Apple App Store.", "category_key": "live_scoring", "source_type": "third_party", "enabled": true, "position": 4, "forge_favorite": false, "favorite_position": null},
+    {"key": "boardgamegeek", "name": "BoardGameGeek", "url": "https://boardgamegeek.com/", "description": "Community game database with user-contributed score sheets, player aids, references and other files.", "category_key": "other", "source_type": "community", "enabled": true, "position": 1, "forge_favorite": false, "favorite_position": null}
+  ]
+}

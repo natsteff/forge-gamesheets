@@ -91,6 +91,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (26, "add_temporary_livesheet_sessions"),
         (27, "add_gamesheet_game_associations"),
         (28, "refresh_default_footer_tagline"),
+        (29, "add_global_links"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -121,7 +122,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 28
+    assert count == 29
 
 
 def test_tagline_migration_preserves_custom_footer(database: Database) -> None:

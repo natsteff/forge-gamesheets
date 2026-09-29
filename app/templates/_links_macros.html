@@ -1,0 +1,27 @@
+{% macro shortcut(link) %}
+<a class="secondary-button" href="{{ link.url }}" target="_blank" rel="noopener noreferrer" title="{{ link.name }} — external website, opens in a new tab">{{ link.name }} <span aria-hidden="true">↗</span><span class="visually-hidden"> (external, opens in a new tab)</span></a>
+{% endmacro %}
+{% macro link_row(link, managing=false) %}
+<article class="resource-row links-row{% if managing and not link.enabled %} unavailable{% endif %}">
+  <div class="resource-copy">
+    <strong>{{ link.name }}</strong>
+    {% if link.description %}<small>{{ link.description }}</small>{% endif %}
+    <small>{% if managing %}{{ link.category_name }} · {% endif %}{{ source_types[link.source_type] }}{% if managing %} · {{ 'Enabled' if link.enabled else 'Disabled' }}{% if link.default_key %} · Supplied starter{% endif %}{% endif %}</small>
+  </div>
+  <div class="resource-actions links-row-actions">
+  {% if request.state.user and link.enabled %}<form action="{{ url_for('link_personal_favorite', link_id=link.id) }}" method="post">
+    <input type="hidden" name="selected" value="{{ '0' if link.personal_favorite else '1' }}">
+    <button class="favorite-button{% if link.personal_favorite %} active{% endif %}" type="submit" aria-pressed="{{ 'true' if link.personal_favorite else 'false' }}" title="{{ 'Remove' if link.personal_favorite else 'Add' }} personal favorite" aria-label="{{ 'Remove' if link.personal_favorite else 'Add' }} personal favorite: {{ link.name }}">{{ '★' if link.personal_favorite else '☆' }}</button>
+  </form>{% endif %}
+  {% if request.state.can_admin %}<form action="{{ url_for('link_pin', link_id=link.id) }}" method="post">
+    <input type="hidden" name="selected" value="{{ '0' if link.forge_favorite else '1' }}">
+    <input type="hidden" name="return_to" value="{{ 'manage' if managing else 'links' }}">
+    <button class="favorite-button{% if link.forge_favorite %} active{% endif %}" type="submit" aria-pressed="{{ 'true' if link.forge_favorite else 'false' }}" title="{{ 'Unpin from' if link.forge_favorite else 'Pin to' }} Forge Favorites" aria-label="{{ 'Unpin from' if link.forge_favorite else 'Pin to' }} Forge Favorites: {{ link.name }}">⌖</button>
+  </form>{% endif %}
+  <a class="resource-action primary" href="{{ link.url }}" target="_blank" rel="noopener noreferrer" aria-label="Open {{ link.name }} (external, opens in a new tab)" title="{{ link.url }}">Open <span aria-hidden="true">↗</span></a>
+  {% if request.state.can_admin %}
+    <a class="resource-action" href="{{ url_for('link_edit', link_id=link.id) }}" aria-label="Edit {{ link.name }}">Edit</a>
+    <a class="resource-action" href="{{ url_for('link_delete_confirm', link_id=link.id) }}" aria-label="Delete {{ link.name }}">Delete</a>
+  {% endif %}</div>
+</article>
+{% endmacro %}

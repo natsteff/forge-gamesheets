@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_links_macros.html" import shortcut, link_row with context %}
+{% block title %}Links · Forge GameSheets{% endblock %}
+{% block content %}
+<section class="page-intro compact-intro">
+  <p class="eyebrow">Find more ways to play</p><h1>Links</h1>
+  <p>Find gamesheets and scoring tools outside Forge. External links open in a new tab.</p>
+  {% if request.state.can_admin %}<div class="directory-link-actions">
+    <a class="primary-button" href="{{ url_for('link_create_form') }}">Add link</a>
+    <a class="secondary-button" href="{{ url_for('links_categories') }}">Manage categories</a>
+    <a class="secondary-button" href="#starter-links">Add missing starter links</a>
+  </div>{% endif %}
+</section>
+{% if request.state.can_admin %}
+{% if request.query_params.get('error') %}<p class="status-banner warning" role="alert">{{ request.query_params.get('error') }}</p>
+{% elif request.query_params.get('status') %}<p class="status-banner success" role="status">{{ 'Changes saved.' if request.query_params.get('status') == 'saved' else 'Deleted successfully.' if request.query_params.get('status') == 'deleted' else request.query_params.get('status') }}</p>{% endif %}
+{% endif %}
+{% if personal %}<section class="settings-section"><h2>Personal Favorites</h2>
+  <p>Your shortcuts. These do not change Forge Favorites.</p>
+  <div class="links-shortcuts">{% for link in personal %}{{ shortcut(link) }}{% endfor %}</div>
+</section>{% endif %}
+<section class="settings-section"><h2>Forge Favorites</h2>
+  {% if forge %}<div class="links-shortcuts">{% for link in forge %}{{ shortcut(link) }}{% endfor %}</div>
+  {% else %}<p class="muted">No Forge Favorites selected yet.{% if request.state.can_admin %} Pin links below to add shared shortcuts.{% endif %}</p>{% endif %}
+</section>
+<section class="settings-section"><h2>All Links</h2>
+  <p>Categories and links are maintained by this installation's Admin. Provenance labels are not endorsements or security ratings. A free download does not necessarily permit redistribution.</p>
+  <p class="muted">{% if request.state.user %}☆ marks your personal favorites. {% endif %}{% if request.state.can_admin %}⌖ pins links to Forge Favorites for everyone.{% endif %}</p>
+  {% for category in groups if category.links %}<section class="links-category"><h3>{{ category.name }}</h3>
+    <div class="resource-list">{% for link in category.links %}{{ link_row(link) }}{% endfor %}</div>
+  </section>{% else %}<p class="empty-state">No enabled links are available.</p>{% endfor %}
+</section>
+{% if request.state.can_admin %}
+{% if disabled_count %}<details class="settings-section"><summary>Disabled links ({{ disabled_count }})</summary>
+  <p>Hidden from discovery and favorites. Edit a link to enable it again.</p>
+  {% for category in groups if category.disabled %}<section class="links-category"><h3>{{ category.name }}</h3>
+    <div class="resource-list">{% for link in category.disabled %}{{ link_row(link, managing=true) }}{% endfor %}</div>
+  </section>{% endfor %}
+</details>{% endif %}
+<section class="settings-section" id="starter-links"><details><summary>Add missing starter links</summary>
+  <p>Recreates missing starter links and categories without changing existing entries. Forge Favorites start empty.</p>
+  <form method="post" action="{{ url_for('links_add_starters') }}">
+    <label class="checkbox-option"><input name="confirm" type="checkbox" value="1" required><span>Add missing entries from the installed starter file</span></label>
+    <button class="secondary-button" type="submit">Add missing starter links</button>
+  </form>
+</details></section>
+{% endif %}
+{% endblock %}

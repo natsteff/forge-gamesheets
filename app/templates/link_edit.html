@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if link_id else 'Add' }} link · Forge GameSheets{% endblock %}
+{% block content %}
+<section class="page-intro compact-intro"><p class="eyebrow">Admin · Links</p><h1>{{ 'Edit' if link_id else 'Add' }} link</h1>
+  <p>External destinations are not fetched or checked automatically. Links appear alphabetically within each category.</p>
+</section>
+{% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}
+<section class="settings-section">
+{% if categories %}<form class="metadata-form links-edit-form" method="post" action="{{ url_for('link_update', link_id=link_id) if link_id else url_for('link_create') }}">
+  <label for="link-name">Name</label><input id="link-name" name="name" value="{{ link.get('name','') }}" maxlength="120" required>
+  <label for="link-url">External URL</label><input id="link-url" name="url" type="url" value="{{ link.get('url','') }}" maxlength="2000" required placeholder="https://example.com/">
+  <label for="link-description">Description</label><textarea id="link-description" name="description" rows="3" maxlength="400">{{ link.get('description','') }}</textarea>
+  <label for="link-category">Category</label><select id="link-category" name="category_id" required>{% for category in categories %}<option value="{{ category.id }}"{% if link.get('category_id','')|string == category.id|string %} selected{% endif %}>{{ category.name }}</option>{% endfor %}</select>
+  <label for="link-type">Source type</label><select id="link-type" name="source_type" required>{% for key,label in source_types.items() %}<option value="{{ key }}"{% if link.get('source_type','third_party') == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  <p class="muted">Provenance only—not an endorsement or security rating.</p>
+  <label class="checkbox-option"><input name="enabled" type="checkbox" value="1"{% if link.get('enabled') %} checked{% endif %}><span>Enabled (visible on Links and in favorites)</span></label>
+  <label class="checkbox-option"><input name="forge_favorite" type="checkbox" value="1"{% if link.get('forge_favorite') %} checked{% endif %}><span>Pinned to Forge Favorites (shared shortcut selected by Admin)</span></label>
+  <label for="favorite-order">Order in Forge Favorites</label><input id="favorite-order" name="favorite_position" type="number" min="0" max="9999" value="{{ link.get('favorite_position',0) }}" required>
+  <div class="directory-link-actions links-form-actions"><button class="primary-button" type="submit">Save link</button><a class="secondary-button" href="{{ url_for('links_home') }}">Cancel</a></div>
+</form>{% else %}<p>Add a category before adding links.</p><a class="secondary-button" href="{{ url_for('links_categories') }}">Manage categories</a>{% endif %}
+</section>
+{% endblock %}

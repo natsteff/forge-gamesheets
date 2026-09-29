@@ -9,6 +9,11 @@
     <p>Customize this library and organize the categories available to games.</p>
   </section>
 <section class="settings-section">
+  <h2>Links directory</h2>
+  <p>Manage the external websites, categories and Forge Favorites shown on the Links page. Personal Favorites belong to each signed-in user.</p>
+  <a class="secondary-button" href="{{ url_for('links_home') }}">Manage links</a>
+</section>
+<section class="settings-section">
   <h2>Library scanning</h2>
   <form action="{{ url_for('settings_scanning') }}" method="post">
     <label class="checkbox-option">

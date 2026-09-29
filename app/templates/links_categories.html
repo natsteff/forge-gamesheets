@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Manage link categories · Forge GameSheets{% endblock %}
+{% block content %}
+<section class="page-intro compact-intro"><p class="eyebrow">Admin · Links</p><h1>Manage link categories</h1>
+  <p>Organize the Links directory. Entries within each category are alphabetical.</p>
+  <a class="secondary-button" href="{{ url_for('links_home') }}">Back to Links</a>
+</section>
+{% if request.query_params.get('error') %}<p class="status-banner warning" role="alert">{{ request.query_params.get('error') }}</p>
+{% elif request.query_params.get('status') %}<p class="status-banner success" role="status">{{ 'Changes saved.' if request.query_params.get('status') == 'saved' else 'Deleted successfully.' if request.query_params.get('status') == 'deleted' else request.query_params.get('status') }}</p>{% endif %}
+<section class="settings-section" id="link-categories"><h2>Categories</h2><p>Lower order numbers appear first. Categories containing links must have those links moved before deletion. No links are silently deleted.</p>
+  {% for category in categories %}<article class="directory-link links-category-editor">
+    <form class="metadata-form" action="{{ url_for('link_category_update',category_id=category.id) }}" method="post">
+      <label for="category-name-{{ category.id }}">Category name</label><input id="category-name-{{ category.id }}" name="name" value="{{ category.name }}" maxlength="80" required>
+      <label for="category-order-{{ category.id }}">Category order</label><input id="category-order-{{ category.id }}" name="position" type="number" min="0" max="9999" value="{{ category.position }}" required>
+      <button class="secondary-button" type="submit">Save category</button>
+    </form>
+    <details class="links-delete"><summary>Delete category ({{ category.link_count }} links)</summary>
+      <form class="metadata-form" method="post" action="{{ url_for('link_category_delete',category_id=category.id) }}">
+        <label for="move-to-{{ category.id }}">Move links to</label><select id="move-to-{{ category.id }}" name="move_to"><option value="">No move (empty category only)</option>{% for target in categories if target.id != category.id %}<option value="{{ target.id }}">{{ target.name }}</option>{% endfor %}</select>
+        <label class="checkbox-option"><input name="confirm" type="checkbox" value="1" required><span>Delete {{ category.name }}</span></label>
+        <button class="danger-button" type="submit">Delete category</button>
+      </form>
+    </details>
+  </article>{% endfor %}
+  <h3>Add category</h3><form class="metadata-form links-edit-form" action="{{ url_for('link_category_create') }}" method="post">
+    <label for="new-category-name">Category name</label><input id="new-category-name" name="name" maxlength="80" required>
+    <label for="new-category-order">Category order</label><input id="new-category-order" name="position" type="number" min="0" max="9999" value="{{ next_category_order }}" required>
+    <button class="primary-button" type="submit">Add category</button>
+  </form>
+</section>
+{% endblock %}

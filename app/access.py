@@ -22,6 +22,8 @@ from app.accounts import (
 )
 
 READ_ROUTES = {
+    "links_home",
+    "link_personal_favorite",
     "library_home",
     "categories_home",
     "all_games",
@@ -90,6 +92,19 @@ CONTRIBUTOR_ROUTES = {
     "game_bgg_lookup_toggle",
 }
 ADMIN_ROUTES = {
+    "links_manage",
+    "link_create_form",
+    "link_edit",
+    "link_create",
+    "link_update",
+    "link_delete",
+    "link_delete_confirm",
+    "link_pin",
+    "links_categories",
+    "link_category_create",
+    "link_category_update",
+    "link_category_delete",
+    "links_add_starters",
     "link_portability",
     "link_portability_export",
     "link_manifest_preview",

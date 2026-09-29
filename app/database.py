@@ -705,6 +705,47 @@ MIGRATIONS += (
 )
 
 
+MIGRATIONS += (
+    Migration(
+        version=29,
+        name="add_global_links",
+        statements=(
+            """CREATE TABLE link_categories (
+                id INTEGER PRIMARY KEY,
+                default_key TEXT UNIQUE,
+                name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                position INTEGER NOT NULL DEFAULT 0 CHECK(position BETWEEN 0 AND 9999),
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )""",
+            """CREATE TABLE global_links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                default_key TEXT UNIQUE,
+                category_id INTEGER NOT NULL REFERENCES link_categories(id),
+                name TEXT NOT NULL, url TEXT NOT NULL, description TEXT NOT NULL,
+                source_type TEXT NOT NULL CHECK(source_type IN (
+                    'official','third_party','community')),
+                enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
+                position INTEGER NOT NULL DEFAULT 0 CHECK(position BETWEEN 0 AND 9999),
+                forge_favorite INTEGER NOT NULL DEFAULT 0
+                    CHECK(forge_favorite IN (0,1)),
+                favorite_position INTEGER NOT NULL DEFAULT 0
+                    CHECK(favorite_position BETWEEN 0 AND 9999),
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )""",
+            """CREATE TABLE personal_link_favorites (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                link_id INTEGER NOT NULL REFERENCES global_links(id) ON DELETE CASCADE,
+                PRIMARY KEY(user_id,link_id)
+            )""",
+            "CREATE INDEX global_links_category "
+            "ON global_links(category_id,position,id)",
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Database:
     """A SQLite database stored beneath the configured data directory."""
@@ -773,6 +814,10 @@ def _apply_migration(connection: sqlite3.Connection, migration: Migration) -> No
         connection.execute("BEGIN IMMEDIATE")
         for statement in migration.statements:
             connection.execute(statement)
+        if migration.version == 29:
+            from app.links import seed_defaults
+
+            seed_defaults(connection)
         connection.execute(
             "INSERT INTO schema_migrations (version, name) VALUES (?, ?)",
             (migration.version, migration.name),

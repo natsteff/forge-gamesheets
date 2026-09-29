@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Delete link · Forge GameSheets{% endblock %}
+{% block content %}
+<section class="page-intro compact-intro"><p class="eyebrow">Admin · Links</p><h1>Delete link?</h1></section>
+<section class="settings-section">
+  <h2>{{ link.name }}</h2>
+  <p>This removes the link from the directory, Forge Favorites and all personal favorites. It does not change the external website.</p>
+  <form class="metadata-form links-edit-form" method="post" action="{{ url_for('link_delete', link_id=link.id) }}">
+    <input type="hidden" name="confirm" value="1">
+    <div class="directory-link-actions links-form-actions">
+      <button class="danger-button" type="submit">Delete link</button>
+      <a class="secondary-button" href="{{ url_for('links_home') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

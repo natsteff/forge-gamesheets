@@ -118,9 +118,17 @@ def test_reprint_maintenance_explains_operations_and_requires_base_url(web_clien
     assert "Create missing reprints" in page.text
     assert "Refresh existing reprints" in page.text
     assert "Create or refresh all reprints" in page.text
-    assert "Use when you added new PDFs" in page.text
-    assert "Use after changing the server hostname" in page.text
-    assert "Use for initial setup, a complete rebuild" in page.text
+    assert "Leaves current and out-of-sync copies unchanged" in page.text
+    assert "Does not create missing copies" in page.text
+    assert "Creates missing copies and regenerates existing copies" in page.text
+    assert "Out-of-sync reprints" in page.text
+    assert "Stale reprints" not in page.text
+    assert '<details class="maintenance-help">' in page.text
+    assert "What do these counts mean?" in page.text
+    assert "not an age or expiration date" not in page.text
+    assert "recorded source PDF, reprint format, QR destination" in page.text
+    assert "Unavailable sources are skipped and reported" in page.text
+    assert "Scan the library first" in page.text
     assert "Source PDFs are never changed" in page.text
     assert (
         web_client.post(
@@ -329,7 +337,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=10" in response.text
-    assert "/static/styles.css?v=54" in response.text
+    assert "/static/styles.css?v=57" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text

@@ -78,6 +78,7 @@ def create_app(
     application.include_router(web_router)
     from app.account_web import router as account_router
     from app.link_portability_web import router as link_portability_router
+    from app.links_web import router as links_router
     from app.livesheet_web import router as livesheet_router
     from app.reprint_web import router as reprint_router
 
@@ -86,6 +87,7 @@ def create_app(
     application.include_router(link_portability_router)
     application.include_router(sheet_designer_router)
     application.include_router(livesheet_router)
+    application.include_router(links_router)
     from app.web import templates
 
     application.state.sheet_designer_templates = templates
@@ -100,6 +102,7 @@ def create_app(
         *link_portability_router.routes,
         *sheet_designer_router.routes,
         *livesheet_router.routes,
+        *links_router.routes,
     ]
     logger = logging.getLogger("uvicorn.access")
     if not any(isinstance(item, RedactSharingLinks) for item in logger.filters):
