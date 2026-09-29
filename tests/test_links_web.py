@@ -98,6 +98,7 @@ def test_non_admin_cannot_manage_but_can_personally_favorite(client, role):
     assert client.get("/settings/links/1/edit").status_code == 403
     assert client.get("/settings/links/1/delete").status_code == 403
     assert client.get("/settings/links/categories").status_code == 403
+    assert client.get("/settings/links/starters").status_code == 403
     for path in (
         "/settings/links/new",
         "/settings/links/1/edit",
@@ -190,7 +191,7 @@ def test_user_text_escaped_and_ordered_shortcuts(client):
     assert "&lt;script&gt;" in page
     assert page.index("First shortcut") < page.index("&lt;script&gt;")
     assert "&lt;script&gt;" in client.get("/settings/links").text
-    assert len(links.links(db)) == 11
+    assert len(links.links(db)) == 14
 
 
 def test_category_management_and_explicit_restore(client):
@@ -203,10 +204,10 @@ def test_category_management_and_explicit_restore(client):
     client.post(
         "/settings/links/categories/1/delete", data={"confirm": "1", "move_to": "2"}
     )
-    assert len(links.links(client.app.state.database)) == 11
+    assert len(links.links(client.app.state.database)) == 14
     client.post("/settings/links/1/delete", data={"confirm": "1"})
     client.post("/settings/links/starters", data={"confirm": "1"})
-    assert len(links.links(client.app.state.database)) == 11
+    assert len(links.links(client.app.state.database)) == 14
     assert not any(
         link["forge_favorite"] for link in links.links(client.app.state.database)
     )
@@ -215,7 +216,7 @@ def test_category_management_and_explicit_restore(client):
 def test_compact_rows_and_role_controls(client):
     sign_in(client, "reader")
     page = client.get("/links").text
-    assert page.count('class="resource-row links-row') == 11
+    assert page.count('class="resource-row links-row') == 14
     assert 'class="links-grid"' not in page
     assert 'aria-label="Add personal favorite: Printable Paper"' in page
     assert "/settings/links/1/pin" not in page
@@ -224,7 +225,7 @@ def test_compact_rows_and_role_controls(client):
     sign_in(client, "admin")
     for path in ("/links", "/settings/links"):
         page = client.get(path).text
-        assert page.count('class="resource-row links-row') == 11
+        assert page.count('class="resource-row links-row') == 14
         assert "/settings/links/1/pin" in page
         assert "/settings/links/1/edit" in page
         assert "/settings/links/1/delete" in page
@@ -291,7 +292,8 @@ def test_unified_directory_alphabetical_and_disabled_admin_only(client):
     assert 'href="http://testserver/settings/links/categories"' in page or (
         "/settings/links/categories" in page
     )
-    assert 'id="starter-links"' in page
+    assert "/settings/links/starters" in page
+    assert 'id="starter-links"' not in page
     redirect = client.get("/settings/links", follow_redirects=False)
     assert redirect.status_code == 303
     assert redirect.headers["location"] == "/links"
@@ -306,9 +308,44 @@ def test_unified_directory_alphabetical_and_disabled_admin_only(client):
         "Hidden Zulu",
         "Disabled links",
         'id="starter-links"',
+        "/settings/links/starters",
     ):
         assert hidden not in page
     assert "/settings/links/categories" not in page
+
+
+def test_starter_toolbar_opens_confirmation_and_only_post_applies(client):
+    db = client.app.state.database
+    missing = links.links(db)[0]
+    links.delete_link(db, missing["id"])
+    before = links.links(db)
+    directory = client.get("/links").text
+    assert 'href="https://testserver/settings/links/starters"' in directory
+    assert 'href="#starter-links"' not in directory
+    page = client.get("/settings/links/starters")
+    assert page.status_code == 200
+    assert "Add missing starter links?" in page.text
+    assert "previously deleted" in page.text
+    assert 'type="hidden" name="confirm" value="1"' in page.text
+    assert 'type="checkbox"' not in page.text
+    assert 'href="https://testserver/links">Cancel</a>' in page.text
+    assert links.links(db) == before
+    client.get("/links")  # Cancel returns to the directory without mutation.
+    assert links.links(db) == before
+    client.post("/settings/links/starters", data={})
+    assert links.links(db) == before
+    assert (
+        client.post(
+            "/settings/links/starters",
+            data={"confirm": "1"},
+            headers={"Origin": "https://evil.example"},
+        ).status_code
+        == 403
+    )
+    assert links.links(db) == before
+    response = client.post("/settings/links/starters", data={"confirm": "1"})
+    assert "Added 1 missing starter links" in response.text
+    assert len(links.links(db)) == len(before) + 1
 
 
 def test_category_tool_separate_and_actions_return_there(client):

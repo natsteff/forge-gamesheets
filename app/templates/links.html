@@ -8,7 +8,7 @@
   {% if request.state.can_admin %}<div class="directory-link-actions">
     <a class="primary-button" href="{{ url_for('link_create_form') }}">Add link</a>
     <a class="secondary-button" href="{{ url_for('links_categories') }}">Manage categories</a>
-    <a class="secondary-button" href="#starter-links">Add missing starter links</a>
+    <a class="secondary-button" href="{{ url_for('links_starters_confirm') }}">Add missing starter links</a>
   </div>{% endif %}
 </section>
 {% if request.state.can_admin %}
@@ -37,12 +37,5 @@
     <div class="resource-list">{% for link in category.disabled %}{{ link_row(link, managing=true) }}{% endfor %}</div>
   </section>{% endfor %}
 </details>{% endif %}
-<section class="settings-section" id="starter-links"><details><summary>Add missing starter links</summary>
-  <p>Recreates missing starter links and categories without changing existing entries. Forge Favorites start empty.</p>
-  <form method="post" action="{{ url_for('links_add_starters') }}">
-    <label class="checkbox-option"><input name="confirm" type="checkbox" value="1" required><span>Add missing entries from the installed starter file</span></label>
-    <button class="secondary-button" type="submit">Add missing starter links</button>
-  </form>
-</details></section>
 {% endif %}
 {% endblock %}

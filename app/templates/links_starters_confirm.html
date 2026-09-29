@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Add missing starter links · Forge GameSheets{% endblock %}
+{% block content %}
+<section class="page-intro compact-intro">
+  <p class="eyebrow">Admin · Links</p>
+  <h1>Add missing starter links?</h1>
+</section>
+<section class="settings-section">
+  <p>Add missing links and categories supplied with your installed version of Forge. This also recreates starter entries you previously deleted.</p>
+  <p>Existing links, customizations, disabled entries and favorites are unchanged. Newly added links are not pinned to Forge Favorites.</p>
+  <p class="edit-source">No changes are made until you confirm below. External websites are not contacted.</p>
+  <form class="metadata-form links-edit-form" method="post" action="{{ url_for('links_add_starters') }}">
+    <input type="hidden" name="confirm" value="1">
+    <div class="directory-link-actions links-form-actions">
+      <button type="submit">Add missing starter links</button>
+      <a class="secondary-button" href="{{ url_for('links_home') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -39,7 +39,7 @@ def test_new_and_upgraded_install_seed_once(tmp_path):
         for migration in MIGRATIONS[:-1]:
             _apply_migration(connection, migration)
     db.initialize()
-    assert len(links.links(db)) == 11
+    assert len(links.links(db)) == 14
     assert [c["name"] for c in links.categories(db)] == [
         "Gamesheet Sources",
         "Live Scoring",
@@ -54,9 +54,10 @@ def test_new_and_upgraded_install_seed_once(tmp_path):
         ),
         item["id"],
     )
-    links.delete_link(db, links.links(db)[1]["id"])
+    other = next(link for link in links.links(db) if link["id"] != item["id"])
+    links.delete_link(db, other["id"])
     db.initialize()
-    assert len(links.links(db)) == 10
+    assert len(links.links(db)) == 13
     assert links.get_link(db, item["id"])["name"] == "Changed starter"
     assert not links.get_link(db, item["id"])["enabled"]
     assert links.add_missing_defaults(db) == 1
@@ -74,7 +75,7 @@ def test_category_moves_preserve_links_and_default_identity(database):
     with pytest.raises(links.LinkError):
         links.delete_category(database, first["id"], first["id"])
     links.delete_category(database, first["id"], second["id"])
-    assert len(links.links(database)) == 11
+    assert len(links.links(database)) == 14
     assert links.add_missing_defaults(database) == 0
     assert len(links.categories(database)) == 3
     assert all(
@@ -82,6 +83,45 @@ def test_category_moves_preserve_links_and_default_identity(database):
         for link in links.links(database)
         if link["default_key"] != "boardgamegeek"
     )
+
+
+def test_bingo_defaults_and_existing_install_add_missing(database):
+    expected = {
+        "my_free_bingo_cards": ("My Free Bingo Cards", "https://myfreebingocards.com/"),
+        "my_free_bingo_cards_standard": (
+            "My Free Bingo Cards: Standard game (1–75) Generator",
+            "https://myfreebingocards.com/numbers/1-75/edit",
+        ),
+        "bingo_card_creator": (
+            "Bingo Card Creator",
+            "https://www.bingocardcreator.com/",
+        ),
+    }
+    category_id = links.categories(database)[0]["id"]
+    for link in links.links(database):
+        if link["default_key"] in expected:
+            assert (link["name"], link["url"]) == expected[link["default_key"]]
+            assert link["category_id"] == category_id
+            assert link["source_type"] == "third_party"
+            assert link["enabled"] and not link["forge_favorite"]
+            links.delete_link(database, link["id"])
+    original = next(
+        link
+        for link in links.links(database)
+        if link["default_key"] == "printable_paper"
+    )
+    links.save_link(
+        database,
+        form(original["category_id"], name="My customized source", enabled=""),
+        original["id"],
+    )
+    # Upgrading/reinitializing an existing directory does not insert new defaults.
+    database.initialize()
+    assert len(links.links(database)) == 11
+    assert links.add_missing_defaults(database) == 3
+    assert links.add_missing_defaults(database) == 0
+    preserved = links.get_link(database, original["id"])
+    assert preserved["name"] == "My customized source" and not preserved["enabled"]
 
 
 @pytest.mark.parametrize(
@@ -104,7 +144,7 @@ def test_category_moves_preserve_links_and_default_identity(database):
 def test_unsafe_urls_rejected(database, url):
     with pytest.raises(links.LinkError):
         links.save_link(database, form(1, url=url))
-    assert len(links.links(database)) == 11
+    assert len(links.links(database)) == 14
 
 
 def test_category_unique_order_validation_and_missing_records(database):
@@ -135,7 +175,7 @@ def test_seed_file_updates_do_not_override_database(database, monkeypatch, tmp_p
     path.write_text(json.dumps(contents))
     monkeypatch.setattr(links, "DEFAULTS_PATH", path)
     database.initialize()
-    assert len(links.links(database)) == 11
+    assert len(links.links(database)) == 14
     assert links.add_missing_defaults(database) == 1
     assert (
         next(
@@ -148,11 +188,11 @@ def test_seed_file_updates_do_not_override_database(database, monkeypatch, tmp_p
 
 
 def test_seeding_is_atomic_and_limits_apply(database, monkeypatch):
-    monkeypatch.setattr(links, "MAX_LINKS", 11)
+    monkeypatch.setattr(links, "MAX_LINKS", 14)
     with pytest.raises(links.LinkError):
         links.save_link(database, form(1))
     links.delete_link(database, 1)
     links.save_link(database, form(1))
     with pytest.raises(links.LinkError):
         links.add_missing_defaults(database)
-    assert len(links.links(database)) == 11
+    assert len(links.links(database)) == 14

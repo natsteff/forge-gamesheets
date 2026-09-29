@@ -105,6 +105,7 @@ ADMIN_ROUTES = {
     "link_category_update",
     "link_category_delete",
     "links_add_starters",
+    "links_starters_confirm",
     "link_portability",
     "link_portability_export",
     "link_manifest_preview",

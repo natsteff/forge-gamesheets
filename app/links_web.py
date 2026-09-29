@@ -250,6 +250,13 @@ async def link_category_delete(request: Request, category_id: int):
     return _redirect(status="deleted", categories=True)
 
 
+@router.get("/settings/links/starters", name="links_starters_confirm")
+def links_starters_confirm(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="links_starters_confirm.html", context={}
+    )
+
+
 @router.post("/settings/links/starters", name="links_add_starters")
 async def links_add_starters(request: Request):
     if (await request.form()).get("confirm") != "1":
