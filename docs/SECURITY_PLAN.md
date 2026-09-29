@@ -3,7 +3,9 @@
 Security is a primary release requirement. This document includes remaining work
 and approved milestones. Local accounts and resource-scoped QR access are now
 implemented in the working source; see ACCOUNTS.md and the account review reports.
-Future identity providers, MFA, and PDF uploads still require owner approval.
+Future identity providers and PDF uploads still require owner approval. MFA is
+not on the roadmap for the supported deployment model; reconsider it only if
+the intended exposure changes.
 The current supported deployment boundaries remain unchanged: localhost,
 trusted LAN, or an appropriately protected proxy/VPN, not direct public access.
 
@@ -104,7 +106,10 @@ Remaining decisions/fixes, in priority order:
 2. Authenticated BGG redirects are rejected in the published implementation,
    including same-origin redirects. Synthetic transport regression tests verify
    that no redirect destination is contacted and Authorization is not copied.
-   BGG rollout remains paused; no token-distribution policy has been approved.
+   The owner has accepted live BGG integration validation as complete. Each
+   self-hosted operator supplies their own approved token; none is distributed
+   with Forge. A manual no-internet resilience check remains future testing,
+   not a current completion blocker; see PROJECT_PLAN.md.
 3. Verify an actual protected-proxy deployment when one is used; current tests
    cover trusted versus untrusted forwarded scheme, not a live TLS perimeter.
 4. Account operations now record bounded user-attributed events.

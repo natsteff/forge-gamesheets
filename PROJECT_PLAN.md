@@ -64,7 +64,7 @@ will provide one browsable, searchable place to organize and print them.
 
 ### Current execution sequence
 
-Approved global Links increment (implemented locally; owner review pending):
+Completed and published — global Links (owner accepted the installed update):
 Forge only, with
 one Links page showing Personal Favorites for signed-in users above Admin-curated
 Forge Favorites, followed by enabled links grouped by editable categories.
@@ -86,22 +86,40 @@ restores missing defaults without overwriting records. Preserve existing game
 links, QR guest scope, Designer-only mode and FGS Studio. No scraping, proxying,
 mirroring, automatic URL checks or redistribution of third-party content.
 
-Approved container release increment (implemented locally; CI validation pending):
-publish `linux/amd64` and `linux/arm64` together under the existing image tags.
+Completed and published — multi-architecture container release:
+`linux/amd64` and `linux/arm64` are published together under the existing image tags.
 Build each runtime variant once, smoke-test and scan both before registry login,
 and assemble the release manifest from those exact verified images. Keep Compose
 architecture-neutral so Docker selects the native variant automatically. Local
-ARM64 builds or emulation are not evidence of published ARM64 support. Completion
-requires successful publishing CI and verification of both registry digests;
-production deployment is not authorized by this increment.
+ARM64 builds or emulation alone are not evidence of published ARM64 support.
+Publishing CI passed and both registry manifest digests were verified for Forge
+revision `e9dde6d`. The owner accepted the installed update. This does not claim
+an exhaustive native-ARM64 test matrix or authorize production deployment.
 
-Approved Designer increment (FGS 1.2, implemented locally; publication pending):
+Completed and published — Designer increment (FGS 1.2):
 document-level Designer Notes excluded from sheet/PDF/LiveSheet presentation;
 optional score-table first-column heading defaulting to Category across both
 editors, shared preview/PDF, and LiveSheet; rename the score-table Heading UI
 label to Score table title. Preserve 1.0/1.1 compatibility, keep both products
 pinned to the same Page Rendering Profile 1.2 build, and do not include unrelated
 Designer improvements in this increment.
+
+Publication evidence: Forge source/container revision `e9dde6d`; FGS Studio
+revision `0b2ac6f`, automatically deployed to GitHub Pages and verified live.
+The release passed Forge's automated regression/lint, Studio and shared-renderer
+tests, dependency audits, and both architecture smoke/scan gates. Existing
+accepted Debian High findings remain documented in the security plan; publication
+does not claim a vulnerability-free release.
+
+Remaining release work is distinct from completed feature work:
+
+- **Deferred by owner:** Refresh documentation screenshots for recent features.
+- **Future testing:** No-internet resilience, including graceful BGG failure.
+- **Outstanding verification:** An actual browser-driven Studio PDF download
+  check; automated shared preview/PDF tests have passed.
+- **Before a wider versioned prerelease:** Clean-install, backup/restore and
+  upgrade walkthrough, scoped security checkpoint, release notes/tester guide.
+  Do not repeat already completed owner checks merely to advance another feature.
 
 This is the authoritative near-term order. Detailed owner testing may identify
 focused corrections, but completed milestones are not repeated merely as gates
@@ -123,9 +141,11 @@ for the next approved feature.
    [decision 005](docs/decisions/005-bulk-forge-reprint-maintenance.md).
 5. **Completed:** Validate regeneration after application generator changes and
    public/base-URL changes, including preservation of active sharing behavior.
-6. **Current:** Complete release-candidate regression, documentation/screenshot
-   review, security review, and a clean-install/upgrade walkthrough.
-7. **Then:** Publish the next prerelease and triage external beta feedback.
+6. **Completed for the published update:** Automated release regression,
+   dependency/container gates and owner validation. Deferred screenshots and
+   outstanding broader release verification are listed separately above.
+7. **Future wider release:** Finish the wider-release checklist, select and
+   publish a versioned prerelease, then triage external beta feedback.
 8. **Completed:** Establish the application-independent FGS v1 specification,
    compatibility policy, schema, prototype migration, and initial conformance
    fixtures before expanding the Designer. See
@@ -402,25 +422,31 @@ rather than delaying feature progress beforehand.
 - **Completed:** QR destinations open a resource page with view/print actions;
   scanning must not trigger printing automatically.
 - **Completed:** Stable application URLs survive display-title changes.
-- **Implemented locally; owner validation next:** Bulk maintenance follows
+- **Completed and published:** Bulk maintenance follows
   Milestone D without changing the source-PDF or QR-access boundaries.
 - **Future idea:** Configurable branding/footer placement and access policies.
 
 ## 8. Phase 2 — BoardGameGeek integration
 
-**Approved for controlled testing:** BGG approved Forge GameSheets as a
+**Completed — owner accepted live integration validation:** BGG approved Forge GameSheets as a
 non-commercial public-facing XML API application on 2026-09-14. Each independent
 self-hosted operator supplies a separately approved token; no token is bundled
 with the source or container image. Preserve token-free operation as the default
-and complete live connection, pacing, caching, and owner testing before broader
-API rollout. Required Powered by BGG attribution is implemented with BGG's
+and retain each operator's responsibility for their API access. Required Powered
+by BGG attribution is implemented with BGG's
 provided artwork.
 
 Integration housekeeping is implemented: BGG actions are gated by token
 configuration, unavailable game-page controls are hidden, and Settings shows
 configuration status without claiming approval or verified working access.
-FGS planning does not require a BGG ID, but moving into Phase 3 remains an
-explicit scope decision rather than an automatic consequence of this pause.
+FGS documents do not require a BGG ID.
+
+**Future resilience testing — not a current completion blocker:** The owner has
+not manually verified Forge with BGG unavailable. Test the existing installation
+with outbound internet access disconnected (while retaining local access) and
+confirm local library browsing, existing PDFs, Designer/PDF export and cached
+metadata remain usable. BGG-dependent actions should fail gracefully. Record
+this as future testing, not as an already verified offline guarantee.
 
 BoardGameGeek (BGG) is the primary approved external reference and enrichment
 source. A local Forge game remains the primary object, and normal library use
@@ -458,10 +484,9 @@ must not depend on BGG availability after enrichment data has been cached.
   to future FGS files and workflows. It is not required for every Forge game or
   every FGS file.
 
-Before implementation, review the current database, scanner, artwork, settings,
-and test architecture; propose the migration, service interface, matching
-policy, caching policy, and affected files. Implement the service and mocked
-tests before connecting external lookup to scanning.
+For future BGG changes, preserve the established database, scanner, artwork,
+settings and service boundaries; update mocked regression tests before expanding
+live integration behavior. Initial integration is no longer a pending milestone.
 
 The complete approved boundary is recorded in
 [`docs/decisions/003-boardgamegeek-integration.md`](docs/decisions/003-boardgamegeek-integration.md).
@@ -526,9 +551,17 @@ source; a **GameSheet** is a rendered result.
   entry, automatic refresh, explicit ending, host-only checklist/game-note
   controls, and the initial visual refinement are implemented.
 
-Remaining future components include richer FGS section types, multi-page output,
-advanced layout, independent editor packaging, additional render targets, version
-migration beyond v1, and external community-sharing navigation.
+The visual Designer, independent browser-based FGS Studio, shared preview/PDF
+renderer, header logos/footer, FGS 1.2 editorial notes and configurable table
+headings are implemented. Global external-resource navigation is provided by Links.
+These are not future-work items.
+
+Remaining future components include richer section types beyond the supported
+headers, score tables, references, checklists and lined notes; multi-page output;
+advanced layout; optional desktop/offline editor packaging; additional render
+targets; migrations for future format versions beyond the supported 1.0/1.1/1.2;
+and any structured community-sharing workflow beyond ordinary external links.
+These require their own scope decisions, not automatic implementation.
 
 Representative user stories include quick references, setup guides, writable
 score sheets, resource trackers, character sheets, golf scorecards, tournament
@@ -544,7 +577,9 @@ Documentation is release-critical: automated checks run with pytest, and major
 updates require critical-path and screenshot review under
 [documentation review](docs/DOCUMENTATION_REVIEW.md), alongside security review.
 
-- **Future idea:** Broader identity providers, MFA, and per-user collections.
+- **Future idea:** Broader identity providers and per-user collections.
+- **Not planned:** MFA for the supported localhost, trusted-LAN or protected
+  proxy/VPN deployment. Reconsider only if the intended exposure changes.
 - **Future consideration, owner approval required:** Web-based creation of
   game entries and single-PDF uploads as a convenience alongside filesystem
   bulk loading. Review security and mount permissions before implementation;
@@ -554,7 +589,6 @@ updates require critical-path and screenshot review under
   leaving it as an ordinary first-level game folder on disk. Do not reserve the
   literal `Unsorted` name, move source files, or require a writable library as
   part of this work.
-- **Future idea:** Visual FGS designer.
 - **Future idea:** Multi-document game-night packs.
 - **Future idea:** Advanced layout and print optimization.
 - **Future idea:** Additional FGS render targets and interactive workflows.

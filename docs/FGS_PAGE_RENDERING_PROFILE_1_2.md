@@ -1,6 +1,6 @@
 # FGS Page Rendering Profile 1.2
 
-Status: Version 1.2, implemented locally; not yet published.
+Status: Version 1.2 — published.
 Profile ID: `fgs-page-1.2`. Extends
 [Profile 1.1](FGS_PAGE_RENDERING_PROFILE_1_1.md); accepts FGS 1.0, 1.1, and 1.2.
 Margins, fonts, logo/title positioning, footer reserve, row spacing, table

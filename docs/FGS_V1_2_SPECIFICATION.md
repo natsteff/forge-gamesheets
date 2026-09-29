@@ -1,6 +1,6 @@
 # FGS 1.2 specification
 
-Status: Version 1.2, implemented locally; not yet published.
+Status: Version 1.2 — published.
 FGS 1.2 extends [FGS 1.1](FGS_V1_1_SPECIFICATION.md). A 1.2 reader must
 accept valid 1.0 and 1.1 files. Documents using either addition below declare
 `"format_version": "1.2"`. The normative structural schema is
