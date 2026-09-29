@@ -14,6 +14,8 @@ from PIL import Image, UnidentifiedImageError
 FORMAT_NAME = "forge-gamesheets"
 FORMAT_VERSION = "1.0"
 FORMAT_VERSION_1_1 = "1.1"
+FORMAT_VERSION_1_2 = "1.2"
+SUPPORTED_VERSIONS = {FORMAT_VERSION, FORMAT_VERSION_1_1, FORMAT_VERSION_1_2}
 PROTOTYPE_VERSION = "0.1-prototype"
 MAX_DOCUMENT_BYTES = 256 * 1024
 MAX_ROWS = 30
@@ -35,7 +37,7 @@ def migrate_document(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise DocumentValidationError("The FGS document must be an object.")
     version = value.get("format_version")
-    if version in {FORMAT_VERSION, FORMAT_VERSION_1_1}:
+    if version in SUPPORTED_VERSIONS:
         return normalize_document(value)
     if version != PROTOTYPE_VERSION:
         raise DocumentValidationError(f"Unsupported FGS format version: {version!r}.")
@@ -48,7 +50,7 @@ def normalize_document(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise DocumentValidationError("The FGS document must be an object.")
     version = value.get("format_version")
-    if version not in {FORMAT_VERSION, FORMAT_VERSION_1_1}:
+    if version not in SUPPORTED_VERSIONS:
         raise DocumentValidationError(f"Unsupported FGS format version: {version!r}.")
     return _normalize(value, version, strict=True)
 
@@ -67,7 +69,12 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
             "theme",
             "rows",
             "extensions",
-            *({"footer"} if version == FORMAT_VERSION_1_1 else set()),
+            *(
+                {"footer"}
+                if version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2}
+                else set()
+            ),
+            *({"designer_notes"} if version == FORMAT_VERSION_1_2 else set()),
         },
         "document",
         strict,
@@ -132,16 +139,15 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
         block for row in normalized_rows for block in row["blocks"] if "logo" in block
     ]
     if len(logos) > 1:
-        raise DocumentValidationError("FGS 1.1 allows one header logo per sheet.")
-    if version == FORMAT_VERSION_1_1 and "footer" in value:
+        raise DocumentValidationError("FGS allows one header logo per sheet.")
+    if version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2} and "footer" in value:
         footer = value["footer"]
         if (
             not isinstance(footer, str)
             or not 1 <= len(footer) <= 160
             or footer.count("\n") > 1
             or any(
-                (ord(char) < 32 and char != "\n") or ord(char) == 127
-                for char in footer
+                (ord(char) < 32 and char != "\n") or ord(char) == 127 for char in footer
             )
             or any(not line.strip() for line in footer.split("\n"))
         ):
@@ -149,6 +155,17 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
                 "Footer must be one or two nonempty lines, at most 160 characters."
             )
         result["footer"] = footer
+    if version == FORMAT_VERSION_1_2 and "designer_notes" in value:
+        notes = value["designer_notes"]
+        if (
+            not isinstance(notes, str)
+            or len(notes) > 4000
+            or any((ord(c) < 32 and c not in "\n\t") or ord(c) == 127 for c in notes)
+        ):
+            raise DocumentValidationError(
+                "Designer Notes must be plain text of at most 4000 characters."
+            )
+        result["designer_notes"] = notes
     _extensions(page, result["page"])
     _extensions(theme, result["theme"])
     _extensions(value, result)
@@ -161,9 +178,10 @@ def _block(value: Any, ids: set[str], strict: bool, version: str) -> dict[str, A
     kind = value.get("type")
     extras = {
         "header": {"subtitle", "logo"}
-        if version == FORMAT_VERSION_1_1
+        if version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2}
         else {"subtitle"},
-        "score_table": {"players", "score_rows", "show_total", "total_label"},
+        "score_table": {"players", "score_rows", "show_total", "total_label"}
+        | ({"first_column_heading"} if version == FORMAT_VERSION_1_2 else set()),
         "reference": {"items"},
         "checklist": {"items"},
         "notes": {"lines"},
@@ -182,9 +200,19 @@ def _block(value: Any, ids: set[str], strict: bool, version: str) -> dict[str, A
         result["subtitle"] = _text(
             value.get("subtitle", ""), "header subtitle", 240, empty=True
         )
-        if "logo" in value and version == FORMAT_VERSION_1_1:
+        if "logo" in value and version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2}:
             result["logo"] = _logo(value["logo"])
     elif kind == "score_table":
+        if "first_column_heading" in value and version == FORMAT_VERSION_1_2:
+            raw_heading = value["first_column_heading"]
+            if isinstance(raw_heading, str) and any(
+                ord(c) < 32 or ord(c) == 127 for c in raw_heading
+            ):
+                raise DocumentValidationError(
+                    "First column heading must be single-line text."
+                )
+            heading = _text(raw_heading, "first column heading", 80)
+            result["first_column_heading"] = heading
         players, rows, total = (
             value.get("players"),
             value.get("score_rows"),

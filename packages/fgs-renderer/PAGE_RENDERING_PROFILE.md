@@ -1,4 +1,13 @@
-# FGS Page Rendering Profile 1.0 — local release candidate
+# FGS Page Rendering Profile — implementation reference
+
+The current normative contract is
+[FGS Page Rendering Profile 1.2](../../docs/FGS_PAGE_RENDERING_PROFILE_1_2.md),
+extending [1.1](../../docs/FGS_PAGE_RENDERING_PROFILE_1_1.md) and the original
+[1.0](../../docs/FGS_PAGE_RENDERING_PROFILE_1_0.md). The renderer accepts FGS
+1.0, 1.1, and 1.2. Designer Notes are excluded from drawing commands and PDF
+metadata; first-column headings use the same wrapped geometry for SVG and PDF.
+
+The following explains the unchanged base geometry:
 
 This document specifies *appearance* separately from the FGS 1.0 document
 schema. FGS 1.0's semantic meaning is unchanged. Forge and FGS Studio may claim

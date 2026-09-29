@@ -86,6 +86,41 @@ def test_live_session_keeps_its_fgs_1_1_logo_and_footer_snapshot(client):
     assert "Created by Example" in active
 
 
+def test_livesheet_uses_1_2_heading_but_excludes_designer_notes(client):
+    document = _enable_current(client)
+    document.update(format_version="1.2", designer_notes="Editorial-only marker")
+    document["rows"][1]["blocks"][0]["first_column_heading"] = "<Round>"
+    assert client.post("/sheet-designer/document", json=document).status_code == 200
+    started = client.post(
+        f"/livesheets/{document['id']}/start",
+        data={"mode": "single", "player_count": "2"},
+        follow_redirects=False,
+    )
+    assert started.status_code == 303
+    active = client.get(started.headers["location"]).text
+    assert "<th>&lt;Round&gt;</th>" in active
+    assert "Editorial-only marker" not in active
+    with client.app.state.database.connect() as connection:
+        snapshot = connection.execute(
+            "SELECT fgs_snapshot FROM livesheet_sessions"
+        ).fetchone()[0]
+    assert "designer_notes" not in snapshot
+    assert (
+        client.get("/sheet-designer/document").json()["designer_notes"]
+        == "Editorial-only marker"
+    )
+
+
+def test_livesheet_older_file_defaults_to_category(client):
+    document = _enable_current(client)
+    started = client.post(
+        f"/livesheets/{document['id']}/start",
+        data={"mode": "single", "player_count": "2"},
+        follow_redirects=False,
+    )
+    assert "<th>Category</th>" in client.get(started.headers["location"]).text
+
+
 def test_imported_sheet_with_a_different_internal_id_can_start(client):
     original = client.get("/sheet-designer/document").json()
     imported = {**original, "id": "portable-triple-yahtzee", "title": "Triple Yahtzee"}

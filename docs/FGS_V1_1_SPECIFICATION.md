@@ -5,6 +5,8 @@ without changing its fields. A 1.1 reader must continue to accept valid 1.0 file
 Documents using the additions below declare `"format_version": "1.1"`. The normative
 structural schema is [fgs-v1.1.schema.json](schemas/fgs-v1.1.schema.json); the
 additional decoded-image checks below are normative too.
+See [FGS 1.2](FGS_V1_2_SPECIFICATION.md) for the later optional Designer Notes
+and score-table first-column heading additions; this 1.1 definition is unchanged.
 
 ## Author footer
 

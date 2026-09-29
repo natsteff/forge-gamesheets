@@ -58,6 +58,33 @@ test("one display list specifies bold category labels for both outputs",async()=
   assert.deepEqual(pdf,await engine.toPdf(layout,document.title));
 });
 
+test("FGS 1.2 heading is shared, wraps without clipping, and notes never render",async()=>{
+  const document=sheet();
+  const old=engine.layout(document);
+  document.format_version="1.2";
+  assert.deepEqual(engine.layout(document).commands,old.commands);
+  document.designer_notes="Editorial-only marker\nFuture editors";
+  const withNotes=engine.layout(document);
+  assert.deepEqual(withNotes.commands,old.commands);
+  const withNotesPdf=await engine.toPdf(withNotes,document.title);
+  delete document.designer_notes;
+  assert.deepEqual(withNotesPdf,await engine.toPdf(engine.layout(document),document.title));
+  const score=document.rows[1].blocks[0];
+  score.first_column_heading="Action";
+  let layout=engine.layout(document);
+  assert.match(engine.toSvg(layout),/>Action<\/text>/);
+  assert.equal(layout.commands.find((item)=>item.value==="Action").font,"bold");
+  assert.equal(layout.commands.some((item)=>item.value==="Category"),false);
+  score.first_column_heading="Long first column heading that must wrap in a narrow paired table";
+  document.rows[1].blocks.push({...score,id:"score-2"});
+  layout=engine.layout(document);
+  assert.ok(layout.blockBounds[1].height>old.blockBounds[1].height);
+  assert.equal(layout.fits,true);
+  assert.equal((await PDFDocument.load(await engine.toPdf(layout))).getPageCount(),1);
+  score.first_column_heading="<Action & round>";
+  assert.match(engine.toSvg(engine.layout(document)),/&lt;Action &amp;/);
+});
+
 test("FGS 1.1 reserves footer space in preview and PDF without changing old sheets",async()=>{
   const old=engine.layout(sheet());
   const document=sheet();

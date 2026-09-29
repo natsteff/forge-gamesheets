@@ -19,6 +19,7 @@ from app.sheet_designer.commands import delete_block, move_row
 from app.sheet_designer.model import (
     FORMAT_VERSION,
     FORMAT_VERSION_1_1,
+    FORMAT_VERSION_1_2,
     PROTOTYPE_VERSION,
     DocumentValidationError,
     migrate_document,
@@ -49,6 +50,64 @@ def test_fgs_1_1_footer_round_trips_without_changing_1_0(tmp_path: Path):
         normalize_document({**original, "footer": "Invalid on 1.0"})
     with pytest.raises(DocumentValidationError):
         normalize_document({**updated, "footer": "three\nlines\nhere"})
+
+
+def test_fgs_1_2_editor_metadata_and_heading_round_trip_and_pdf(tmp_path: Path):
+    store = FileDraftStore(tmp_path / "drafts")
+    document = store.load()
+    document["format_version"] = FORMAT_VERSION_1_2
+    document["designer_notes"] = "  Editorial-only marker\n\tKeep whitespace.  "
+    document["footer"] = "Created by Example"
+    document["rows"][1]["blocks"][0]["first_column_heading"] = "Action"
+    saved = store.save(document)
+    assert store.load() == saved
+    assert saved["designer_notes"] == document["designer_notes"]
+    assert migrate_document(saved) == saved
+    output = render_pdf(saved, tmp_path / "new-fields.pdf")
+    with pymupdf.open(output) as pdf:
+        assert "Action" in pdf[0].get_text()
+        assert "Category" not in pdf[0].get_text()
+        assert "Editorial-only marker" not in pdf[0].get_text()
+        assert "Editorial-only marker" not in str(pdf.metadata)
+    del saved["designer_notes"]
+    assert (
+        render_pdf(saved, tmp_path / "without-notes.pdf").read_bytes()
+        == output.read_bytes()
+    )
+
+
+@pytest.mark.parametrize("version", ["1.0", "1.1"])
+def test_older_formats_reject_1_2_additions(version):
+    document = expedition_document()
+    document["format_version"] = version
+    document["designer_notes"] = "Editor notes"
+    with pytest.raises(DocumentValidationError, match="Unknown document property"):
+        normalize_document(document)
+    del document["designer_notes"]
+    document["rows"][1]["blocks"][0]["first_column_heading"] = "Round"
+    with pytest.raises(DocumentValidationError, match="Unknown block property"):
+        normalize_document(document)
+
+
+@pytest.mark.parametrize(
+    "notes", [123, "x" * 4001, "bad\x00text", "bad\x7ftext", "bad\rtext"]
+)
+def test_invalid_designer_notes_are_rejected(notes):
+    document = expedition_document()
+    document.update(format_version="1.2", designer_notes=notes)
+    with pytest.raises(DocumentValidationError, match="Designer Notes"):
+        normalize_document(document)
+
+
+@pytest.mark.parametrize(
+    "heading", [123, "", "   ", "x" * 81, "bad\ntext", "bad\ttext", "bad\x7ftext"]
+)
+def test_invalid_first_column_heading_is_rejected(heading):
+    document = expedition_document()
+    document["format_version"] = "1.2"
+    document["rows"][1]["blocks"][0]["first_column_heading"] = heading
+    with pytest.raises(DocumentValidationError):
+        normalize_document(document)
 
 
 def test_fgs_1_1_header_logo_is_validated_and_portable(tmp_path: Path):
@@ -279,7 +338,7 @@ def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
             for line in block["lines"]
             for span in line["spans"]
         ]
-        assert "fgs-page-1.1" in pdf.metadata["creator"]
+        assert "fgs-page-1.2" in pdf.metadata["creator"]
     assert any(
         span["text"] == "Expedition Score Sheet" and span["color"] == 0xA52F23
         for span in spans
@@ -293,7 +352,7 @@ def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
 def test_pinned_renderer_files_match_the_build_manifest():
     root = Path(__file__).resolve().parents[1] / "app" / "static" / "fgs-renderer"
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["profile"] == "fgs-page-1.1"
+    assert manifest["profile"] == "fgs-page-1.2"
     for name, expected in manifest["files"].items():
         assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected
     source = Path(__file__).resolve().parents[1] / "packages" / "fgs-renderer"
@@ -535,7 +594,7 @@ def test_designer_explains_its_scope_from_startup_and_editor():
     assert "temporary interactive LiveSheets" in template
     assert "An LLM can draft an FGS file" in template
     assert "only share source documents you are permitted to upload" in template
-    assert "FGS_V1_1_SPECIFICATION.md" in template
+    assert "FGS_V1_2_SPECIFICATION.md" in template
     assert "<h2>Footer</h2>" in template
     assert "data-logo-trigger" in script
     assert 'data-logo-upload type="file" accept="image/png,image/jpeg" hidden' in script

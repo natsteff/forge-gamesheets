@@ -5,6 +5,8 @@ Status: Version 1.0
 FGS 1.1 adds an optional header logo and author footer; see the separate
 [FGS 1.1 specification](FGS_V1_1_SPECIFICATION.md). This 1.0 definition
 remains valid for existing files.
+FGS 1.2 adds Designer Notes and customizable score-table first-column headings;
+see [FGS 1.2](FGS_V1_2_SPECIFICATION.md).
 
 FGS is the portable, application-independent source format for a GameSheet.
 Forge GameSheets is one editor and renderer, but a conforming file must not

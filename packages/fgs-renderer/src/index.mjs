@@ -1,9 +1,9 @@
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb } from "pdf-lib";
 
-// FGS Page Rendering Profile 1.1. All geometry is in PDF points (1/72 inch).
+// FGS Page Rendering Profile 1.2. All geometry is in PDF points (1/72 inch).
 export const PROFILE = Object.freeze({
-  id: "fgs-page-1.1",
+  id: "fgs-page-1.2",
   pages: { letter: [612, 792], a4: [595.28, 841.89] },
   margin: 36, columnGap: 16, rowGap: 14,
   footerReserve: 22, footerSize: 8, footerLineHeight: 11,
@@ -87,11 +87,11 @@ export function createPrintEngine(fontData) {
   }
 
   function layout(document) {
-    if (!document || document.format !== "forge-gamesheets" || !["1.0","1.1"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0 or 1.1");
+    if (!document || document.format !== "forge-gamesheets" || !["1.0","1.1","1.2"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0, 1.1 or 1.2");
     const page = PROFILE.pages[document.page.size];
     if (!page) throw new Error("Unsupported page size");
     const [width, height] = document.page.orientation === "landscape" ? [page[1], page[0]] : page;
-    if (document.footer && document.format_version !== "1.1") throw new Error("An author footer requires FGS 1.1");
+    if (document.footer && document.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
     const commands = [];
     const accent = document.theme.accent;
     parseColor(accent);
@@ -117,7 +117,8 @@ export function createPrintEngine(fontData) {
       const labelWidth = Math.max(PROFILE.tableLabelMinimum, width * (width < 350 && block.players.length <= 2 ? .5 : PROFILE.tableLabelFraction));
       const columnWidth = (width - labelWidth) / block.players.length;
       const playerLines = block.players.map((name, index) => wrap(name || `Player ${index + 1}`, columnWidth - 8, "bold", 8));
-      const headerHeight = Math.max(PROFILE.tableRowHeight, ...playerLines.map((lines) => lines.length * 9.5 + 8));
+      const firstHeadingLines = wrap(block.first_column_heading ?? "Category", labelWidth - 10, "bold", PROFILE.bodySize);
+      const headerHeight = Math.max(PROFILE.tableRowHeight, firstHeadingLines.length * 10 + 6, ...playerLines.map((lines) => lines.length * 9.5 + 8));
       const labelLines = labels.map((label) => wrap(label, labelWidth - 10, "bold", PROFILE.bodySize));
       const rowHeights = labelLines.map((lines, index) => Math.max(PROFILE.tableRowHeight, lines.length * 10 + 6 + (calculated(labels[index]) ? 7 : 0)));
       return {labels,labelWidth,columnWidth,headerHeight,rowHeights,height:PROFILE.tableTitleHeight + headerHeight + rowHeights.reduce((a,b)=>a+b,0)};
@@ -134,7 +135,7 @@ export function createPrintEngine(fontData) {
     };
     const drawBlock = (block, x, y, blockWidth) => {
       if (block.type === "header") {
-        if (block.logo && document.format_version !== "1.1") throw new Error("A header logo requires FGS 1.1");
+        if (block.logo && document.format_version === "1.0") throw new Error("A header logo requires FGS 1.1 or later");
         const titleWidth = block.logo
           ? blockWidth - 2 * (PROFILE.logoWidth + PROFILE.logoGap)
           : blockWidth - 10;
@@ -166,7 +167,7 @@ export function createPrintEngine(fontData) {
           const at=index===0?x:index===1?x+geometry.labelWidth:x+geometry.labelWidth+(index-1)*geometry.columnWidth;
           line(at,top,at,boundaries.at(-1));
         }
-        cellText("Category",x,top,geometry.labelWidth,geometry.headerHeight,{font:"bold"});
+        cellText(block.first_column_heading ?? "Category",x,top,geometry.labelWidth,geometry.headerHeight,{font:"bold"});
         block.players.forEach((name,index)=>cellText(name||`Player ${index+1}`,x+geometry.labelWidth+index*geometry.columnWidth,top,geometry.columnWidth,geometry.headerHeight,{font:"bold",size:8,center:true}));
         geometry.labels.forEach((label,index)=>cellText(label,x,boundaries[index+1],geometry.labelWidth,geometry.rowHeights[index],{font:"bold",marker:calculated(label)}));
         return;

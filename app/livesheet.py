@@ -128,6 +128,8 @@ def create_session(
 ) -> SessionCredentials:
     """Create one durable temporary session from an immutable FGS snapshot."""
     source = normalize_document(document)
+    # Editorial metadata is not needed in a scoring-session snapshot.
+    source.pop("designer_notes", None)
     try:
         selected_mode = SessionMode(mode)
     except ValueError as error:

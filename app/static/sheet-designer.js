@@ -16,9 +16,9 @@
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
-  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.1&layout=2")
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.2&layout=2")
     .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
-  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.1&layout=2");
+  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.2&layout=2");
   let previewRevision = 0;
 
   const calculationKind = (label) => {
@@ -126,7 +126,7 @@
         const marker = kind ? '<small class="preview-calculated">Calculated</small>' : "";
         return `<tr class="${kind || "score"}"><th>${escape(label)}${marker}</th>${block.players.map(() => "<td></td>").join("")}</tr>`;
       }).join("");
-      return `<section><h3>${escape(block.title)}</h3><table><thead><tr><th>Category</th>${heads}</tr></thead><tbody>${rows}</tbody></table></section>`;
+      return `<section><h3>${escape(block.title)}</h3><table><thead><tr><th>${escape(block.first_column_heading ?? "Category")}</th>${heads}</tr></thead><tbody>${rows}</tbody></table></section>`;
     }
     if (block.type === "notes") return `<section><h3>${escape(block.title)}</h3><div class="preview-note-lines">${Array.from({length: block.lines}, () => "<i></i>").join("")}</div></section>`;
     const items = block.items.map((item) => block.type === "checklist" ? `<li>□ ${escape(item)}</li>` : `<li>${escape(item)}</li>`).join("");
@@ -158,7 +158,8 @@
     if (!found) { $("properties-title").textContent = "Section"; $("properties-panel").innerHTML = "<p>Select a section to edit it.</p>"; return; }
     const {block, row, rowIndex, blockIndex} = found;
     $("properties-title").textContent = blockName[block.type];
-    let fields = `<label>Heading<input data-field="title" maxlength="160" value="${escape(block.title)}"></label>`;
+    let fields = `<label>${block.type === "score_table" ? "Score table title" : "Heading"}<input data-field="title" maxlength="160" value="${escape(block.title)}"></label>`;
+    if (block.type === "score_table") fields += `<label>First column heading<input data-first-column-heading maxlength="80" value="${escape(block.first_column_heading ?? "Category")}"></label>`;
     if (block.type === "header") fields += `<label>Subtitle<input data-field="subtitle" maxlength="240" value="${escape(block.subtitle)}"></label><div class="designer-logo-upload"><span>Header logo (PNG or JPEG)</span><button class="secondary-button" data-logo-trigger type="button">Choose logo</button><input data-logo-upload type="file" accept="image/png,image/jpeg" hidden><small>${block.logo ? "Current logo attached" : "No logo selected"}</small></div><label>Logo description (leave blank if decorative)<input data-logo-alt maxlength="120" value="${escape(block.logo?.alt || "")}"></label>${block.logo ? '<button class="secondary-button" data-remove-logo type="button">Remove logo</button>' : ""}`;
     if (block.type === "score_table") fields += `<label>Players<input data-player-count type="number" min="1" max="12" value="${block.players.length}"></label>${textList("Player headings (one per line)", block.players, "players")}${textList("Score rows (one per line)", scoreLabels(block), "score_rows")}<p class="designer-field-help">Press Return to add or remove rows. A row named <strong>Total</strong> becomes a calculated subtotal; <strong>Grand Total</strong> adds the subtotals.</p><div class="designer-calculation-actions"><button class="secondary-button" data-add-total type="button">＋ Add Total row</button><button class="secondary-button" data-add-grand-total type="button">＋ Add Grand Total row</button></div><fieldset class="designer-row-generator"><legend>Generate numbered rows</legend><label>Label<input data-row-prefix maxlength="60" value="Round"></label><div><label>Start<input data-row-start type="number" min="-999" max="999" value="1"></label><label>Number of rows<input data-row-count type="number" min="1" max="30" value="10"></label></div><button class="secondary-button" data-generate-rows type="button">Generate rows</button></fieldset>`;
     if (block.type === "reference" || block.type === "checklist") fields += `${textList(`${block.type === "checklist" ? "Checklist items" : "Reminders"} (one per line)`, block.items, "items")}<p class="designer-field-help">Each line appears as a separate ${block.type === "checklist" ? "checkbox" : "reminder"}.</p>`;
@@ -166,6 +167,11 @@
     fields += `<div class="designer-property-actions"><button class="secondary-button" data-duplicate type="button">Duplicate</button>${row.blocks.length === 1 && rowIndex < model.rows.length - 1 && model.rows[rowIndex + 1].blocks.length === 1 ? '<button class="secondary-button" data-pair type="button">Pair with next</button>' : ""}${row.blocks.length === 2 ? '<button class="secondary-button" data-unpair type="button">Use full width</button>' : ""}${model.rows.length === 1 && row.blocks.length === 1 ? "" : '<button class="danger-button" data-delete type="button">Delete</button>'}</div>`;
     $("properties-panel").innerHTML = fields;
     root.querySelectorAll("[data-field]").forEach((input) => input.addEventListener("change", () => commit(() => { block[input.dataset.field] = input.type === "number" ? Number(input.value) : input.value; })));
+    root.querySelector("[data-first-column-heading]")?.addEventListener("change", (event) => commit((draft) => {
+      const heading = event.target.value.trim() || "Category";
+      if (heading === "Category") delete block.first_column_heading;
+      else {draft.format_version = "1.2"; block.first_column_heading = heading;}
+    }));
     root.querySelector("[data-logo-trigger]")?.addEventListener("click", () => root.querySelector("[data-logo-upload]").click());
     root.querySelector("[data-logo-upload]")?.addEventListener("change", async (event) => {
       const file = event.target.files[0];
@@ -174,7 +180,7 @@
         const alt = root.querySelector("[data-logo-alt]").value.trim();
         const logo = await (await logoTools).prepareHeaderLogo(file, alt, !alt);
         commit((draft) => {
-          draft.format_version = "1.1";
+          if (draft.format_version === "1.0") draft.format_version = "1.1";
           draft.rows.flatMap((item) => item.blocks).forEach((item) => {if (item.id !== block.id) delete item.logo;});
           const target = draft.rows.flatMap((item) => item.blocks).find((item) => item.id === block.id);
           if (target) target.logo = logo;
@@ -298,6 +304,7 @@
     $("orientation").value = model.page.orientation;
     $("accent").value = model.theme.accent;
     $("footer").value = model.footer || "";
+    $("designer-notes").value = model.designer_notes || "";
     $("undo").disabled = !history.length;
     $("redo").disabled = !future.length;
     structure(); preview(); properties();
@@ -426,8 +433,13 @@
   $("accent").addEventListener("change", (event) => commit((draft) => { draft.theme.accent = event.target.value; }));
   $("footer").addEventListener("change", (event) => commit((draft) => {
     const footer = event.target.value.trim();
-    if (footer) { draft.format_version = "1.1"; draft.footer = footer; }
+    if (footer) { if (draft.format_version === "1.0") draft.format_version = "1.1"; draft.footer = footer; }
     else delete draft.footer;
+  }));
+  $("designer-notes").addEventListener("change", (event) => commit((draft) => {
+    const notes = event.target.value;
+    if (notes) {draft.format_version = "1.2"; draft.designer_notes = notes;}
+    else delete draft.designer_notes;
   }));
   $("add-block").addEventListener("click", addBlock);
   $("new-sheet").addEventListener("click", async () => {

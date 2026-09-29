@@ -58595,7 +58595,7 @@ import { dirname, join } from "node:path";
 var import_fontkit = __toESM(require_fontkit_umd(), 1);
 var import_pdf_lib = __toESM(require_cjs(), 1);
 var PROFILE = Object.freeze({
-  id: "fgs-page-1.1",
+  id: "fgs-page-1.2",
   pages: { letter: [612, 792], a4: [595.28, 841.89] },
   margin: 36,
   columnGap: 16,
@@ -58686,11 +58686,11 @@ function createPrintEngine(fontData) {
     return output;
   }
   function layout(document) {
-    if (!document || document.format !== "forge-gamesheets" || !["1.0", "1.1"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0 or 1.1");
+    if (!document || document.format !== "forge-gamesheets" || !["1.0", "1.1", "1.2"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0, 1.1 or 1.2");
     const page = PROFILE.pages[document.page.size];
     if (!page) throw new Error("Unsupported page size");
     const [width, height] = document.page.orientation === "landscape" ? [page[1], page[0]] : page;
-    if (document.footer && document.format_version !== "1.1") throw new Error("An author footer requires FGS 1.1");
+    if (document.footer && document.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
     const commands = [];
     const accent = document.theme.accent;
     parseColor(accent);
@@ -58716,7 +58716,8 @@ function createPrintEngine(fontData) {
       const labelWidth = Math.max(PROFILE.tableLabelMinimum, width2 * (width2 < 350 && block.players.length <= 2 ? 0.5 : PROFILE.tableLabelFraction));
       const columnWidth = (width2 - labelWidth) / block.players.length;
       const playerLines = block.players.map((name, index) => wrap(name || `Player ${index + 1}`, columnWidth - 8, "bold", 8));
-      const headerHeight = Math.max(PROFILE.tableRowHeight, ...playerLines.map((lines) => lines.length * 9.5 + 8));
+      const firstHeadingLines = wrap(block.first_column_heading ?? "Category", labelWidth - 10, "bold", PROFILE.bodySize);
+      const headerHeight = Math.max(PROFILE.tableRowHeight, firstHeadingLines.length * 10 + 6, ...playerLines.map((lines) => lines.length * 9.5 + 8));
       const labelLines = labels.map((label) => wrap(label, labelWidth - 10, "bold", PROFILE.bodySize));
       const rowHeights = labelLines.map((lines, index) => Math.max(PROFILE.tableRowHeight, lines.length * 10 + 6 + (calculated(labels[index]) ? 7 : 0)));
       return { labels, labelWidth, columnWidth, headerHeight, rowHeights, height: PROFILE.tableTitleHeight + headerHeight + rowHeights.reduce((a, b) => a + b, 0) };
@@ -58733,7 +58734,7 @@ function createPrintEngine(fontData) {
     };
     const drawBlock = (block, x, y, blockWidth) => {
       if (block.type === "header") {
-        if (block.logo && document.format_version !== "1.1") throw new Error("A header logo requires FGS 1.1");
+        if (block.logo && document.format_version === "1.0") throw new Error("A header logo requires FGS 1.1 or later");
         const titleWidth = block.logo ? blockWidth - 2 * (PROFILE.logoWidth + PROFILE.logoGap) : blockWidth - 10;
         if (widthOf(block.title, "serif", PROFILE.titleSize) > titleWidth) throw new Error(`Page heading "${block.title}" is too wide for this layout.`);
         if (block.subtitle && widthOf(block.subtitle, "sans", 10) > titleWidth) throw new Error(`Subtitle in "${block.title}" is too wide for this layout.`);
@@ -58765,7 +58766,7 @@ function createPrintEngine(fontData) {
           const at = index === 0 ? x : index === 1 ? x + geometry.labelWidth : x + geometry.labelWidth + (index - 1) * geometry.columnWidth;
           line(at, top, at, boundaries.at(-1));
         }
-        cellText("Category", x, top, geometry.labelWidth, geometry.headerHeight, { font: "bold" });
+        cellText(block.first_column_heading ?? "Category", x, top, geometry.labelWidth, geometry.headerHeight, { font: "bold" });
         block.players.forEach((name, index) => cellText(name || `Player ${index + 1}`, x + geometry.labelWidth + index * geometry.columnWidth, top, geometry.columnWidth, geometry.headerHeight, { font: "bold", size: 8, center: true }));
         geometry.labels.forEach((label, index) => cellText(label, x, boundaries[index + 1], geometry.labelWidth, geometry.rowHeights[index], { font: "bold", marker: calculated(label) }));
         return;
