@@ -64,6 +64,47 @@ will provide one browsable, searchable place to organize and print them.
 
 ### Current execution sequence
 
+Owner-approved separate increment — manual BGG edition reference on Forge game
+entries: optional version URL or ID and readable label in the existing BGG editor
+section, token-free Versions shortcut and View your edition action. Implemented
+and owner-reviewed. Migration 32 adds empty optional edition storage; rescans
+and metadata export/import preserve the reference independently of dimensions.
+A changed parent association prompts edition review rather than deleting it.
+No API verification, BGG dimension import, FGS or rendering changes are included.
+Future work: API-backed edition selection and explicit dimension retrieval.
+Local follow-up: API-created/refresh associations capture the canonical game slug
+from a bounded, unauthenticated public redirect inspection. Older entries can be
+repaired through an explicit token-free editor action. Files/Versions shortcuts
+require the slug; otherwise show main-page fallbacks. Edition main-page URLs stay
+ID-only, relying on BGG's version-page redirect. No automatic page-view/scanning
+requests, scraping, game-ID replacement or measurement changes are introduced.
+
+Owner-approved separate increment — optional physical box dimensions on Forge
+game entries only: manual Length/Width/Depth plus explicit in/cm unit, existing
+edit/detail UI, application-data persistence and metadata export/import.
+Implemented and owner-reviewed. Legacy records remain unknown; migration 31
+adds empty optional storage. The associated game's dimensions are shown as a
+reference in the Designer header. No BGG retrieval, FGS specification,
+renderer, PDF or fit-to-box changes are part of this increment.
+
+Owner-approved implementation — trackers and music / reusable paper in Forge
+and FGS Studio, including basic host-controlled shared LiveSheet trackers.
+FGS 1.3 and Page Rendering Profile 1.3 are implemented and owner-reviewed. See the
+[1.3 specification](docs/FGS_V1_3_SPECIFICATION.md) and
+[rendering profile](docs/FGS_PAGE_RENDERING_PROFILE_1_3.md).
+New sections cover bounded trackers, ruled/square/dot/hex paper, single/paired
+music staves and tablature, with fixed sizing or one final full-width fill section.
+Owner-approved additions: coordinate grids with axes,
+and single/repeated blank tic-tac-toe, Dots and Boxes and Sudoku boards. No puzzle
+generation, solving or interactive board gameplay is included.
+Automated tests and visual PDF review passed; the owner confirmed browser
+PDF download and FGS download/re-import in Studio. Commit/push approval was
+given. The publication process must verify both container variants and the
+hosted Studio after their GitHub Actions workflows complete. See the
+[development review](docs/FGS_1_3_LOCAL_REVIEW.md) for local verification evidence.
+Personal health measurement logs, multipage output, MusicXML import, general
+tables/fields and advanced freeform layouts remain separate future work.
+
 Completed and published — global Links (owner accepted the installed update):
 Forge only, with
 one Links page showing Personal Favorites for signed-in users above Admin-curated
@@ -79,10 +120,13 @@ personal stars and Admin-only pins (shared Forge Favorites), edit and confirmed
 delete controls; favorite shortcut sections remain unchanged. Deletion uses a
 focused confirmation page with Cancel. New categories default to the next order
 after the existing maximum, within the supported limit.
-Seed three categories and eleven starter links from `app/defaults/links.json`
+Seed three categories and fourteen starter links from `app/defaults/links.json`
 once, with Forge Favorites initially
 empty. Upgrades preserve edits and deletions; explicit Add missing starter links
-restores missing defaults without overwriting records. Preserve existing game
+restores missing defaults without overwriting records.
+Local follow-up: the starter-links toolbar action opens a focused
+confirmation page with Add and Cancel, rather than jumping to a collapsed
+section; no redundant checkbox is required. Preserve existing game
 links, QR guest scope, Designer-only mode and FGS Studio. No scraping, proxying,
 mirroring, automatic URL checks or redistribution of third-party content.
 

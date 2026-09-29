@@ -53,7 +53,8 @@ sheets; it is not an editor for existing PDF files.
 - Token-free manual BGG game URLs, Game/Files links, and external title search;
   optional API-assisted search, verification, replacement, and refresh with an
   operator-supplied BGG application token
-- Admin metadata portability for game links and uploaded artwork, with a ZIP
+- Optional manually entered game box dimensions (inches or centimeters)
+- Admin metadata portability for game links, box dimensions and uploaded artwork, with a ZIP
   export, manifest restore, and alternative `.url`/`.webloc` library scan
 - All Games, category, and Uncategorized browsing
 - Favorites, up to ten pinned homepage resources, Recent, and paginated activity
@@ -67,8 +68,9 @@ sheets; it is not an editor for existing PDF files.
 The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 The [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md) and
 [FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md) and
-[FGS 1.2 additions](docs/FGS_V1_2_SPECIFICATION.md) define file content;
-the [Page Rendering Profile](docs/FGS_PAGE_RENDERING_PROFILE_1_2.md)
+[FGS 1.2 additions](docs/FGS_V1_2_SPECIFICATION.md) and
+[FGS 1.3 additions](docs/FGS_V1_3_SPECIFICATION.md) define file content;
+the [Page Rendering Profile](docs/FGS_PAGE_RENDERING_PROFILE_1_3.md)
 defines single-page appearance and fit. The renderer's editable source and
 tests live in the [FGS Renderer package](packages/fgs-renderer/README.md). Forge includes
 a verified, version-pinned build; the source package is not required to run the
@@ -324,12 +326,41 @@ Saving another valid URL replaces the prior association and clearly labels the
 result as unverified.
 Linked games show **View on BGG** and **BGG Files**; unlinked games offer **Open
 BGG website search**, using the local display title in a new tab.
+Direct **BGG Files** and **Find your edition on BGG** links require the saved
+game-name segment as well as the ID. API lookups/refreshes attempt to capture it
+from the public main-page redirect. This separate request carries no API token,
+has a three-second timeout, and never follows redirects or reads page content.
+If an older entry lacks the segment, use **Resolve BGG page link** in the editor
+(also available without a token), refresh BGG information, or paste its full game
+URL. Failure leaves metadata intact and offers the main page with instructions
+to select Files or Versions. Opening game pages and rescanning never trigger
+this lookup. No stored BGG ID, edition or dimensions are changed by link repair.
 Bare IDs and incomplete URLs are not accepted. Local titles and artwork stay
 unchanged. See [manual BGG links](docs/BGG_MANUAL_LINKS.md).
 
 You can upload artwork you have permission to use through the existing image
 upload. Manual links do not scrape BGG or automatically download images or PDFs.
 API enrichment remains a separate, optional feature requiring token configuration.
+
+#### Your physical edition
+
+In **Edit game entry → BoardGameGeek integration → Your edition**, paste a BGG
+**boardgameversion** URL or numeric version ID and optionally add a readable
+edition label. **Find your edition on BGG** opens the linked game's Versions page;
+compare language, publisher, artwork and publication year before selecting one.
+**View your edition** then appears on the game page and opens BGG in a new tab.
+Edition URLs deliberately use only `/boardgameversion/{version-id}`: BGG redirects
+the main version page to its current readable name. Pasting a full edition URL
+stores its ID, not its name segment. This differs from the game's Files/Versions
+subpages, which require the game-name segment.
+
+This reference works without an API token. Forge stores the version ID separately
+from the game's BGG ID; it does not fetch or verify the edition, import dimensions,
+or change existing measurements. Changing/unlinking the parent BGG game preserves
+the edition and prompts you to review it in the editor. Save it again to acknowledge
+the current association, or remove the reference. Rescans and metadata export/import
+preserve it. Migration 32 creates empty optional storage; no existing game needs an
+edition. API-backed edition selection and dimension retrieval are future work.
 
 #### Optional BoardGameGeek API enrichment
 
@@ -383,18 +414,23 @@ Without accounts, trusted operators manage the shared directory and Personal
 Favorites are unavailable. Resource-scoped QR guests do not gain directory
 access when accounts are enabled.
 
-Forge includes an editable starter directory of eleven links in three categories:
+Forge includes an editable starter directory of fourteen links in three categories:
 Gamesheet Sources, Live Scoring and Other. The records are populated from
 [`app/defaults/links.json`](app/defaults/links.json) when the feature is first
 initialized—on a new installation or the first upgrade that adds Links. Admins
 can change, disable or remove any entry. Later releases may update that file for
 new installations; upgrades do not overwrite configured records or recreate
 deleted entries. Editing the bundled file after initialization does not update
-the database. The explicit **Add missing starter links** action adds missing
+the database. **Add missing starter links** opens a confirmation page with an
+**Add missing starter links** action and **Cancel**. Confirming adds missing
 entries from the currently installed file without overwriting existing entries,
 using stable starter keys rather than editable names or URLs. It can also recreate
 missing starter categories. Do not change or reuse existing starter keys when
 maintaining the bundled file.
+The starter directory includes My Free Bingo Cards, its Standard game (1–75)
+Generator shortcut, and Bingo Card Creator under Gamesheet Sources. All three
+start enabled and unpinned. Existing installations can add these through **Links
+→ Add missing starter links** after updating Forge.
 
 Links open the external website in a new tab. Provenance labels are not security
 ratings or endorsements. Forge does not scrape sites, proxy downloads, mirror
@@ -420,6 +456,28 @@ never shown on the sheet, PDF, or LiveSheet. Notes travel in the exported FGS
 file and are not private storage. Each score table also has a **First column
 heading**, defaulting to **Category**, used in previews, PDFs, and LiveSheets.
 The former **Heading** editor label is now **Score table title** for score tables.
+
+FGS 1.3 adds **Tracker** and **Paper pattern** sections in Forge and Studio.
+Trackers support independent checkboxes, numbered boxes, segmented bars and
+current/maximum values. Printable
+spaces remain blank; optional starting values are guidance only. New paper
+starters create one fill-remaining section for ruled, square/dot/hex paper,
+music manuscript, paired piano staves, tablature, coordinate grids with configurable
+axes, or blank tic-tac-toe, Dots and Boxes and Sudoku boards. Boards support one
+or repeated complete copies without stretching; Sudoku does not generate puzzles.
+Fixed-size sections can
+share a page with other content; fill sections must be last and full width.
+Spacing can be edited in millimeters/inches and is stored in quarter-point
+increments. Print at **actual size (100%)** to preserve physical spacing.
+Overflow is refused, not shrunk or clipped. No MusicXML/notation import or
+automatic pagination is included.
+
+Forge LiveSheets support temporary shared tracker values controlled by the host
+in either scoring mode, with read-only guest/player views and reset. Session
+values never modify the source FGS or appear in ordinary PDFs. Source edits
+do not affect active sessions. Paper is static content, not a digital ink canvas.
+Personal health measurement logs/persistent medical records remain separate
+future work. Existing screenshots show earlier features; updates are deferred.
 
 Sheet Designer works best for portable score tracking, reference information,
 checklists, and notes arranged in structured, single-page sections. FGS is
@@ -519,6 +577,15 @@ access-control layer protects it.
 
 ### Metadata portability
 
+**Box Dimensions** on **Edit game entry** records the outside Length × Width ×
+Depth of the physical box. Length is the longest face dimension, width the
+second-longest, and depth the thickness/shortest dimension. Supply all three
+positive finite measurements and explicitly select **in** or **cm**, or leave
+all measurements blank for unknown. Values are never guessed, reordered,
+converted, or imported from BGG. They appear compactly on the game page and
+survive rescans and unrelated edits. This is Forge game metadata only: it has
+no effect on FGS, Designer layout or PDF output.
+
 Admins can open **Admin → Metadata portability** to download a temporary ZIP
 containing app-managed uploaded game artwork, a complete versioned metadata manifest,
 and Windows `.url` and macOS `.webloc` shortcuts. Shortcut names combine the
@@ -526,13 +593,13 @@ source game-directory name and recognized link type. Forge streams the ZIP to
 the browser and does not retain it.
 
 **Import a Forge metadata export** is the recommended method. It restores URLs,
-descriptions, BGG associations, uploaded artwork, and source-directory
+descriptions, BGG associations, box dimensions, uploaded artwork, and source-directory
 relationships. **Scan library shortcut files** is an alternative recovery or
 initial URL import that reads recognized shortcuts placed in game folders.
 Shortcut scanning discovers URLs but not uploaded artwork or original
 descriptions. Both workflows show additions, replacements, unchanged entries,
 and skipped entries before confirmation. **Fill empty fields** preserves
-existing links and artwork; **Replace recognized fields** overwrites only fields
+existing links, dimensions and artwork; **Replace recognized fields** overwrites only fields
 represented by valid imported records and never clears absent fields.
 
 See [Metadata portability](docs/METADATA_PORTABILITY.md) for the precise export
