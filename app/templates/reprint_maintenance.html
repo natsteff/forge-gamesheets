@@ -22,19 +22,32 @@
       <div><dt>Indexed PDFs</dt><dd>{{ inventory.total }}</dd></div>
       <div><dt>Current reprints</dt><dd>{{ inventory.current }}</dd></div>
       <div><dt>Missing reprints</dt><dd>{{ inventory.missing }}</dd></div>
-      <div><dt>Stale reprints</dt><dd>{{ inventory.stale }}</dd></div>
-      <div><dt>Unavailable</dt><dd>{{ inventory.unavailable }}</dd></div>
+      <div><dt>Out-of-sync reprints</dt><dd>{{ inventory.stale }}</dd></div>
+      <div><dt>Source unavailable</dt><dd>{{ inventory.unavailable }}</dd></div>
     </dl>
+    <details class="maintenance-help">
+      <summary>What do these counts mean?</summary>
+      <ul>
+        <li><strong>Indexed PDFs:</strong> Source PDFs recorded by the latest library scan.</li>
+        <li><strong>Current reprints:</strong> Stored copies that match the recorded source, reprint format, and QR destination.</li>
+        <li><strong>Missing reprints:</strong> Accessible source PDFs without a stored generated copy.</li>
+        <li><strong>Out-of-sync reprints:</strong> Existing copies that need regeneration because the recorded source PDF, reprint format, QR destination, or generated file has changed.</li>
+        <li><strong>Source unavailable:</strong> Indexed source PDFs that cannot currently be located or safely accessed, regardless of whether a generated copy exists. Restore access and rescan before generating their reprints.</li>
+      </ul>
+      <p>Source availability is checked when this page loads; source changes are recorded by a library scan. Counts are recalculated when you return here after an operation.</p>
+    </details>
   </section>
 
   <section class="settings-section">
     <h2>Choose an operation</h2>
     <form class="maintenance-options" action="{{ url_for('reprint_maintenance_confirm') }}" method="post">
-      <label><input type="radio" name="operation" value="create_missing" checked> <strong>Create missing reprints</strong><span>Use when you added new PDFs or have resources that have never had a FORGE Reprint.</span></label>
-      <label><input type="radio" name="operation" value="refresh_existing"> <strong>Refresh existing reprints</strong><span>Use after changing the server hostname, IP address, public URL, QR format, or reprint design. It updates existing copies without creating ones for every resource.</span></label>
-      <label><input type="radio" name="operation" value="create_or_refresh_all"> <strong>Create or refresh all reprints</strong><span>Use for initial setup, a complete rebuild, or when you want every eligible PDF brought up to date.</span></label>
+      <label><input type="radio" name="operation" value="create_missing" checked> <strong>Create missing reprints</strong><span>Creates missing copies. Leaves current and out-of-sync copies unchanged.</span></label>
+      <label><input type="radio" name="operation" value="refresh_existing"> <strong>Refresh existing reprints</strong><span>Regenerates current and out-of-sync copies, including after changes to the public URL, QR format, or reprint design. Does not create missing copies.</span></label>
+      <label><input type="radio" name="operation" value="create_or_refresh_all"> <strong>Create or refresh all reprints</strong><span>Creates missing copies and regenerates existing copies for every accessible, eligible source PDF.</span></label>
       <button class="primary-button" type="submit" {% if not generation_enabled %}disabled{% endif %}>Review operation</button>
     </form>
+    <p>Unavailable sources are skipped and reported. Original PDFs are never changed.</p>
+    <p>These operations update generated copies, not the library index. Scan the library first if source files have been added, changed, moved, or removed.</p>
   </section>
 
   {% if recent_jobs %}

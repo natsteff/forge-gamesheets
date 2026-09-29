@@ -122,6 +122,31 @@ def test_bulk_job_uses_stable_resource_target_and_isolates_missing_source(
         )
 
 
+@pytest.mark.parametrize("stored_copy", [False, True])
+@pytest.mark.parametrize("base_url", [None, "https://forge.example.test"])
+def test_inventory_unavailable_source_takes_precedence(
+    reprint_library, stored_copy, base_url
+):
+    database, library, data = reprint_library
+    if stored_copy:
+        job_id = create_job(database, data, "create_or_refresh_all")
+        run_job(database, library, data, "https://forge.example.test", job_id)
+    for source in library.rglob("*.pdf"):
+        source.unlink()
+    summary = inventory(database, library, data, base_url)
+    assert (summary.total, summary.unavailable) == (2, 2)
+    assert (summary.current, summary.missing, summary.stale) == (0, 0, 0)
+
+
+def test_inventory_and_job_handle_unmounted_library(reprint_library):
+    database, library, data = reprint_library
+    absent_library = library / "not-mounted"
+    assert inventory(database, absent_library, data, None).unavailable == 2
+    job_id = create_job(database, data, "create_missing")
+    run_job(database, absent_library, data, "https://forge.example.test", job_id)
+    assert job_detail(database, job_id)["counts"] == {"skipped": 2}
+
+
 def test_large_registered_inventory_never_opens_generated_pdfs(tmp_path, monkeypatch):
     data = tmp_path / "data"
     data.mkdir()
@@ -165,6 +190,11 @@ def test_large_registered_inventory_never_opens_generated_pdfs(tmp_path, monkeyp
     }
     monkeypatch.setattr(
         "app.library.reprint_maintenance._generated_files", lambda _: generated
+    )
+    # Source availability is checked separately, without opening PDF contents.
+    monkeypatch.setattr(
+        "app.library.reprint_maintenance.resolve_resource_pdf",
+        lambda root, relative: root / relative,
     )
 
     def unexpected_pdf_open(*args, **kwargs):

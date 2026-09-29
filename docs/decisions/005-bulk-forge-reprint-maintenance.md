@@ -19,9 +19,10 @@ Before an operation, show:
 - total indexed PDF resources;
 - current FORGE Reprints;
 - eligible resources without a reprint;
-- stale reprints, including generator-version, source, or QR target/base-URL
+- out-of-sync reprints (internally `stale`), including generator-version, source, or QR target/base-URL
   changes that the application can identify;
-- unavailable or unsupported resources; and
+- unavailable source resources, checked before classifying generated copies;
+- unsupported PDFs reported individually during generation; and
 - the estimated scope of the selected operation.
 
 Offer three distinct operations:

@@ -85,6 +85,11 @@ def inventory(
     rows = _resources(database)
     generated = _generated_files(data_path)
     for row in rows:
+        try:
+            source = resolve_resource_pdf(library_path, row["relative_path"])
+        except (OSError, UnsafeResourcePath):
+            counts["unavailable"] += 1
+            continue
         stored = _stored_path(data_path, row)
         try:
             target = preferred_reprint_target(database, base_url, row["id"])
@@ -103,11 +108,6 @@ def inventory(
             # output file is definitively stale. Do not reopen it on every page
             # visit; the selected maintenance job will perform full validation.
             counts["stale"] += 1
-            continue
-        try:
-            source = resolve_resource_pdf(library_path, row["relative_path"])
-        except (ResourceFileMissing, UnsafeResourcePath):
-            counts["unavailable"] += 1
             continue
         if existing_forge_reprint(
             source, data_path, resource_id=row["id"], target_url=target
@@ -438,7 +438,10 @@ def _process_item(database, library_path, data_path, base_url, item) -> None:
         if not resource:
             status, detail = "skipped", "Resource was removed after planning."
         else:
-            source = resolve_resource_pdf(library_path, resource["relative_path"])
+            try:
+                source = resolve_resource_pdf(library_path, resource["relative_path"])
+            except OSError as error:
+                raise ResourceFileMissing("Source PDF is unavailable.") from error
             target = preferred_reprint_target(database, base_url, item["resource_id"])
             output = generate_forge_reprint(
                 source,
