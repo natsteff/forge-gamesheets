@@ -58594,8 +58594,248 @@ import { dirname, join } from "node:path";
 // src/index.mjs
 var import_fontkit = __toESM(require_fontkit_umd(), 1);
 var import_pdf_lib = __toESM(require_cjs(), 1);
+
+// src/content.mjs
+var PATTERNS = { ruled: "Ruled", square_grid: "Square grid", dot_grid: "Dot grid", hex_grid: "Hex grid", coordinate_grid: "Coordinate grid (axes)", music_staff: "Music staff", tablature: "Tablature", tic_tac_toe: "Tic-tac-toe boards", dots_and_boxes: "Dots and Boxes boards", sudoku: "Blank Sudoku grids" };
+var BOARD_PATTERNS = ["tic_tac_toe", "dots_and_boxes", "sudoku"];
+var APPEARANCES = { checkboxes: "Checkboxes", numbered_boxes: "Numbered boxes", segmented_bar: "Segmented bar", current_maximum: "Current / maximum" };
+var exact = (value, required, optional = []) => {
+  if (!value || typeof value !== "object" || Array.isArray(value) || required.some((key) => !(key in value)) || Object.keys(value).some((key) => ![...required, ...optional].includes(key))) throw new Error("Invalid or unknown content settings");
+};
+var numeric = (value, min, max, integer = false) => {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max || (integer ? !Number.isInteger(value) : !Number.isInteger(value * 4))) throw new Error("Invalid numeric content setting");
+};
+function validateContent(block) {
+  if (block.type === "tracker") {
+    exact(block, ["id", "type", "title", "appearance", "capacity"], ["initial_value", "extensions"]);
+    if (typeof block.appearance !== "string" || !Object.hasOwn(APPEARANCES, block.appearance)) throw new Error("Unsupported tracker appearance");
+    numeric(block.capacity, 1, block.appearance === "current_maximum" ? 1e6 : 100, true);
+    if (block.initial_value !== void 0) numeric(block.initial_value, 0, block.capacity, true);
+  } else if (block.type === "paper_pattern") {
+    exact(block, ["id", "type", "title", "pattern", "sizing", "settings"], ["extensions"]);
+    if (typeof block.pattern !== "string" || !Object.hasOwn(PATTERNS, block.pattern)) throw new Error("Unsupported paper pattern");
+    const { sizing: s, settings: p } = block;
+    const music = ["music_staff", "tablature"].includes(block.pattern);
+    if (s?.mode === "fill_remaining") exact(s, ["mode"]);
+    else if (s?.mode === "fixed_height" && !music) {
+      exact(s, ["mode", "height_pt"]);
+      numeric(s.height_pt, 18, 720);
+    } else if (s?.mode === "fixed_count" && music) {
+      exact(s, ["mode", "count"]);
+      numeric(s.count, 1, 40, true);
+    } else throw new Error("Unsupported sizing for this pattern");
+    if (block.pattern === "music_staff") {
+      exact(p, ["staff_style", "line_spacing_pt", "group_gap_pt"], p?.staff_style === "paired" ? ["pair_gap_pt"] : []);
+      if (!["single", "paired"].includes(p.staff_style)) throw new Error("Invalid staff style");
+      numeric(p.line_spacing_pt, 3, 9);
+      numeric(p.group_gap_pt, 12, 72);
+      if (p.staff_style === "paired") numeric(p.pair_gap_pt, 9, 36);
+    } else if (block.pattern === "tablature") {
+      exact(p, ["strings", "line_spacing_pt", "group_gap_pt"], ["string_labels"]);
+      numeric(p.strings, 4, 8, true);
+      numeric(p.line_spacing_pt, 4, 12);
+      numeric(p.group_gap_pt, 12, 72);
+      if (p.string_labels !== void 0 && (!Array.isArray(p.string_labels) || p.string_labels.length !== p.strings || p.string_labels.some((label) => typeof label !== "string" || [...label].length > 8 || /[\u0000-\u001f\u007f]/.test(label)))) throw new Error("Supply one short label per string");
+    } else if (block.pattern === "coordinate_grid") {
+      exact(p, ["spacing_pt", "origin", "numbered", "units_per_step", "label_every", "x_label", "y_label"]);
+      numeric(p.spacing_pt, 7, 36);
+      numeric(p.units_per_step, 0.25, 1e3);
+      numeric(p.label_every, 1, 10, true);
+      if (!["center", "bottom_left"].includes(p.origin) || typeof p.numbered !== "boolean") throw new Error("Invalid coordinate axes");
+      for (const key of ["x_label", "y_label"]) if (typeof p[key] !== "string" || [...p[key]].length > 16 || /[\u0000-\u001f\u007f]/.test(p[key])) throw new Error("Invalid axis label");
+    } else if (BOARD_PATTERNS.includes(block.pattern)) {
+      exact(p, ["board_size_pt", "gap_pt", "arrangement", ...block.pattern === "dots_and_boxes" ? ["dot_rows", "dot_columns"] : []]);
+      numeric(p.board_size_pt, 72, 504);
+      numeric(p.gap_pt, 9, 72);
+      if (!["single", "repeat"].includes(p.arrangement)) throw new Error("Invalid board arrangement");
+      if (block.pattern === "dots_and_boxes") {
+        numeric(p.dot_rows, 3, 21, true);
+        numeric(p.dot_columns, 3, 21, true);
+      }
+    } else {
+      const key = block.pattern === "hex_grid" ? "side_pt" : "spacing_pt";
+      exact(p, [key], block.pattern === "ruled" ? ["margin_guide_pt"] : []);
+      numeric(p[key], block.pattern === "ruled" ? 9 : 7, 36);
+      if (p.margin_guide_pt !== void 0) numeric(p.margin_guide_pt, 18, 90);
+    }
+  }
+  return block;
+}
+function validateFill(document2) {
+  document2.rows.forEach((row, index) => row.blocks.forEach((block) => {
+    if (block.type === "paper_pattern" && block.sizing.mode === "fill_remaining" && (index !== document2.rows.length - 1 || row.blocks.length !== 1)) throw new Error("Fill remaining page requires the last full-width section. Choose fixed sizing before moving, pairing or adding after it.");
+  }));
+}
+
+// src/layout-content.mjs
+var CONTENT_COMMAND_LIMIT = 2e4;
+var titleSpace = (b) => b.title ? 27 : 0;
+function boardDimensions(b) {
+  const p = b.settings;
+  const step = b.pattern === "dots_and_boxes" ? p.board_size_pt / Math.max(p.dot_columns - 1, p.dot_rows - 1) : p.board_size_pt;
+  return b.pattern === "dots_and_boxes" ? { width: (p.dot_columns - 1) * step, height: (p.dot_rows - 1) * step } : { width: step, height: step };
+}
+function groupHeight(b) {
+  const p = b.settings;
+  return b.pattern === "tablature" ? (p.strings - 1) * p.line_spacing_pt : p.staff_style === "paired" ? 8 * p.line_spacing_pt + p.pair_gap_pt : 4 * p.line_spacing_pt;
+}
+function contentHeight(b, w, available) {
+  validateContent(b);
+  const title = titleSpace(b);
+  if (b.type === "tracker") {
+    if (b.appearance === "segmented_bar" && w / b.capacity < 6) throw new Error("Tracker segments are too narrow; choose current / maximum or numbered boxes.");
+    if (["checkboxes", "numbered_boxes"].includes(b.appearance)) {
+      const columns = Math.floor((w + 4) / 22);
+      if (columns < 1) throw new Error("Tracker boxes do not fit.");
+      return title + Math.ceil(b.capacity / columns) * 22 - 4 + (b.initial_value !== void 0 ? 16 : 0);
+    }
+    return title + 22 + (b.initial_value !== void 0 ? 16 : 0);
+  }
+  const s = b.sizing;
+  const body = s.mode === "fill_remaining" ? available - title : s.mode === "fixed_height" ? s.height_pt : s.count * groupHeight(b) + (s.count - 1) * b.settings.group_gap_pt + 0.5;
+  if (BOARD_PATTERNS.includes(b.pattern)) {
+    const size = boardDimensions(b);
+    if (size.width + 3 > w || size.height + 3 > body) throw new Error("Not enough room for one complete board. Reduce board size or increase section height.");
+    return title + body;
+  }
+  if (b.pattern === "coordinate_grid") {
+    if (w < 72 || body < 72) throw new Error("Coordinate grid needs at least 72 points in width and height.");
+    return title + body;
+  }
+  const min = ["music_staff", "tablature"].includes(b.pattern) ? groupHeight(b) + 0.5 : b.pattern === "hex_grid" ? Math.sqrt(3) * b.settings.side_pt + 0.5 : b.settings.spacing_pt + 0.5;
+  if (body < min) throw new Error("Not enough room for one complete pattern group.");
+  return title + body;
+}
+function drawContent(b, x, y, w, h, { line, text, circle, widthOf }) {
+  const top = y + titleSpace(b);
+  const outline = (left, t, width, height) => {
+    line(left, t, left + width, t);
+    line(left + width, t, left + width, t + height);
+    line(left + width, t + height, left, t + height);
+    line(left, t + height, left, t);
+  };
+  if (b.type === "tracker") {
+    if (["checkboxes", "numbered_boxes"].includes(b.appearance)) {
+      const columns = Math.floor((w + 4) / 22);
+      for (let i = 0; i < b.capacity; i++) {
+        const left = x + i % columns * 22, t = top + Math.floor(i / columns) * 22;
+        outline(left + 0.25, t + 0.25, 17.5, 17.5);
+        if (b.appearance === "numbered_boxes") text(i + 1, left + 9, t + 12, "sans", 8, "#242424", "middle");
+      }
+    } else if (b.appearance === "segmented_bar") {
+      outline(x + 0.25, top + 0.25, w - 0.5, 17.5);
+      for (let i = 1; i < b.capacity; i++) line(x + w * i / b.capacity, top, x + w * i / b.capacity, top + 18);
+    } else {
+      line(x, top + 18, x + 54, top + 18);
+      text("/ " + b.capacity, x + 60, top + 15, "sans", 12);
+    }
+    if (b.initial_value !== void 0) text("Start: " + b.initial_value, x, y + h - 2, "sans", 8.5);
+    return;
+  }
+  const p = b.settings, body = h - titleSpace(b), color = "#808080";
+  const mark = (a, c, d, e) => line(a, c, d, e, color, 0.5);
+  if (BOARD_PATTERNS.includes(b.pattern)) {
+    const size = boardDimensions(b), gap = p.gap_pt;
+    const columns = p.arrangement === "single" ? 1 : Math.floor((w - 3 + gap) / (size.width + gap));
+    const rows = p.arrangement === "single" ? 1 : Math.floor((body - 3 + gap) / (size.height + gap));
+    const left = x + (w - (columns * size.width + (columns - 1) * gap)) / 2;
+    for (let row = 0; row < rows; row++) for (let col = 0; col < columns; col++) {
+      const bx = left + col * (size.width + gap), by = top + 1.5 + row * (size.height + gap);
+      if (b.pattern === "dots_and_boxes") {
+        const step = p.board_size_pt / Math.max(p.dot_columns - 1, p.dot_rows - 1);
+        for (let r = 0; r < p.dot_rows; r++) for (let c = 0; c < p.dot_columns; c++) circle(bx + c * step, by + r * step, 1.5, "#242424");
+      } else if (b.pattern === "tic_tac_toe") {
+        for (let i = 1; i < 3; i++) {
+          line(bx + size.width * i / 3, by, bx + size.width * i / 3, by + size.height, "#242424", 1);
+          line(bx, by + size.height * i / 3, bx + size.width, by + size.height * i / 3, "#242424", 1);
+        }
+      } else {
+        for (let i = 0; i <= 9; i++) {
+          const weight = i % 3 === 0 ? 1.5 : 0.5;
+          line(bx + size.width * i / 9, by, bx + size.width * i / 9, by + size.height, "#242424", weight);
+          line(bx, by + size.height * i / 9, bx + size.width, by + size.height * i / 9, "#242424", weight);
+        }
+      }
+    }
+  } else if (b.pattern === "coordinate_grid") {
+    const rightText = (value, right, baseline, size) => text(value, right - widthOf(value, "sans", size), baseline, "sans", size);
+    const s = p.spacing_pt;
+    const bound = Math.ceil(Math.max(w, body) / s) * p.units_per_step;
+    const labelWidth = p.numbered ? Math.max(widthOf(String(bound), "sans", 7), widthOf(String(-bound), "sans", 7)) : 0;
+    const inset = Math.max(12, p.origin === "bottom_left" ? labelWidth + 4 : labelWidth / 2 + 2);
+    if (w < 2 * inset + s || body < 2 * inset + s) throw new Error("Coordinate grid needs more room for its axes and labels.");
+    const ox = p.origin === "center" ? x + w / 2 : x + inset;
+    const oy = p.origin === "center" ? top + body / 2 : top + body - inset;
+    const nx0 = Math.ceil((x + inset - ox) / s), nx1 = Math.floor((x + w - inset - ox) / s);
+    const ny0 = Math.ceil((oy - (top + body - inset)) / s), ny1 = Math.floor((oy - (top + inset)) / s);
+    const l = ox + nx0 * s, r = ox + nx1 * s, t = oy - ny1 * s, bottom = oy - ny0 * s;
+    for (let i = nx0; i <= nx1; i++) mark(ox + i * s, t, ox + i * s, bottom);
+    for (let i = ny0; i <= ny1; i++) mark(l, oy - i * s, r, oy - i * s);
+    line(l, oy, r, oy, "#242424", 1);
+    line(ox, t, ox, bottom, "#242424", 1);
+    line(r, oy, r - 4, oy - 2, "#242424", 1);
+    line(r, oy, r - 4, oy + 2, "#242424", 1);
+    line(ox, t, ox - 2, t + 4, "#242424", 1);
+    line(ox, t, ox + 2, t + 4, "#242424", 1);
+    if (Math.max(widthOf(p.x_label, "sans", 8), widthOf(p.y_label, "sans", 8)) > w - 4) throw new Error("Axis label is too wide for this section.");
+    rightText(p.x_label, r, oy - 6, 8);
+    text(p.y_label, x + Math.max(2, Math.min(w - widthOf(p.y_label, "sans", 8) - 2, ox - x + 5)), t + 8, "sans", 8);
+    if (p.numbered) {
+      const label = (n) => String(n * p.units_per_step);
+      const maxWidth = Math.max(...[nx0, nx1, ny0, ny1].map((n) => widthOf(label(n), "sans", 7)));
+      const every = Math.max(p.label_every, Math.ceil((maxWidth + 4) / s));
+      rightText("0", ox - 3, oy + 10, 7);
+      for (let i = nx0; i <= nx1; i++) if (i && i % every === 0) text(label(i), ox + i * s, oy + 10, "sans", 7, "#242424", "middle");
+      for (let i = ny0; i <= ny1; i++) if (i && i % every === 0) rightText(label(i), ox - 4, oy - i * s + 2, 7);
+    }
+  } else if (["music_staff", "tablature"].includes(b.pattern)) {
+    const gh = groupHeight(b), step = gh + p.group_gap_pt;
+    const count = b.sizing.mode === "fixed_count" ? b.sizing.count : Math.floor((body - 0.5 + p.group_gap_pt) / step);
+    const gutter = p.string_labels ? Math.max(...p.string_labels.map((v) => widthOf(v, "sans", 8))) + 8 : 0;
+    if (w - gutter < 36) throw new Error("Tablature labels leave too little writing space.");
+    for (let i = 0; i < count; i++) {
+      const base = top + 0.25 + i * step;
+      const staves = b.pattern === "music_staff" && p.staff_style === "paired" ? 2 : 1;
+      const lines = b.pattern === "tablature" ? p.strings : 5;
+      for (let s = 0; s < staves; s++) for (let j = 0; j < lines; j++) {
+        const at = base + s * (4 * p.line_spacing_pt + (p.pair_gap_pt ?? 0)) + j * p.line_spacing_pt;
+        mark(x + gutter, at, x + w, at);
+        if (p.string_labels) text(p.string_labels[j], x, at + 2.5, "sans", 8);
+      }
+    }
+  } else if (b.pattern === "hex_grid") {
+    const side = p.side_pt, vertical = Math.sqrt(3) * side, edges = /* @__PURE__ */ new Set();
+    for (let col = 0; 0.25 + side + col * 1.5 * side + side <= w - 0.25; col++) for (let row = 0; ; row++) {
+      const cx = 0.25 + side + col * 1.5 * side, cy = 0.25 + vertical / 2 + row * vertical + col % 2 * vertical / 2;
+      if (cy + vertical / 2 > body - 0.25) break;
+      const vertices = Array.from({ length: 6 }, (_, i) => [x + cx + side * Math.cos(i * Math.PI / 3), top + cy + side * Math.sin(i * Math.PI / 3)]);
+      for (let i = 0; i < 6; i++) {
+        const a = vertices[i], c = vertices[(i + 1) % 6];
+        const key = [a, c].map((v) => v.map((n) => n.toFixed(5)).join(",")).sort().join(";");
+        if (!edges.has(key)) {
+          edges.add(key);
+          mark(...a, ...c);
+        }
+      }
+    }
+  } else {
+    const spacing = p.spacing_pt;
+    if (b.pattern === "dot_grid") {
+      for (let at = spacing; at + 0.75 <= body; at += spacing) for (let left = spacing; left + 0.75 <= w; left += spacing) circle(x + left, top + at, 0.75, color);
+    } else {
+      for (let at = b.pattern === "ruled" ? spacing : 0.25; at <= body - 0.25; at += spacing) mark(x, top + at, x + w, top + at);
+      if (b.pattern === "square_grid") for (let left = 0.25; left <= w - 0.25; left += spacing) mark(x + left, top, x + left, top + body);
+      if (p.margin_guide_pt !== void 0) {
+        if (w - p.margin_guide_pt < 36) throw new Error("Margin guide leaves too little writing space.");
+        mark(x + p.margin_guide_pt, top, x + p.margin_guide_pt, top + body);
+      }
+    }
+  }
+}
+
+// src/index.mjs
 var PROFILE = Object.freeze({
-  id: "fgs-page-1.2",
+  id: "fgs-page-1.3",
   pages: { letter: [612, 792], a4: [595.28, 841.89] },
   margin: 36,
   columnGap: 16,
@@ -58685,22 +58925,28 @@ function createPrintEngine(fontData) {
     }
     return output;
   }
-  function layout(document) {
-    if (!document || document.format !== "forge-gamesheets" || !["1.0", "1.1", "1.2"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0, 1.1 or 1.2");
-    const page = PROFILE.pages[document.page.size];
+  function layout(document2) {
+    if (!document2 || document2.format !== "forge-gamesheets" || !["1.0", "1.1", "1.2", "1.3"].includes(document2.format_version)) throw new Error("Expected validated FGS 1.0\u20131.3");
+    validateFill(document2);
+    const page = PROFILE.pages[document2.page.size];
     if (!page) throw new Error("Unsupported page size");
-    const [width, height] = document.page.orientation === "landscape" ? [page[1], page[0]] : page;
-    if (document.footer && document.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
+    const [width, height] = document2.page.orientation === "landscape" ? [page[1], page[0]] : page;
+    if (document2.footer && document2.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
     const commands = [];
-    const accent = document.theme.accent;
+    const push = (command) => {
+      if (commands.length >= CONTENT_COMMAND_LIMIT) throw new Error("Page exceeds the 20,000 drawing operation limit.");
+      commands.push(command);
+    };
+    const accent = document2.theme.accent;
     parseColor(accent);
     const accentText = headingAccent(accent);
-    const line = (x1, y1, x2, y2, color = GRID, thickness = PROFILE.tableLine) => commands.push({ type: "line", x1, y1, x2, y2, color, thickness });
-    const rect = (x, y, w, h, color) => commands.push({ type: "rect", x, y, w, h, color });
+    const line = (x1, y1, x2, y2, color = GRID, thickness = PROFILE.tableLine) => push({ type: "line", x1, y1, x2, y2, color, thickness });
+    const rect = (x, y, w, h, color) => push({ type: "rect", x, y, w, h, color });
+    const circle = (x, y, r, color) => push({ type: "circle", x, y, r, color });
     const text = (value, x, y, font = "sans", size = PROFILE.bodySize, color = BLACK, anchor = "start") => {
       const content = String(value);
       for (const character of content) if (!parsed[font].hasGlyphForCodePoint(character.codePointAt(0))) throw new Error(`FGS page rendering profile ${PROFILE.id} cannot render U+${character.codePointAt(0).toString(16).toUpperCase()}; a fallback font is required.`);
-      commands.push({ type: "text", value: content, x, y, font, size, color, anchor });
+      push({ type: "text", value: content, x, y, font, size, color, anchor });
     };
     const cellText = (value, left, top, cellWidth, cellHeight, options = {}) => {
       const { font = "sans", size = PROFILE.bodySize, center = false, marker = false } = options;
@@ -58722,7 +58968,8 @@ function createPrintEngine(fontData) {
       const rowHeights = labelLines.map((lines, index) => Math.max(PROFILE.tableRowHeight, lines.length * 10 + 6 + (calculated(labels[index]) ? 7 : 0)));
       return { labels, labelWidth, columnWidth, headerHeight, rowHeights, height: PROFILE.tableTitleHeight + headerHeight + rowHeights.reduce((a, b) => a + b, 0) };
     };
-    const measure = (block, blockWidth) => {
+    const measure = (block, blockWidth, available) => {
+      if (["tracker", "paper_pattern"].includes(block.type)) return contentHeight(block, blockWidth, available);
       if (block.type === "header") return block.subtitle ? 54 : 40;
       if (block.type === "score_table") return scoreGeometry(block, blockWidth).height;
       if (block.type === "notes") return 27 + block.lines * 24;
@@ -58734,7 +58981,7 @@ function createPrintEngine(fontData) {
     };
     const drawBlock = (block, x, y, blockWidth) => {
       if (block.type === "header") {
-        if (block.logo && document.format_version === "1.0") throw new Error("A header logo requires FGS 1.1 or later");
+        if (block.logo && document2.format_version === "1.0") throw new Error("A header logo requires FGS 1.1 or later");
         const titleWidth = block.logo ? blockWidth - 2 * (PROFILE.logoWidth + PROFILE.logoGap) : blockWidth - 10;
         if (widthOf(block.title, "serif", PROFILE.titleSize) > titleWidth) throw new Error(`Page heading "${block.title}" is too wide for this layout.`);
         if (block.subtitle && widthOf(block.subtitle, "sans", 10) > titleWidth) throw new Error(`Subtitle in "${block.title}" is too wide for this layout.`);
@@ -58751,6 +58998,11 @@ function createPrintEngine(fontData) {
         return;
       }
       if (widthOf(block.title, "serif", PROFILE.sectionSize) > blockWidth) throw new Error(`Section heading "${block.title}" is too wide for this layout.`);
+      if (["tracker", "paper_pattern"].includes(block.type)) {
+        if (block.title) text(block.title, x, y + 14, "serif", PROFILE.sectionSize, accentText);
+        drawContent(block, x, y, blockWidth, contentHeight(block, blockWidth, height - PROFILE.margin - (document2.footer ? PROFILE.footerReserve : 0) - y), { line, text, circle, widthOf });
+        return;
+      }
       text(block.title, x, y + 14, "serif", PROFILE.sectionSize, accentText);
       line(x, y + 21, x + blockWidth, y + 21, accent, PROFILE.accentLine);
       if (block.type === "score_table") {
@@ -58790,12 +59042,12 @@ function createPrintEngine(fontData) {
     };
     let cursor = PROFILE.margin;
     const blockBounds = [];
-    for (const row of document.rows) {
+    for (const row of document2.rows) {
       const columns = row.blocks.length;
       if (columns !== 1 && columns !== 2) throw new Error("FGS rows must have one or two blocks");
       const blockWidth = (width - 2 * PROFILE.margin - (columns === 2 ? PROFILE.columnGap : 0)) / columns;
-      const blockHeight = Math.max(...row.blocks.map((block) => measure(block, blockWidth)));
-      if (cursor + blockHeight > height - PROFILE.margin - (document.footer ? PROFILE.footerReserve : 0) + 1e-3) return { profile: PROFILE.id, width, height, fits: false, overflow: row.blocks[0].title, commands, blockBounds };
+      const blockHeight = Math.max(...row.blocks.map((block) => measure(block, blockWidth, height - PROFILE.margin - (document2.footer ? PROFILE.footerReserve : 0) - cursor)));
+      if (cursor + blockHeight > height - PROFILE.margin - (document2.footer ? PROFILE.footerReserve : 0) + 1e-3) return { profile: PROFILE.id, width, height, fits: false, overflow: row.blocks[0].title, commands, blockBounds };
       row.blocks.forEach((block, index) => {
         const x = PROFILE.margin + index * (blockWidth + PROFILE.columnGap);
         blockBounds.push({ id: block.id, x, y: cursor, width: blockWidth, height: blockHeight });
@@ -58803,8 +59055,8 @@ function createPrintEngine(fontData) {
       });
       cursor += blockHeight + PROFILE.rowGap;
     }
-    if (document.footer) {
-      const lines = document.footer.split("\n");
+    if (document2.footer) {
+      const lines = document2.footer.split("\n");
       for (const [index, value] of lines.entries()) {
         if (widthOf(value, "sans", PROFILE.footerSize) > width - 2 * PROFILE.margin) throw new Error("Author footer is too wide for the page.");
         const baseline = height - PROFILE.margin + 10 + (index - (lines.length - 1)) * PROFILE.footerLineHeight;
@@ -58818,6 +59070,7 @@ function createPrintEngine(fontData) {
     for (const command of result.commands) {
       if (command.type === "rect") parts.push(`<rect x="${numbers(command.x)}" y="${numbers(command.y)}" width="${numbers(command.w)}" height="${numbers(command.h)}" fill="${command.color}"/>`);
       else if (command.type === "line") parts.push(`<path d="M${numbers(command.x1)} ${numbers(command.y1)}L${numbers(command.x2)} ${numbers(command.y2)}" stroke="${command.color}" stroke-width="${command.thickness}" fill="none"/>`);
+      else if (command.type === "circle") parts.push(`<circle cx="${numbers(command.x)}" cy="${numbers(command.y)}" r="${command.r}" fill="${command.color}"/>`);
       else if (command.type === "image") parts.push(`<image x="${numbers(command.x)}" y="${numbers(command.y)}" width="${numbers(command.w)}" height="${numbers(command.h)}" href="data:image/png;base64,${command.data}" ${command.decorative ? 'aria-hidden="true"' : `role="img" aria-label="${escapeXml(command.alt)}"`}/>`);
       else parts.push(`<text x="${numbers(command.x)}" y="${numbers(command.y)}" text-anchor="${command.anchor}" fill="${command.color}" font-family="FGS ${command.font}" font-size="${command.size}">${escapeXml(command.value)}</text>`);
     }
@@ -58834,6 +59087,7 @@ function createPrintEngine(fontData) {
     for (const command of result.commands) {
       if (command.type === "rect") page.drawRectangle({ x: command.x, y: result.height - command.y - command.h, width: command.w, height: command.h, color: parseColor(command.color) });
       else if (command.type === "line") page.drawLine({ start: { x: command.x1, y: result.height - command.y1 }, end: { x: command.x2, y: result.height - command.y2 }, thickness: command.thickness, color: parseColor(command.color) });
+      else if (command.type === "circle") page.drawCircle({ x: command.x, y: result.height - command.y, size: command.r, color: parseColor(command.color) });
       else if (command.type === "image") {
         const bytes2 = Uint8Array.from(atob(command.data), (ch) => ch.charCodeAt(0));
         const logo = await pdf.embedPng(bytes2);
@@ -58868,11 +59122,11 @@ if (!source || !destination) {
     await Promise.all(Object.entries(files).map(async ([key, file]) => {
       fonts[key] = new Uint8Array(await readFile(join(root, "fonts", file)));
     }));
-    const document = JSON.parse(await readFile(source, "utf8"));
+    const document2 = JSON.parse(await readFile(source, "utf8"));
     const engine = createPrintEngine(fonts);
-    const result = engine.layout(document);
+    const result = engine.layout(document2);
     if (!result.fits) throw new Error(`FGS_OVERFLOW: Section "${result.overflow}" does not fit on the page.`);
-    const pdf = await engine.toPdf(result, document.title);
+    const pdf = await engine.toPdf(result, document2.title);
     await writeFile(destination, pdf, { flag: "wx" });
   } catch (error) {
     process.stderr.write(`${error.message}

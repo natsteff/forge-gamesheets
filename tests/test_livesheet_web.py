@@ -35,6 +35,81 @@ def _enable_current(client):
     return document
 
 
+@pytest.mark.parametrize("mode", ["single", "individual"])
+def test_shared_tracker_http_authorization_snapshot_and_reset(client, mode):
+    from urllib.parse import parse_qs, urlsplit
+
+    document = _enable_current(client)
+    document["format_version"] = "1.3"
+    document["rows"] = [
+        {
+            "id": "r",
+            "blocks": [
+                {
+                    "id": "energy",
+                    "type": "tracker",
+                    "title": "Energy",
+                    "appearance": "current_maximum",
+                    "capacity": 10,
+                    "initial_value": 7,
+                }
+            ],
+        }
+    ]
+    assert client.post("/sheet-designer/document", json=document).status_code == 200
+    started = client.post(
+        f"/livesheets/{document['id']}/start",
+        data={"mode": mode, "player_count": 2, "host_position": 1},
+        follow_redirects=False,
+    )
+    assert started.status_code == 303
+    host_url = started.headers["location"]
+    session_id = urlsplit(host_url).path.split("/")[2]
+    token = parse_qs(urlsplit(host_url).query)["t"][0]
+    route = f"/livesheets/{session_id}/tracker"
+    data = {"token": token, "block_id": "energy", "value": 6}
+    assert client.post(route, data=data, follow_redirects=False).status_code == 303
+    assert 'value="6"' in client.get(host_url).text
+    assert client.post(route, data={**data, "value": 11}).status_code == 422
+    assert client.post(route, data={**data, "token": "wrong"}).status_code == 422
+    assert (
+        client.post(
+            route, data=data, headers={"Origin": "https://other.example"}
+        ).status_code
+        == 403
+    )
+    document["rows"][0]["blocks"][0]["initial_value"] = 2
+    assert client.post("/sheet-designer/document", json=document).status_code == 200
+    assert (
+        client.post(
+            route,
+            data={"token": token, "block_id": "energy", "reset": "true"},
+            follow_redirects=False,
+        ).status_code
+        == 303
+    )
+    assert 'value="7"' in client.get(host_url).text
+    host = client.get(host_url).text
+    invite_url = re.search(
+        r'value="(http://testserver/livesheets/[^\"]+/join\?t=[^\"]+)"', host
+    ).group(1)
+    invite = parse_qs(urlsplit(invite_url).query)["t"][0]
+    assert client.post(route, data={**data, "token": invite}).status_code == 422
+    if mode == "individual":
+        claimed = client.post(
+            f"/livesheets/{session_id}/claim",
+            data={"invite_token": invite, "position": 2, "name": "Guest"},
+            follow_redirects=False,
+        )
+        assert claimed.status_code == 303
+        player = parse_qs(urlsplit(claimed.headers["location"]).query)["t"][0]
+        assert client.post(route, data={**data, "token": player}).status_code == 422
+        assert (
+            "Only the host can update this shared tracker"
+            in client.get(claimed.headers["location"]).text
+        )
+
+
 def test_navigation_appears_only_when_a_sheet_is_ready(client):
     assert ">LiveSheets</a>" not in client.get("/").text
     _enable_current(client)

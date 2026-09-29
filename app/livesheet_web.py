@@ -21,6 +21,7 @@ from app.livesheet import (
     update_notes,
     update_player_name,
     update_score,
+    update_tracker,
 )
 from app.web import templates
 
@@ -329,6 +330,38 @@ def livesheet_checklist(
             block_id=block_id,
             item_index=item_index,
             checked=checked,
+            now=_now(),
+        )
+    except LiveSheetError as error:
+        raise HTTPException(422, str(error)) from error
+    suffix = f"&p={quote(player_token)}" if player_token else ""
+    return _redirect(f"/livesheets/{session_id}/host?t={quote(token)}{suffix}")
+
+
+@router.post("/livesheets/{session_id}/tracker", name="livesheet_tracker")
+def livesheet_tracker(
+    request: Request,
+    session_id: str,
+    token: str = Form(...),
+    player_token: str = Form(""),
+    block_id: str = Form(...),
+    value: int | None = Form(None),
+    item_index: int | None = Form(None),
+    checked: bool = Form(False),
+    reset: bool = Form(False),
+    delta: int = Form(0),
+):
+    try:
+        update_tracker(
+            request.app.state.database,
+            session_id,
+            token,
+            block_id=block_id,
+            value=value,
+            item_index=item_index,
+            checked=checked,
+            reset=reset,
+            delta=delta,
             now=_now(),
         )
     except LiveSheetError as error:

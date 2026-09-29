@@ -959,6 +959,7 @@ input[type="checkbox"] {
 .designer-actions { display: flex; align-items: center; gap: 0.6rem; }
 .designer-actions a, .designer-actions label { width: auto; white-space: nowrap; }
 .designer-actions > button { width: auto; min-width: 5rem; }
+.designer-box-dimensions { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
 .designer-import { position: relative; overflow: hidden; }
 .designer-import input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; }
 .designer-export-menu { position: relative; }
@@ -1159,6 +1160,8 @@ input[type="checkbox"] {
 .designer-check input { width: auto; margin: 0; }
 .designer-property-actions { display: grid; gap: 0.55rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .designer-property-actions button { width: 100%; }
+.designer-section-notice { margin: 0.8rem 0 0; padding: 0.75rem; border: 1px solid var(--line); border-radius: 0.5rem; background: var(--paper); color: var(--ink); font-size: 0.8rem; line-height: 1.45; }
+.designer-section-notice strong { display: block; margin-bottom: 0.3rem; }
 .designer-properties button { min-height: 2.65rem; padding-block: 0.6rem; }
 .designer-app button.secondary-button { border-color: var(--action-secondary-border); color: var(--action-secondary-text); background: var(--action-secondary-background); }
 .designer-app button.danger-button { border-color: var(--action-danger-border); color: var(--action-danger-text); background: var(--action-danger-background); }
@@ -1212,6 +1215,7 @@ input[type="checkbox"] {
   .designer-bar, .designer-workspace { display: block; }
   .designer-bar > * { margin-bottom: 0.75rem; }
   .designer-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .designer-box-dimensions { grid-column: 1 / -1; white-space: normal; }
   .designer-export-menu { grid-column: 1 / -1; }
   .designer-export-menu > summary { width: 100%; }
   .designer-export-menu > div { left: 0; right: auto; width: 100%; }
@@ -1226,3 +1230,11 @@ input[type="checkbox"] {
   .designer-library-import { grid-template-columns: 1fr; }
   .designer-library-import .designer-import { grid-column: 1; grid-row: auto; margin-top: 0.65rem; }
 }
+/* Shared FGS 1.3 controls and temporary trackers. */
+.content-controls label { display: block; margin-bottom: 1rem; }
+.content-controls input, .content-controls select, .content-controls textarea { width: 100%; }
+.tracker-boxes, .tracker-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: 1rem; }
+.tracker-boxes form, .tracker-actions form { margin: 0; }
+.tracker-selected { background: #fff4db; color: #6b4100; border-color: #d89200; }
+.tracker-actions .autosave-form { display: flex; align-items: center; gap: .5rem; }
+.tracker-actions input { max-width: 10rem; }

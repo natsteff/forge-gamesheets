@@ -11,11 +11,19 @@ from typing import Any
 
 from PIL import Image, UnidentifiedImageError
 
+from app.sheet_designer.content import validate_content, validate_fill
+
 FORMAT_NAME = "forge-gamesheets"
 FORMAT_VERSION = "1.0"
 FORMAT_VERSION_1_1 = "1.1"
 FORMAT_VERSION_1_2 = "1.2"
-SUPPORTED_VERSIONS = {FORMAT_VERSION, FORMAT_VERSION_1_1, FORMAT_VERSION_1_2}
+FORMAT_VERSION_1_3 = "1.3"
+SUPPORTED_VERSIONS = {
+    FORMAT_VERSION,
+    FORMAT_VERSION_1_1,
+    FORMAT_VERSION_1_2,
+    FORMAT_VERSION_1_3,
+}
 PROTOTYPE_VERSION = "0.1-prototype"
 MAX_DOCUMENT_BYTES = 256 * 1024
 MAX_ROWS = 30
@@ -71,10 +79,15 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
             "extensions",
             *(
                 {"footer"}
-                if version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2}
+                if version
+                in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
                 else set()
             ),
-            *({"designer_notes"} if version == FORMAT_VERSION_1_2 else set()),
+            *(
+                {"designer_notes"}
+                if version in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+                else set()
+            ),
         },
         "document",
         strict,
@@ -140,7 +153,14 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
     ]
     if len(logos) > 1:
         raise DocumentValidationError("FGS allows one header logo per sheet.")
-    if version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2} and "footer" in value:
+    try:
+        validate_fill(normalized_rows)
+    except ValueError as error:
+        raise DocumentValidationError(str(error)) from error
+    if (
+        version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+        and "footer" in value
+    ):
         footer = value["footer"]
         if (
             not isinstance(footer, str)
@@ -155,7 +175,10 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
                 "Footer must be one or two nonempty lines, at most 160 characters."
             )
         result["footer"] = footer
-    if version == FORMAT_VERSION_1_2 and "designer_notes" in value:
+    if (
+        version in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+        and "designer_notes" in value
+    ):
         notes = value["designer_notes"]
         if (
             not isinstance(notes, str)
@@ -176,12 +199,31 @@ def _block(value: Any, ids: set[str], strict: bool, version: str) -> dict[str, A
     if not isinstance(value, dict):
         raise DocumentValidationError("Every block must be an object.")
     kind = value.get("type")
+    if kind in {"tracker", "paper_pattern"}:
+        if version != FORMAT_VERSION_1_3:
+            raise DocumentValidationError(
+                "Trackers and paper patterns require FGS 1.3."
+            )
+        try:
+            result = validate_content(value)
+        except (ValueError, TypeError, KeyError) as error:
+            raise DocumentValidationError(str(error)) from error
+        result["id"] = _unique_id(value.get("id"), ids, "block ID")
+        result["title"] = _text(
+            value.get("title"), "block title", 160, empty=kind == "paper_pattern"
+        )
+        _extensions(value, result)
+        return result
     extras = {
         "header": {"subtitle", "logo"}
-        if version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2}
+        if version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
         else {"subtitle"},
         "score_table": {"players", "score_rows", "show_total", "total_label"}
-        | ({"first_column_heading"} if version == FORMAT_VERSION_1_2 else set()),
+        | (
+            {"first_column_heading"}
+            if version in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+            else set()
+        ),
         "reference": {"items"},
         "checklist": {"items"},
         "notes": {"lines"},
@@ -200,10 +242,17 @@ def _block(value: Any, ids: set[str], strict: bool, version: str) -> dict[str, A
         result["subtitle"] = _text(
             value.get("subtitle", ""), "header subtitle", 240, empty=True
         )
-        if "logo" in value and version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2}:
+        if "logo" in value and version in {
+            FORMAT_VERSION_1_1,
+            FORMAT_VERSION_1_2,
+            FORMAT_VERSION_1_3,
+        }:
             result["logo"] = _logo(value["logo"])
     elif kind == "score_table":
-        if "first_column_heading" in value and version == FORMAT_VERSION_1_2:
+        if "first_column_heading" in value and version in {
+            FORMAT_VERSION_1_2,
+            FORMAT_VERSION_1_3,
+        }:
             raw_heading = value["first_column_heading"]
             if isinstance(raw_heading, str) and any(
                 ord(c) < 32 or ord(c) == 127 for c in raw_heading

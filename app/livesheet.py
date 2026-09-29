@@ -86,6 +86,20 @@ def session_state(database: Database, session_id: str, token: str, *, now: int) 
                 (session_id,),
             )
         }
+        tracker_values = {
+            row["block_id"]: json.loads(row["value"])
+            for row in connection.execute(
+                "SELECT block_id,value FROM livesheet_tracker_values "
+                "WHERE session_id=?",
+                (session_id,),
+            )
+        }
+        trackers = {
+            block["id"]: tracker_values.get(block["id"], _tracker_initial(block))
+            for row in document["rows"]
+            for block in row["blocks"]
+            if block["type"] == "tracker"
+        }
         calculated: dict[tuple[str, int, int], int] = {}
         for document_row in document["rows"]:
             for block in document_row["blocks"]:
@@ -109,6 +123,7 @@ def session_state(database: Database, session_id: str, token: str, *, now: int) 
             "calculated": calculated,
             "checklist": checklist,
             "notes": notes,
+            "trackers": trackers,
             "is_host": is_host,
             "is_invite": invite,
             "player_position": player["position"] if player else None,
@@ -357,6 +372,86 @@ def update_checklist(
             (session_id, block_id, item_index, int(bool(checked))),
         )
         _touch(connection, session, now)
+
+
+def _tracker_initial(block):
+    if block["appearance"] == "checkboxes":
+        return [
+            index < block.get("initial_value", 0) for index in range(block["capacity"])
+        ]
+    return block.get("initial_value")
+
+
+def update_tracker(
+    database: Database,
+    session_id: str,
+    host_token: str,
+    *,
+    block_id: str,
+    value: int | None = None,
+    item_index: int | None = None,
+    checked: bool = False,
+    reset: bool = False,
+    delta: int = 0,
+    now: int,
+) -> None:
+    """Atomically update a shared host-controlled tracker, never its source."""
+    with database.connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        session = _active_session(connection, session_id, now)
+        _require_host(session, host_token)
+        block = _block(json.loads(session["fgs_snapshot"]), block_id, "tracker")
+        if not isinstance(reset, bool) or not isinstance(checked, bool):
+            raise LiveSheetError("Tracker flags must be Boolean values.")
+        stored = connection.execute(
+            "SELECT value FROM livesheet_tracker_values "
+            "WHERE session_id=? AND block_id=?",
+            (session_id, block_id),
+        ).fetchone()
+        current = json.loads(stored["value"]) if stored else _tracker_initial(block)
+        if reset:
+            if item_index is not None or value is not None or delta:
+                raise LiveSheetError("Reset cannot include a value change.")
+            updated = _tracker_initial(block)
+        elif block["appearance"] == "checkboxes":
+            if (
+                not isinstance(item_index, int)
+                or isinstance(item_index, bool)
+                or not 0 <= item_index < block["capacity"]
+                or value is not None
+                or delta
+            ):
+                raise LiveSheetError("Select a valid tracker checkbox.")
+            updated = list(current)
+            updated[item_index] = checked
+        else:
+            if (
+                item_index is not None
+                or isinstance(delta, bool)
+                or delta not in {-1, 0, 1}
+            ):
+                raise LiveSheetError("Invalid tracker adjustment.")
+            if delta:
+                if current is None or value is not None:
+                    raise LiveSheetError("Enter a starting value before adjusting.")
+                value = current + delta
+            if (
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or not 0 <= value <= block["capacity"]
+            ):
+                raise LiveSheetError(
+                    "Tracker value must be a whole number within its capacity."
+                )
+            updated = value
+        connection.execute(
+            """INSERT INTO livesheet_tracker_values(session_id,block_id,value)
+               VALUES(?,?,?) ON CONFLICT(session_id,block_id)
+               DO UPDATE SET value=excluded.value""",
+            (session_id, block_id, json.dumps(updated)),
+        )
+        _touch(connection, session, now)
+        connection.commit()
 
 
 def update_notes(

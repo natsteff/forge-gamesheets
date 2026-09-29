@@ -1,13 +1,15 @@
 {
   "package": "@forge-gamesheets/fgs-renderer",
-  "version": "0.3.0",
-  "profile": "fgs-page-1.2",
+  "version": "0.4.0",
+  "profile": "fgs-page-1.3",
   "sourceFiles": {
-    "src/browser.mjs": "a529756e5fcf7bb197d58b8aaac4a37b575e06af6c1bd6aae618c231c5eb286d",
+    "src/browser.mjs": "b12dcb751aef21641a8a6bd7bd2d694ff51cce7b4d0a5fcbd8900e0ef2c03a31",
     "src/cli.mjs": "41a7ca4158bf119f071bbb6cdee2f4420c0971e976c11904b21d0ec42335ff02",
-    "src/index.mjs": "f111214a9f801e7e391c6ddfb0aa9e30abee6ae35aebeab80ff98416d8f3021e",
-    "scripts/build.mjs": "5ff0c09afd435b520422d4c795f0ceeda7351200ee1b8b39602262a96adb335b",
-    "package.json": "66594e58ab975a003c2afccdaac5de4ba50f97764d4235ad962cf46c60b8a2c8",
+    "src/index.mjs": "7113d2ce7301b68d419a9bde95f162857c2a5c20cee3842151d24f5dca20c0d1",
+    "src/content.mjs": "610853fb2a1a453be9063afe4843fa72f970606d3a0b3a507cf6acc0e734f76e",
+    "src/layout-content.mjs": "aed6f499eb5a28a03bbb6f1f91db634c13e8e1ce8cf8d88045bd4d6a9bf38f8c",
+    "scripts/build.mjs": "d83add6e14e704f56ea0138cbcba0791a66f8f8bf36a32a6bab29e4fb83ff1b5",
+    "package.json": "011ebf18bdf5ce232856ebc695188c26fa7af36d3bfbbeee307ee663c70df3f5",
     "pnpm-lock.yaml": "34840bfcfd38b829e1a3e4a7c66af9549f28dc797f7839ccd83068a2ad46ccff",
     "fonts/NotoSans-Regular.ttf": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
     "fonts/NotoSans-Bold.ttf": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a",
@@ -22,8 +24,8 @@
     "licenses/tslib-0BSD.txt": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
   },
   "files": {
-    "browser.mjs": "705a7c1ee6479a45f2a01574b5324101478bb15cdb55f3c9e0af5c56e157a327",
-    "cli.mjs": "90bec0f0096d6b2145ff0ace7fef57dbdc92fda49933d472f04270387ff6bef3",
+    "browser.mjs": "84a161856ed479e098c8ce5c87017ed16d63fdcaa2ddab93ed553e7ee1e80d4a",
+    "cli.mjs": "4510453d6091727f0d0502b1ea62a229867c686bb1edba688a91bfac7e76e572",
     "fonts/NotoSans-Regular.ttf": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
     "fonts/NotoSans-Bold.ttf": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a",
     "fonts/NotoSerif-Bold.ttf": "3b2086a869bcded2aeb4416fc281ceec9d6ce3c06756cda19f8f763636204e7d",

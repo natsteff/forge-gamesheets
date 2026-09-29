@@ -150,6 +150,7 @@ PUBLIC_ROUTES = {
     "livesheet_name",
     "livesheet_checklist",
     "livesheet_notes",
+    "livesheet_tracker",
 }
 
 

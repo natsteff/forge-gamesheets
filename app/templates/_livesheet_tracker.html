@@ -1,0 +1,20 @@
+<section class="panel livesheet-content-block"><h2>{{ block.title }}</h2>
+{% set value = session.trackers[block.id] %}
+{% if not session.is_host %}<p class="host-only-note">Only the host can update this shared tracker.</p>{% endif %}
+{% macro hidden() %}<input type="hidden" name="token" value="{{ session.token }}"><input type="hidden" name="player_token" value="{{ player_token or '' }}"><input type="hidden" name="block_id" value="{{ block.id }}">{% endmacro %}
+{% if block.appearance == 'checkboxes' %}
+<div class="tracker-boxes">{% for index in range(block.capacity) %}
+{% if session.is_host %}<form method="post" action="{{ url_for('livesheet_tracker', session_id=session.id) }}">{{ hidden() }}<input type="hidden" name="item_index" value="{{ index }}"><label><input type="checkbox" name="checked" value="true" data-auto-submit{% if value[index] %} checked{% endif %}> {{ index + 1 }}</label></form>
+{% else %}<label><input type="checkbox" disabled{% if value[index] %} checked{% endif %}> {{ index + 1 }}</label>{% endif %}
+{% endfor %}</div>
+{% else %}
+{% if block.appearance == 'segmented_bar' %}<meter min="0" max="{{ block.capacity }}" value="{{ value if value is not none else 0 }}" aria-label="{{ block.title }}"></meter>{% endif %}
+{% if block.appearance == 'numbered_boxes' %}<div class="tracker-boxes">{% for number in range(1, block.capacity + 1) %}{% if session.is_host %}<form method="post" action="{{ url_for('livesheet_tracker', session_id=session.id) }}">{{ hidden() }}<button class="secondary-button{% if value is not none and number <= value %} tracker-selected{% endif %}" name="value" value="{{ number }}" aria-label="Set {{ block.title }} to {{ number }}" type="submit">{{ number }}</button></form>{% else %}<span{% if value is not none and number <= value %} class="tracker-selected"{% endif %}>{{ number }}</span>{% endif %}{% endfor %}</div>{% endif %}
+{% if session.is_host %}<div class="tracker-actions">
+<form method="post" action="{{ url_for('livesheet_tracker', session_id=session.id) }}">{{ hidden() }}<button class="secondary-button" name="delta" value="-1" type="submit" aria-label="Decrease {{ block.title }}"{% if value is none or value == 0 %} disabled{% endif %}>−</button></form>
+<form class="autosave-form" method="post" action="{{ url_for('livesheet_tracker', session_id=session.id) }}">{{ hidden() }}<label>{{ block.title }}<input name="value" type="number" min="0" max="{{ block.capacity }}" step="1" value="{{ value if value is not none else '' }}" placeholder="Starting value" required></label><span>/ {{ block.capacity }}</span></form>
+<form method="post" action="{{ url_for('livesheet_tracker', session_id=session.id) }}">{{ hidden() }}<button class="secondary-button" name="delta" value="1" type="submit" aria-label="Increase {{ block.title }}"{% if value is none or value == block.capacity %} disabled{% endif %}>＋</button></form></div>
+{% else %}<p><output>{{ value if value is not none else 'Not set' }}</output> / {{ block.capacity }}</p>{% endif %}
+{% endif %}
+{% if session.is_host %}<form method="post" action="{{ url_for('livesheet_tracker', session_id=session.id) }}" data-confirm="Reset this tracker to its template starting state?"><input type="hidden" name="reset" value="true">{{ hidden() }}<button class="secondary-button" type="submit">Reset tracker</button></form>{% endif %}
+</section>

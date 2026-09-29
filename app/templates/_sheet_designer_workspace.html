@@ -6,7 +6,7 @@
       <p>Create a GameSheet from scratch, choose a saved sheet, or continue the most recently used sheet.</p>
     </div>
     <div class="designer-startup-actions">
-      <button class="primary-button" data-start-new type="button"><strong>New sheet</strong><span>Start with a simple blank score sheet.</span></button>
+      <button class="primary-button" data-start-new type="button"><strong>New sheet</strong><span>Start with a score sheet or reusable paper template.</span></button>
       <button class="secondary-button" data-start-open type="button"><strong>Open sheets</strong><span>Browse saved sheets or import an FGS file.</span></button>
       <button class="secondary-button" data-start-resume type="button"><strong>Resume last sheet</strong><span data-resume-description>Loading recent sheet…</span></button>
     </div>
@@ -32,7 +32,7 @@
       <a class="designer-source-link" href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Forge GameSheets on GitHub</a>
       {% endif %}
       <button class="secondary-button" data-about-designer type="button">About</button>
-      {% if not standalone %}<button class="secondary-button" data-game-link type="button">Associate game</button>{% endif %}
+      {% if not standalone %}<button class="secondary-button" data-game-link type="button">Associate game</button><span class="designer-box-dimensions" data-game-box-dimensions hidden></span>{% endif %}
       {% if not standalone %}<button class="secondary-button" data-livesheet type="button">LiveSheet</button>{% endif %}
       <button class="secondary-button" data-new-sheet type="button">New</button>
       <button class="secondary-button" data-open-sheets type="button">Open</button>
@@ -62,6 +62,8 @@
             <option value="reference">Reference</option>
             <option value="checklist">Checklist</option>
             <option value="notes" selected>Notes</option>
+            <option value="tracker">Tracker</option>
+            <option value="paper_pattern">Paper pattern</option>
           </select>
           <button class="primary-button" data-add-block type="button">＋ Add section</button>
         </div>
@@ -105,6 +107,7 @@
         <button class="designer-dialog-close" data-close-new type="button" aria-label="Close">×</button>
       </div>
       <label>Sheet title<input data-new-title required maxlength="160" value="Untitled Game Sheet"></label>
+      <label>Starting template<select data-new-template><option value="score_sheet">Score sheet</option><option value="ruled">Lined paper</option><option value="square_grid">Graph paper</option><option value="dot_grid">Dot paper</option><option value="hex_grid">Hex paper</option><option value="music_staff">Music manuscript</option><option value="piano">Piano manuscript</option><option value="tablature">Tablature</option><option value="coordinate_grid">Coordinate grid (axes)</option><option value="tic_tac_toe">Tic-tac-toe boards</option><option value="dots_and_boxes">Dots and Boxes boards</option><option value="sudoku">Blank Sudoku grids</option></select></label>
       <div class="designer-dialog-fields">
         <label>Page size<select data-new-size><option value="letter">Letter</option><option value="a4">A4</option></select></label>
         <label>Orientation<select data-new-orientation><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
@@ -122,7 +125,7 @@
       <button class="designer-dialog-close" data-close-about type="button" aria-label="Close">×</button>
     </div>
     <p>Sheet Designer creates portable GameSheets for score tracking, reference information, checklists, and notes. It works best for structured, single-page layouts made from full-width or side-by-side sections.</p>
-    <p>FGS is not a general page-layout or spreadsheet tool. Version 1.2 supports one header logo, a footer, Designer Notes, and customizable score-table first-column headings, but not free positioning, general image sections, custom formulas, multiple pages, or pixel-perfect copies of existing documents.</p>
+    <p>FGS is not a general page-layout or spreadsheet tool. Version 1.3 adds resource trackers and reusable paper patterns to header logos, footers, Designer Notes, and customizable table headings. Free positioning, general image sections, custom formulas, multiple pages, and MusicXML import are not supported.</p>
     <p>GameSheets can be exported as printable PDFs. Compatible score sheets can also become temporary interactive LiveSheets.</p>
     <p><strong>Tip:</strong> An LLM can draft an FGS file from a score-sheet image or PDF when given the FGS specification. Review and verify the result before importing it, and only share source documents you are permitted to upload.</p>
     <p><a class="text-link" href="https://github.com/natsteff/forge-gamesheets/blob/main/docs/FGS_V1_2_SPECIFICATION.md" target="_blank" rel="noopener">Read the FGS 1.2 specification</a></p>
@@ -162,7 +165,7 @@
       <p>Enabling LiveSheet does not create or freeze a separate copy. Every new session automatically uses the latest saved version of this GameSheet; changes made later in Sheet Designer apply to future sessions.</p>
       <p class="designer-livesheet-summary" data-livesheet-summary></p>
       <label class="designer-check"><input data-livesheet-enabled type="checkbox"> Make this GameSheet available for LiveSheet</label>
-      <p class="designer-field-help">Rows named <strong>Total</strong> and <strong>Grand Total</strong> are calculated automatically. Add at least one score table before enabling LiveSheet.</p>
+      <p class="designer-field-help">Rows named <strong>Total</strong> and <strong>Grand Total</strong> are calculated automatically. Add at least one score table or tracker before enabling LiveSheet. Shared trackers are controlled by the host.</p>
       <div class="designer-dialog-actions">
         <a class="secondary-button" data-livesheet-start href="/sheet-designer/livesheet-setup" hidden>Open this LiveSheet</a>
         <button class="secondary-button" data-cancel-livesheet type="button">Cancel</button>

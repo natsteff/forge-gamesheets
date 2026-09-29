@@ -8,7 +8,7 @@
   const escape = (value) => String(value).replace(/[&<>"]/g, (character) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"})[character]);
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const id = (prefix) => `${prefix}-${crypto.randomUUID()}`;
-  const blockName = {header: "Header", score_table: "Score table", reference: "Reference", checklist: "Checklist", notes: "Notes"};
+  const blockName = {header: "Header", score_table: "Score table", reference: "Reference", checklist: "Checklist", notes: "Notes",tracker:"Tracker",paper_pattern:"Paper pattern"};
   const liveSheetExtension = "io.github.natsteff.livesheet";
   const history = [];
   const future = [];
@@ -16,9 +16,11 @@
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
-  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.2&layout=2")
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=3")
     .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
-  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.2&layout=2");
+  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=3");
+  let contentTools=null;
+  logoTools.then(tools=>{contentTools=tools;}).catch(error=>message(error.message));
   let previewRevision = 0;
 
   const calculationKind = (label) => {
@@ -39,10 +41,11 @@
   };
 
   function commit(change) {
-    history.push(clone(model));
+    const before=clone(model);
+    try {change(model);contentTools?.validateFill(model);}catch(error){model=before;message(error.message);render();return;}
+    history.push(before);
     if (history.length > 50) history.shift();
     future.length = 0;
-    change(model);
     render();
     queueSave();
   }
@@ -165,12 +168,18 @@
     if (block.type === "reference" || block.type === "checklist") fields += `${textList(`${block.type === "checklist" ? "Checklist items" : "Reminders"} (one per line)`, block.items, "items")}<p class="designer-field-help">Each line appears as a separate ${block.type === "checklist" ? "checkbox" : "reminder"}.</p>`;
     if (block.type === "notes") fields += `<label>Writing lines<input data-field="lines" type="number" min="1" max="20" value="${block.lines}"></label>`;
     fields += `<div class="designer-property-actions"><button class="secondary-button" data-duplicate type="button">Duplicate</button>${row.blocks.length === 1 && rowIndex < model.rows.length - 1 && model.rows[rowIndex + 1].blocks.length === 1 ? '<button class="secondary-button" data-pair type="button">Pair with next</button>' : ""}${row.blocks.length === 2 ? '<button class="secondary-button" data-unpair type="button">Use full width</button>' : ""}${model.rows.length === 1 && row.blocks.length === 1 ? "" : '<button class="danger-button" data-delete type="button">Delete</button>'}</div>`;
+    if (model.rows.length === 1 && row.blocks.length === 1) fields += '<div class="designer-section-notice" data-delete-help role="note"><strong>Section cannot be deleted</strong>This is the only section. Add another section before deleting it.</div>';
     $("properties-panel").innerHTML = fields;
+    if(["tracker","paper_pattern"].includes(block.type))logoTools.then(tools=>{
+      if(locate()?.block!==block||$("properties-panel").querySelector(".content-controls"))return;
+      const controls=tools.contentControls(block,{canFill:row.blocks.length===1&&rowIndex===model.rows.length-1,change:next=>commit(()=>{row.blocks[row.blocks.indexOf(block)]=next;}),onError:message});
+      $("properties-panel").insertBefore(controls,$("properties-panel").querySelector(".designer-property-actions"));
+    });
     root.querySelectorAll("[data-field]").forEach((input) => input.addEventListener("change", () => commit(() => { block[input.dataset.field] = input.type === "number" ? Number(input.value) : input.value; })));
     root.querySelector("[data-first-column-heading]")?.addEventListener("change", (event) => commit((draft) => {
       const heading = event.target.value.trim() || "Category";
       if (heading === "Category") delete block.first_column_heading;
-      else {draft.format_version = "1.2"; block.first_column_heading = heading;}
+      else {if(draft.format_version!=="1.3")draft.format_version = "1.2"; block.first_column_heading = heading;}
     }));
     root.querySelector("[data-logo-trigger]")?.addEventListener("click", () => root.querySelector("[data-logo-upload]").click());
     root.querySelector("[data-logo-upload]")?.addEventListener("change", async (event) => {
@@ -324,6 +333,7 @@
     if ($("livesheet")) $("livesheet").textContent = model.extensions?.[liveSheetExtension]?.enabled ? "LiveSheet ready" : "LiveSheet";
     if ($("game-link")) {
       $("game-link").textContent = "Associate game";
+      $("game-box-dimensions").hidden = true;
       refreshGameAssociation().catch((error) => message(error.message));
     }
     $("save-status").textContent = "✓ Saved";
@@ -340,6 +350,10 @@
   function showGameAssociation(association) {
     if (!$("game-link")) return;
     $("game-link").textContent = association ? `Game: ${association.game_title}` : "Associate game";
+    const boxDimensions = $("game-box-dimensions");
+    boxDimensions.hidden = !association?.available || !association.box_dimensions;
+    boxDimensions.textContent = boxDimensions.hidden ? "" : `Box: ${association.box_dimensions}`;
+    boxDimensions.title = boxDimensions.hidden ? "" : "Outside box dimensions (length × width × depth); reference only";
     $("game-link-current").textContent = association
       ? `${association.available ? "Currently associated with" : "Associated game is currently unavailable:"} ${association.game_title}`
       : "This GameSheet is not associated with a game.";
@@ -414,17 +428,19 @@
     } catch (error) { message(error.message); }
   }
 
-  function addBlock() {
+  async function addBlock() {
     const type = $("section-type").value;
     const templates = {
       header: {type: "header", title: "Sheet title", subtitle: ""},
       score_table: {type: "score_table", title: "Score table", players: ["Player 1", "Player 2"], score_rows: ["Round 1", "Total"], show_total: false, total_label: "Total"},
       reference: {type: "reference", title: "Reference", items: ["Helpful reminder"]},
       checklist: {type: "checklist", title: "Checklist", items: ["First objective"]},
-      notes: {type: "notes", title: "Notes", lines: 5}
+      notes: {type: "notes", title: "Notes", lines: 5},
+      tracker:(await logoTools).newContent("tracker"),
+      paper_pattern:(await logoTools).newContent("paper_pattern")
     };
     if (!templates[type]) return;
-    commit((draft) => { const block = {...templates[type], id: id(type)}; draft.rows.push({id: id("row"), blocks: [block]}); selected = block.id; });
+    commit((draft) => { const block = {...templates[type], id: id(type)};if(["tracker","paper_pattern"].includes(type))draft.format_version="1.3";draft.rows.push({id: id("row"), blocks: [block]}); selected = block.id; });
   }
 
   $("document-title").addEventListener("change", (event) => commit((draft) => { draft.title = event.target.value; }));
@@ -438,7 +454,7 @@
   }));
   $("designer-notes").addEventListener("change", (event) => commit((draft) => {
     const notes = event.target.value;
-    if (notes) {draft.format_version = "1.2"; draft.designer_notes = notes;}
+    if (notes) {if(draft.format_version!=="1.3")draft.format_version = "1.2"; draft.designer_notes = notes;}
     else delete draft.designer_notes;
   }));
   $("add-block").addEventListener("click", addBlock);
@@ -447,6 +463,7 @@
     $("new-title").value = "Untitled Game Sheet";
     $("new-size").value = model?.page.size || "letter";
     $("new-orientation").value = model?.page.orientation || "portrait";
+    root.querySelector("[data-new-template]").value = "score_sheet";
     $("new-dialog").showModal();
     $("new-title").select();
   });
@@ -490,14 +507,16 @@
   if ($("livesheet")) $("livesheet").addEventListener("click", async () => {
     if (!await flushSave()) return;
     const tables = model.rows.flatMap((row) => row.blocks).filter((block) => block.type === "score_table");
+    const trackers=model.rows.flatMap(row=>row.blocks).filter(block=>block.type==="tracker");
     const labels = tables.flatMap(scoreLabels);
     const totals = labels.filter((label) => calculationKind(label) === "total").length;
     const grandTotals = labels.filter((label) => calculationKind(label) === "grand-total").length;
     $("livesheet-summary").textContent = `${tables.length} score table${tables.length === 1 ? "" : "s"}, ${totals} Total row${totals === 1 ? "" : "s"}, and ${grandTotals} Grand Total row${grandTotals === 1 ? "" : "s"} recognized.`;
     $("livesheet-enabled").checked = Boolean(model.extensions?.[liveSheetExtension]?.enabled);
     $("livesheet-start").hidden = !model.extensions?.[liveSheetExtension]?.enabled;
-    $("livesheet-enabled").disabled = !tables.length;
-    if (!tables.length) $("livesheet-enabled").checked = false;
+    $("livesheet-summary").textContent += ` ${trackers.length} shared tracker${trackers.length===1?"":"s"} (host-controlled).`;
+    $("livesheet-enabled").disabled = !tables.length && !trackers.length;
+    if (!tables.length && !trackers.length) $("livesheet-enabled").checked = false;
     $("livesheet-dialog").showModal();
   });
   $("close-livesheet")?.addEventListener("click", () => $("livesheet-dialog").close());
@@ -525,6 +544,11 @@
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({title: $("new-title").value, page_size: $("new-size").value, orientation: $("new-orientation").value})
       });
+      const template=root.querySelector("[data-new-template]").value;
+      if(template!=="score_sheet"){
+        (await logoTools).applyPaperTemplate(document,template,id);
+        await requestDocument("/sheet-designer/document",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(document)});
+      }
       activateDocument(document);
       $("new-dialog").close();
     } catch (error) { message(error.message); }

@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.config import Settings
+from app.library.repository import save_game_box_dimensions
 from app.main import create_app
 from app.sheet_designer.commands import delete_block, move_row
 from app.sheet_designer.model import (
@@ -338,7 +339,7 @@ def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
             for line in block["lines"]
             for span in line["spans"]
         ]
-        assert "fgs-page-1.2" in pdf.metadata["creator"]
+        assert "fgs-page-1.3" in pdf.metadata["creator"]
     assert any(
         span["text"] == "Expedition Score Sheet" and span["color"] == 0xA52F23
         for span in spans
@@ -352,7 +353,7 @@ def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
 def test_pinned_renderer_files_match_the_build_manifest():
     root = Path(__file__).resolve().parents[1] / "app" / "static" / "fgs-renderer"
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["profile"] == "fgs-page-1.2"
+    assert manifest["profile"] == "fgs-page-1.3"
     for name, expected in manifest["files"].items():
         assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected
     source = Path(__file__).resolve().parents[1] / "packages" / "fgs-renderer"
@@ -636,6 +637,12 @@ def test_integrated_designer_can_associate_current_sheet_with_a_game(tmp_path: P
             "/sheet-designer/game-association", json={"game_id": game_id}
         )
         associated = client.get("/sheet-designer/game-association")
+        save_game_box_dimensions(
+            client.app.state.database,
+            game_id,
+            {"length": 11.6, "width": 8.7, "depth": 2.8, "unit": "in"},
+        )
+        associated_with_dimensions = client.get("/sheet-designer/game-association")
         removed = client.delete("/sheet-designer/game-association")
 
     assert initial.status_code == 200
@@ -648,7 +655,11 @@ def test_integrated_designer_can_associate_current_sheet_with_a_game(tmp_path: P
         "game_id": game_id,
         "game_title": "Farkle",
         "available": True,
+        "box_dimensions": None,
     }
+    assert associated_with_dimensions.json()["association"]["box_dimensions"] == (
+        "11.6 × 8.7 × 2.8 in"
+    )
     assert removed.status_code == 200
 
 
@@ -686,6 +697,8 @@ def test_game_association_controls_are_integrated_only():
     assert "Associate with a game" in template
     assert "not added to exported FGS files" in template
     assert "data-game-link" in template
+    assert "data-game-box-dimensions" in template
+    assert 'boxDimensions.textContent = boxDimensions.hidden ? ""' in script
     assert 'requestDocument("/sheet-designer/game-association"' in script
     assert "encodeURIComponent(query)" in script
     assert "query === null" in script

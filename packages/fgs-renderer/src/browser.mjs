@@ -1,6 +1,7 @@
 import {createPrintEngine, PROFILE} from "./index.mjs";
 
 export {createPrintEngine, PROFILE};
+export {validateContent,validateFill,newContent,contentControls,patternDefaults,applyPaperTemplate,PATTERNS,APPEARANCES} from "./content.mjs";
 
 // Normalize user-selected PNG/JPEG artwork before placing it in a portable FGS.
 export async function prepareHeaderLogo(file, alt, decorative) {

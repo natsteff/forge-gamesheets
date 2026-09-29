@@ -1,9 +1,11 @@
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb } from "pdf-lib";
+import {validateFill} from "./content.mjs";
+import {contentHeight,drawContent,CONTENT_COMMAND_LIMIT} from "./layout-content.mjs";
 
-// FGS Page Rendering Profile 1.2. All geometry is in PDF points (1/72 inch).
+// FGS Page Rendering Profile 1.3. All geometry is in PDF points (1/72 inch).
 export const PROFILE = Object.freeze({
-  id: "fgs-page-1.2",
+  id: "fgs-page-1.3",
   pages: { letter: [612, 792], a4: [595.28, 841.89] },
   margin: 36, columnGap: 16, rowGap: 14,
   footerReserve: 22, footerSize: 8, footerLineHeight: 11,
@@ -87,21 +89,24 @@ export function createPrintEngine(fontData) {
   }
 
   function layout(document) {
-    if (!document || document.format !== "forge-gamesheets" || !["1.0","1.1","1.2"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0, 1.1 or 1.2");
+    if (!document || document.format !== "forge-gamesheets" || !["1.0","1.1","1.2","1.3"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0–1.3");
+    validateFill(document);
     const page = PROFILE.pages[document.page.size];
     if (!page) throw new Error("Unsupported page size");
     const [width, height] = document.page.orientation === "landscape" ? [page[1], page[0]] : page;
     if (document.footer && document.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
     const commands = [];
+    const push=command=>{if(commands.length>=CONTENT_COMMAND_LIMIT)throw new Error("Page exceeds the 20,000 drawing operation limit.");commands.push(command);};
     const accent = document.theme.accent;
     parseColor(accent);
     const accentText = headingAccent(accent);
-    const line = (x1, y1, x2, y2, color = GRID, thickness = PROFILE.tableLine) => commands.push({type:"line",x1,y1,x2,y2,color,thickness});
-    const rect = (x, y, w, h, color) => commands.push({type:"rect",x,y,w,h,color});
+    const line = (x1, y1, x2, y2, color = GRID, thickness = PROFILE.tableLine) => push({type:"line",x1,y1,x2,y2,color,thickness});
+    const rect = (x, y, w, h, color) => push({type:"rect",x,y,w,h,color});
+    const circle=(x,y,r,color)=>push({type:"circle",x,y,r,color});
     const text = (value, x, y, font = "sans", size = PROFILE.bodySize, color = BLACK, anchor = "start") => {
       const content=String(value);
       for(const character of content) if(!parsed[font].hasGlyphForCodePoint(character.codePointAt(0))) throw new Error(`FGS page rendering profile ${PROFILE.id} cannot render U+${character.codePointAt(0).toString(16).toUpperCase()}; a fallback font is required.`);
-      commands.push({type:"text",value:content,x,y,font,size,color,anchor});
+      push({type:"text",value:content,x,y,font,size,color,anchor});
     };
     const cellText = (value, left, top, cellWidth, cellHeight, options = {}) => {
       const {font="sans",size=PROFILE.bodySize,center=false,marker=false} = options;
@@ -123,7 +128,8 @@ export function createPrintEngine(fontData) {
       const rowHeights = labelLines.map((lines, index) => Math.max(PROFILE.tableRowHeight, lines.length * 10 + 6 + (calculated(labels[index]) ? 7 : 0)));
       return {labels,labelWidth,columnWidth,headerHeight,rowHeights,height:PROFILE.tableTitleHeight + headerHeight + rowHeights.reduce((a,b)=>a+b,0)};
     };
-    const measure = (block, blockWidth) => {
+    const measure = (block, blockWidth, available) => {
+      if (["tracker","paper_pattern"].includes(block.type)) return contentHeight(block,blockWidth,available);
       if (block.type === "header") return block.subtitle ? 54 : 40;
       if (block.type === "score_table") return scoreGeometry(block, blockWidth).height;
       if (block.type === "notes") return 27 + block.lines * 24;
@@ -154,6 +160,11 @@ export function createPrintEngine(fontData) {
         return;
       }
       if (widthOf(block.title,"serif",PROFILE.sectionSize)>blockWidth) throw new Error(`Section heading "${block.title}" is too wide for this layout.`);
+      if (["tracker","paper_pattern"].includes(block.type)) {
+        if(block.title)text(block.title,x,y+14,"serif",PROFILE.sectionSize,accentText);
+        drawContent(block,x,y,blockWidth,contentHeight(block,blockWidth,height-PROFILE.margin-(document.footer?PROFILE.footerReserve:0)-y),{line,text,circle,widthOf});
+        return;
+      }
       text(block.title,x,y+14,"serif",PROFILE.sectionSize,accentText);
       line(x,y+21,x+blockWidth,y+21,accent,PROFILE.accentLine);
       if (block.type === "score_table") {
@@ -188,7 +199,7 @@ export function createPrintEngine(fontData) {
       const columns=row.blocks.length;
       if(columns!==1&&columns!==2) throw new Error("FGS rows must have one or two blocks");
       const blockWidth=(width-2*PROFILE.margin-(columns===2?PROFILE.columnGap:0))/columns;
-      const blockHeight=Math.max(...row.blocks.map((block)=>measure(block,blockWidth)));
+      const blockHeight=Math.max(...row.blocks.map((block)=>measure(block,blockWidth,height-PROFILE.margin-(document.footer?PROFILE.footerReserve:0)-cursor)));
       if(cursor+blockHeight>height-PROFILE.margin-(document.footer?PROFILE.footerReserve:0)+0.001) return {profile:PROFILE.id,width,height,fits:false,overflow:row.blocks[0].title,commands,blockBounds};
       row.blocks.forEach((block,index)=>{
         const x=PROFILE.margin+index*(blockWidth+PROFILE.columnGap);
@@ -213,6 +224,7 @@ export function createPrintEngine(fontData) {
     for(const command of result.commands) {
       if(command.type==="rect") parts.push(`<rect x="${numbers(command.x)}" y="${numbers(command.y)}" width="${numbers(command.w)}" height="${numbers(command.h)}" fill="${command.color}"/>`);
       else if(command.type==="line") parts.push(`<path d="M${numbers(command.x1)} ${numbers(command.y1)}L${numbers(command.x2)} ${numbers(command.y2)}" stroke="${command.color}" stroke-width="${command.thickness}" fill="none"/>`);
+      else if(command.type==="circle")parts.push(`<circle cx="${numbers(command.x)}" cy="${numbers(command.y)}" r="${command.r}" fill="${command.color}"/>`);
       else if(command.type==="image") parts.push(`<image x="${numbers(command.x)}" y="${numbers(command.y)}" width="${numbers(command.w)}" height="${numbers(command.h)}" href="data:image/png;base64,${command.data}" ${command.decorative?'aria-hidden="true"':`role="img" aria-label="${escapeXml(command.alt)}"`}/>`);
       else parts.push(`<text x="${numbers(command.x)}" y="${numbers(command.y)}" text-anchor="${command.anchor}" fill="${command.color}" font-family="FGS ${command.font}" font-size="${command.size}">${escapeXml(command.value)}</text>`);
     }
@@ -230,6 +242,7 @@ export function createPrintEngine(fontData) {
     for(const command of result.commands) {
       if(command.type==="rect") page.drawRectangle({x:command.x,y:result.height-command.y-command.h,width:command.w,height:command.h,color:parseColor(command.color)});
       else if(command.type==="line") page.drawLine({start:{x:command.x1,y:result.height-command.y1},end:{x:command.x2,y:result.height-command.y2},thickness:command.thickness,color:parseColor(command.color)});
+      else if(command.type==="circle")page.drawCircle({x:command.x,y:result.height-command.y,size:command.r,color:parseColor(command.color)});
       else if(command.type==="image") {
         const bytes=Uint8Array.from(atob(command.data),ch=>ch.charCodeAt(0));
         const logo=await pdf.embedPng(bytes);
