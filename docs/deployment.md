@@ -26,6 +26,21 @@ docker compose version
 git --version
 ```
 
+## CPU architecture
+
+The updated publishing workflow targets Linux AMD64 and ARM64 under the same
+image tag. Once that workflow has successfully published a tag, Docker selects
+the matching variant automatically on Intel/AMD hosts, Apple Silicon Docker
+Desktop, and ARM64 Linux hosts. Keep `compose.yml` architecture-neutral.
+
+Older AMD64-only tags can run through emulation on Apple Silicon, but may report
+an architecture mismatch warning. Explicitly forcing `linux/amd64` only selects
+emulation; it does not add native support. A local `docker compose up -d --build
+app` builds local source for the host architecture, not the published release.
+After multi-platform publication, use the normal pull/update procedure and
+verify the running image architecture; native ARM64 support is not established
+merely by a successful local build.
+
 ## Choose storage locations
 
 Forge uses two persistent host directories:

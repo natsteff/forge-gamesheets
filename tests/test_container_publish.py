@@ -69,16 +69,18 @@ def test_publish_workflow_verifies_before_registry_login_and_push() -> None:
     registry_login = workflow.index("Sign in to GitHub Container Registry")
     renderer_audit = workflow.index("Audit renderer dependencies")
     blocking_scan = workflow.index("Block fixed critical container vulnerabilities")
-    publish = workflow.index("Publish the verified image")
+    publish = workflow.index("Publish the verified images")
     assert renderer_audit < blocking_scan < registry_login < publish
-    assert workflow.count("docker/build-push-action@v6") == 1
+    assert workflow.count("docker/build-push-action@v6") == 2
+    assert workflow.index("Block ARM64 fixed critical") < registry_login
+    assert workflow.index("Smoke-test both runtime variants") < registry_login
     assert "docker push" in workflow[publish:]
 
 
 def test_both_container_scans_use_the_verified_release_tag() -> None:
     workflow = (PROJECT_ROOT / ".github/workflows/publish-container.yml").read_text()
     # Upstream publishes this release with a v prefix; the bare tag does not exist.
-    assert workflow.count("uses: aquasecurity/trivy-action@v0.36.0") == 2
+    assert workflow.count("uses: aquasecurity/trivy-action@v0.36.0") == 4
     assert "aquasecurity/trivy-action@0.36.0" not in workflow
 
 
@@ -86,6 +88,57 @@ def test_example_configuration_selects_published_image_channel() -> None:
     example_environment = (PROJECT_ROOT / ".env.example").read_text()
 
     assert "FORGE_GAMESHEETS_IMAGE_TAG=main" in example_environment
+
+
+def test_publish_verifies_and_combines_both_platforms_without_rebuilding() -> None:
+    workflow = (PROJECT_ROOT / ".github/workflows/publish-container.yml").read_text()
+    for arch in ("amd64", "arm64"):
+        assert f"platforms: linux/{arch}" in workflow
+        assert (
+            workflow.count(f"image-ref: forge-gamesheets:security-review-{arch}") == 2
+        )
+        assert f"scope={arch}" in workflow
+    publish = workflow.split("Publish the verified images", 1)[1]
+    assert "imagetools create" in publish
+    assert 'sources+=("${IMAGE_NAME}@${digest}")' in publish
+    assert "--manifest release-manifest.json" in publish
+    assert "docker build" not in publish.replace("docker buildx imagetools", "")
+    assert "platform:" not in (PROJECT_ROOT / "compose.yml").read_text()
+    smoke = (PROJECT_ROOT / "scripts/check_container_variants.py").read_text()
+    for required in (
+        '"--network=none"',
+        '"--read-only"',
+        '"--cap-drop=ALL"',
+        '"--tmpfs"',
+        "render_pdf(expedition_document(), output)",
+        "pdf[0].get_pixmap()",
+        "finally:",
+        'docker("rm", "--force", container)',
+    ):
+        assert required in smoke
+
+
+@pytest.mark.parametrize(
+    "architectures", [[], ["amd64"], ["arm64"], ["amd64", "amd64"], ["amd64", "arm64"]]
+)
+def test_release_manifest_requires_both_architectures(architectures) -> None:
+    import runpy
+
+    checker = runpy.run_path(str(PROJECT_ROOT / "scripts/check_container_variants.py"))
+    manifest = {
+        "manifests": [
+            {
+                "platform": {"os": "linux", "architecture": arch},
+                "digest": "sha256:" + "a" * 64,
+            }
+            for arch in architectures
+        ]
+    }
+    if architectures == ["amd64", "arm64"]:
+        checker["check_manifest"](manifest)
+    else:
+        with pytest.raises(ValueError):
+            checker["check_manifest"](manifest)
 
 
 def test_published_runtime_excludes_development_stage() -> None:
@@ -117,8 +170,7 @@ def test_runtime_uses_supported_node_lts_instead_of_debian_node20() -> None:
     dockerfile = (PROJECT_ROOT / "Dockerfile").read_text()
     assert "FROM node:24-trixie-slim AS node-runtime" in dockerfile
     assert (
-        "COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node"
-        in dockerfile
+        "COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node" in dockerfile
     )
     assert "COPY --from=node-runtime /usr/local/LICENSE" in dockerfile
     assert "RUN node /usr/local/lib/forge/check-node-runtime.mjs" in dockerfile

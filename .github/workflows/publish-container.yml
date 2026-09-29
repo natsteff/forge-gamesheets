@@ -66,6 +66,11 @@ jobs:
           echo "revision=${GITHUB_SHA::7}" >> "${GITHUB_OUTPUT}"
           echo "build_date=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> "${GITHUB_OUTPUT}"
 
+      - name: Set up ARM64 emulation for build and verification
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -79,25 +84,54 @@ jobs:
             type=sha,format=short,prefix=sha-
             type=ref,event=tag
 
-      - name: Build image for security review
+      - name: Build AMD64 image for security review
         uses: docker/build-push-action@v6
         with:
           context: .
           target: runtime
+          platforms: linux/amd64
           load: true
-          tags: forge-gamesheets:security-review
+          tags: forge-gamesheets:security-review-amd64
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
             FORGE_GAMESHEETS_VERSION=${{ steps.identity.outputs.version }}
             FORGE_GAMESHEETS_REVISION=${{ steps.identity.outputs.revision }}
             FORGE_GAMESHEETS_BUILD_DATE=${{ steps.identity.outputs.build_date }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=amd64
+          cache-to: type=gha,mode=max,scope=amd64
+
+      - name: Build ARM64 image for security review
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          platforms: linux/arm64
+          load: true
+          tags: forge-gamesheets:security-review-arm64
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            FORGE_GAMESHEETS_VERSION=${{ steps.identity.outputs.version }}
+            FORGE_GAMESHEETS_REVISION=${{ steps.identity.outputs.revision }}
+            FORGE_GAMESHEETS_BUILD_DATE=${{ steps.identity.outputs.build_date }}
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,mode=max,scope=arm64
+
+      - name: Smoke-test both runtime variants
+        run: python scripts/check_container_variants.py
 
       - name: Report high and critical container vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: forge-gamesheets:security-review
+          image-ref: forge-gamesheets:security-review-amd64
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: "0"
+
+      - name: Report ARM64 high and critical container vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: forge-gamesheets:security-review-arm64
           format: table
           severity: HIGH,CRITICAL
           ignore-unfixed: false
@@ -106,13 +140,25 @@ jobs:
       - name: Record copied Node runtime versions
         run: |
           echo "### Renderer runtime" >> "$GITHUB_STEP_SUMMARY"
-          docker run --rm forge-gamesheets:security-review \
-            node /usr/local/lib/forge/check-node-runtime.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+          for arch in amd64 arm64; do
+            echo "#### linux/${arch}" >> "$GITHUB_STEP_SUMMARY"
+            docker run --rm --platform "linux/${arch}" "forge-gamesheets:security-review-${arch}" \
+              node /usr/local/lib/forge/check-node-runtime.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+          done
 
       - name: Block fixed critical container vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: forge-gamesheets:security-review
+          image-ref: forge-gamesheets:security-review-amd64
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Block ARM64 fixed critical container vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: forge-gamesheets:security-review-arm64
           format: table
           severity: CRITICAL
           ignore-unfixed: true
@@ -140,19 +186,32 @@ jobs:
           fi
           echo "publish_main=${publish_main}" >> "${GITHUB_OUTPUT}"
 
-      - name: Publish the verified image
+      - name: Publish the verified images as one multi-platform tag
         shell: bash
         env:
           IMAGE_TAGS: ${{ steps.metadata.outputs.tags }}
           PUBLISH_MAIN: ${{ steps.main-guard.outputs.publish_main }}
+          IMAGE_NAME: ghcr.io/${{ github.repository }}
         run: |
+          set -euo pipefail
+          # Run-specific staging tags avoid concurrent runs changing our inputs.
+          sources=()
+          for arch in amd64 arm64; do
+            staging="${IMAGE_NAME}:candidate-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${arch}"
+            docker tag "forge-gamesheets:security-review-${arch}" "${staging}"
+            docker push "${staging}"
+            digest="$(docker buildx imagetools inspect "${staging}" --format '{{.Manifest.Digest}}')"
+            [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+            sources+=("${IMAGE_NAME}@${digest}")
+          done
           while IFS= read -r tag; do
             if [[ -n "${tag}" ]]; then
               if [[ "${tag}" == *":main" && "${PUBLISH_MAIN}" != "true" ]]; then
                 echo "Skipping protected tag ${tag}"
                 continue
               fi
-              docker tag forge-gamesheets:security-review "${tag}"
-              docker push "${tag}"
+              docker buildx imagetools create --tag "${tag}" "${sources[@]}"
+              docker buildx imagetools inspect "${tag}" --raw > release-manifest.json
+              python scripts/check_container_variants.py --manifest release-manifest.json
             fi
           done <<< "${IMAGE_TAGS}"

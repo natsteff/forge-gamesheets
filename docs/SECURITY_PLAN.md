@@ -42,6 +42,15 @@ publication. High and unfixed critical findings remain visible and require
 owner review; a non-blocking scanner result is not automatic acceptance. Record
 exceptions explicitly rather than maintaining an unexplained ignore list.
 
+The approved multi-architecture release workflow checks both `linux/amd64` and
+`linux/arm64` runtime candidates before registry login. Each candidate receives
+startup/health, native image-library and FGS PDF smoke checks plus both scan
+policies. ARM64 verification on the AMD64 CI runner uses QEMU; it does not replace
+owner validation on native ARM64 hardware. The final tag combines the exact
+verified images by registry digest, without a second build. A failed variant
+blocks publication of both. Run-specific candidate tags may remain in GHCR for
+traceability; they are not the supported installation channel.
+
 Reference: [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/).
 
 The latest release-focused review is
