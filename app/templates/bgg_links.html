@@ -1,6 +1,6 @@
 {% if bgg_association and bgg_association.bgg_id %}
   <a class="secondary-button" href="{{ bgg_association.game_url }}" target="_blank" rel="noopener noreferrer">View on BGG</a>
-  <a class="secondary-button" href="{{ bgg_association.files_url }}" target="_blank" rel="noopener noreferrer">BGG Files</a>
+  {% if bgg_association.files_url %}<a class="secondary-button" href="{{ bgg_association.files_url }}" target="_blank" rel="noopener noreferrer">BGG Files</a>{% else %}<a class="secondary-button" href="{{ bgg_association.game_url }}" target="_blank" rel="noopener noreferrer">Open BGG to select Files</a>{% endif %}
 {% else %}
   <a class="secondary-button" href="https://boardgamegeek.com/geeksearch.php?{{ {'action': 'search', 'q': game.title, 'objecttype': 'boardgame'}|urlencode }}" target="_blank" rel="noopener noreferrer">Open BGG website search</a>
 {% endif %}

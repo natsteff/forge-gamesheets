@@ -746,6 +746,48 @@ MIGRATIONS += (
 )
 
 
+MIGRATIONS += (
+    Migration(
+        version=30,
+        name="add_livesheet_trackers",
+        statements=(
+            """CREATE TABLE livesheet_tracker_values (
+                session_id TEXT NOT NULL REFERENCES livesheet_sessions(id)
+                    ON DELETE CASCADE,
+                block_id TEXT NOT NULL,
+                value TEXT NOT NULL,
+                PRIMARY KEY (session_id, block_id)
+            )""",
+        ),
+    ),
+    Migration(
+        version=31,
+        name="add_game_box_dimensions",
+        statements=(
+            """CREATE TABLE game_box_dimensions (
+                game_id INTEGER PRIMARY KEY REFERENCES games(id) ON DELETE CASCADE,
+                length REAL NOT NULL CHECK(length>0 AND length<=1.7976931348623157e308),
+                width REAL NOT NULL CHECK(width>0 AND width<=1.7976931348623157e308),
+                depth REAL NOT NULL CHECK(depth>0 AND depth<=1.7976931348623157e308),
+                unit TEXT NOT NULL CHECK(unit IN ('in','cm'))
+            )""",
+        ),
+    ),
+    Migration(
+        version=32,
+        name="add_game_bgg_editions",
+        statements=(
+            """CREATE TABLE game_bgg_editions (
+            game_id INTEGER PRIMARY KEY REFERENCES games(id) ON DELETE CASCADE,
+            version_id INTEGER NOT NULL CHECK(version_id BETWEEN 1 AND 9999999999),
+            label TEXT NOT NULL DEFAULT '',
+            parent_bgg_id INTEGER CHECK(parent_bgg_id BETWEEN 1 AND 9999999999)
+        )""",
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Database:
     """A SQLite database stored beneath the configured data directory."""

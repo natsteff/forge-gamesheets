@@ -42,9 +42,13 @@ class BggAssociation:
         )
 
     @property
-    def files_url(self) -> str:
-        """Return the public Files page without requiring a saved display slug."""
-        return f"{self.game_url}/files"
+    def files_url(self) -> str | None:
+        """BGG subpages require the canonical game-name segment."""
+        return f"{self.game_url}/files" if self.url_slug else None
+
+    @property
+    def versions_url(self) -> str | None:
+        return f"{self.game_url}/versions" if self.url_slug else None
 
 
 def get_bgg_association(database: Database, game_id: int) -> BggAssociation | None:

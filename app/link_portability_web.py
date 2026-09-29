@@ -66,6 +66,7 @@ async def manifest_preview(
             policy,
             "Forge metadata export",
             artwork=package.artwork,
+            game_metadata=package.game_metadata,
             upload=payload,
         )
     except ValueError as error:
@@ -125,6 +126,7 @@ def apply(request: Request, token: str = Form(...)):
         policy,
         package.artwork,
         request.app.state.settings.data_path,
+        game_metadata=package.game_metadata,
     )
     record_activity(
         request.app.state.database,
@@ -140,8 +142,16 @@ def apply(request: Request, token: str = Form(...)):
     )
 
 
-def _preview(request, entries, policy, source, *, artwork=(), upload=None):
-    result = preview_import(request.app.state.database, entries, policy, artwork)
+def _preview(
+    request, entries, policy, source, *, artwork=(), game_metadata=(), upload=None
+):
+    result = preview_import(
+        request.app.state.database,
+        entries,
+        policy,
+        artwork,
+        game_metadata=game_metadata,
+    )
     token = uuid4().hex
     root = _pending_root(request)
     root.mkdir(parents=True, exist_ok=True)

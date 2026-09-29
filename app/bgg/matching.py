@@ -100,6 +100,7 @@ def enrich_game(
                     image_url=details.image_url,
                     thumbnail_url=details.thumbnail_url,
                     last_lookup_at=looked_up_at,
+                    url_slug=details.url_slug,
                 )
     except BggApiError as error:
         association = _failed_association(

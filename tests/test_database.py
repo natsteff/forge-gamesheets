@@ -52,6 +52,8 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "reprint_jobs",
         "reprint_job_items",
         "game_resource_links",
+        "game_box_dimensions",
+        "game_bgg_editions",
         "generated_reprints",
         "activity_events",
         "livesheet_sessions",
@@ -59,6 +61,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "livesheet_scores",
         "livesheet_checklist_values",
         "livesheet_note_values",
+        "livesheet_tracker_values",
         "livesheet_tombstones",
         "gamesheet_game_associations",
     } <= tables
@@ -92,6 +95,9 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (27, "add_gamesheet_game_associations"),
         (28, "refresh_default_footer_tagline"),
         (29, "add_global_links"),
+        (30, "add_livesheet_trackers"),
+        (31, "add_game_box_dimensions"),
+        (32, "add_game_bgg_editions"),
     ]
     assert [row["name"] for row in categories] == [
         "Board",
@@ -122,7 +128,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 29
+    assert count == 32
 
 
 def test_tagline_migration_preserves_custom_footer(database: Database) -> None:

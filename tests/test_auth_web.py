@@ -205,12 +205,14 @@ def test_manual_bgg_without_token(secured):
     assert "Open BGG website search" in page.text
     assert "q=First" in page.text
     edit_page = client.get("/games/1/edit").text
-    assert "(eg. https://boardgamegeek.com/boardgame/gameID/game-name)" in edit_page
+    assert "Example: https://boardgamegeek.com/boardgame/game-id/game-name" in edit_page
     assert (
         'name="bgg_reference" type="url" maxlength="1000" required value=""'
         in edit_page
     )
-    assert 'placeholder="https://boardgamegeek.com' not in edit_page
+    game_url_input = re.search(r'<input id="bgg-reference"[^>]*>', edit_page).group()
+    assert 'placeholder="Paste a BGG game URL"' in game_url_input
+    assert 'aria-describedby="bgg-reference-example"' in game_url_input
     result = client.post(
         "/games/1/bgg/manual",
         data={
@@ -244,7 +246,10 @@ def test_manual_bgg_without_token(secured):
             'class="status-banner warning" id="bgg-reference-error" role="alert"'
             in response.text
         )
-        assert 'aria-describedby="bgg-reference-error"' in response.text
+        assert (
+            'aria-describedby="bgg-reference-example bgg-reference-error"'
+            in response.text
+        )
         assert "BGG URL not saved." in response.text
     for bad in [
         "53412",

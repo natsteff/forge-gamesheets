@@ -67,6 +67,13 @@ match search, and association removal. Refresh looks up the already selected BGG
 ID and cannot silently switch the association. These explicit actions do not run
 during a library scan. The browser returns to the integration section after an
 action so results and errors remain visible.
+Successful metadata lookups also attempt a separate unauthenticated inspection
+of the main game's canonical redirect to capture its URL slug. This bounded
+request never forwards the API token, follows redirects or reads HTML. If it
+fails, API metadata can still be saved; missing-slug Files/Versions links fall
+back to the main game page. Refresh repairs older associations when resolution
+succeeds. An explicit **Resolve BGG page link** action is also available without
+an API token. No page view or library scan makes these requests.
 
 Do not use private or undocumented BGG APIs. API-derived data must not be used
 to train an AI or language model. A commercial deployment must obtain whatever

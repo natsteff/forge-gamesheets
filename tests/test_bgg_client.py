@@ -16,6 +16,7 @@ from app.bgg.client import (
     BggRateLimitError,
     BggResponseError,
     BggUnavailableError,
+    resolve_game_slug,
 )
 
 
@@ -31,6 +32,72 @@ class FakeResponse:
 
     def read(self, size: int = -1) -> bytes:
         return self.content[:size] if size >= 0 else self.content
+
+
+def test_game_redirect_is_public_bounded_and_preserves_api_metadata():
+    seen = []
+
+    def opener(request, *, timeout):
+        seen.append(request)
+        if "/xmlapi2/" in request.full_url:
+            assert request.get_header("Authorization") == "Bearer token"
+            return FakeResponse(
+                b"<items><item id='822'><name value='Carcassonne'/></item></items>"
+            )
+        assert request.full_url == "https://boardgamegeek.com/boardgame/822"
+        assert request.get_header("Authorization") is None
+        assert timeout == 3.0
+        raise HTTPError(
+            request.full_url,
+            301,
+            "Moved",
+            {"Location": "/boardgame/822/carcassonne"},
+            BytesIO(),
+        )
+
+    game = BggClient("token", opener=opener).get_game(822)
+    assert game.url_slug == "carcassonne"
+    assert game.name == "Carcassonne"
+    assert len(seen) == 2
+
+
+@pytest.mark.parametrize(
+    "location",
+    [
+        "https://evil.example/boardgame/822/name",
+        "http://boardgamegeek.com/boardgame/822/name",
+        "https://user@boardgamegeek.com/boardgame/822/name",
+        "https://boardgamegeek.com:443/boardgame/822/name",
+        "/boardgame/999/name",
+        "/boardgame/822/files",
+        "/boardgame/822/name/versions",
+        "/boardgame/822/name?x=1",
+        "https://[broken",
+        "x" * 1001,
+    ],
+)
+def test_game_redirect_rejects_unsafe_or_wrong_destination_without_following(location):
+    calls = []
+
+    def opener(request, *, timeout):
+        calls.append(request)
+        raise HTTPError(
+            request.full_url, 302, "Moved", {"Location": location}, BytesIO()
+        )
+
+    assert resolve_game_slug(822, opener=opener) is None
+    assert len(calls) == 1
+
+
+def test_game_redirect_failure_is_optional():
+    def opener(*args, **kwargs):
+        raise URLError("offline")
+
+    assert resolve_game_slug(822, opener=opener) is None
+    assert (
+        resolve_game_slug(822, opener=lambda *a, **k: FakeResponse(b"not inspected"))
+        is None
+    )
 
 
 def test_search_uses_authorization_and_parses_candidates() -> None:

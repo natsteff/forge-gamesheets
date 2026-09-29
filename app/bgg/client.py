@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from http.client import HTTPResponse
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from xml.etree import ElementTree
 
@@ -51,6 +52,7 @@ class BggGame:
     year_published: int | None
     image_url: str | None
     thumbnail_url: str | None
+    url_slug: str | None = None
 
 
 Opener = Callable[..., HTTPResponse]
@@ -71,6 +73,55 @@ class _RejectRedirects(HTTPRedirectHandler):
 def _open_api_request(request: Request, *, timeout: float) -> HTTPResponse:
     # Use our own opener, not a process-global opener that may follow redirects.
     return build_opener(_RejectRedirects()).open(request, timeout=timeout)
+
+
+def resolve_game_slug(bgg_id: int, *, opener: Opener = _open_api_request) -> str | None:
+    """Inspect one public redirect, without tokens, following redirects or HTML."""
+    if (
+        isinstance(bgg_id, bool)
+        or not isinstance(bgg_id, int)
+        or not 1 <= bgg_id <= 9999999999
+    ):
+        raise ValueError("Invalid BoardGameGeek ID.")
+    url = f"https://boardgamegeek.com/boardgame/{bgg_id}"
+    request = Request(url, headers={"User-Agent": "Forge-GameSheets"})
+    try:
+        with opener(request, timeout=3.0):
+            # No canonical redirect: do not scrape HTML or guess a slug.
+            return None
+    except HTTPError as error:
+        location = error.headers.get("Location", "") if error.headers else ""
+        status = error.code
+        error.close()
+        if status not in {301, 302, 303, 307, 308} or len(location) > 1000:
+            return None
+        try:
+            parsed = urlsplit(urljoin(url, location))
+        except ValueError:
+            return None
+        if (
+            parsed.scheme != "https"
+            or parsed.netloc.lower()
+            not in {"boardgamegeek.com", "www.boardgamegeek.com"}
+            or parsed.query
+            or parsed.fragment
+        ):
+            return None
+        match = re.fullmatch(
+            rf"/boardgame/{bgg_id}/([A-Za-z0-9_-]{{1,200}})/?", parsed.path
+        )
+        if not match or match[1].lower() in {
+            "files",
+            "versions",
+            "images",
+            "forums",
+            "videos",
+            "ratings",
+        }:
+            return None
+        return match[1]
+    except (TimeoutError, URLError, OSError, ValueError):
+        return None
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +179,7 @@ class BggClient:
             year_published=_positive_int(_attribute(item, "yearpublished")),
             image_url=_text(item.find("image")),
             thumbnail_url=_text(item.find("thumbnail")),
+            url_slug=resolve_game_slug(returned_id, opener=self.opener),
         )
 
     def _request_xml(self, endpoint: str, parameters: dict[str, str]):

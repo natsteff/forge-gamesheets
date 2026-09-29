@@ -14,14 +14,16 @@ from urllib.parse import urlsplit
 
 from PIL import Image, UnidentifiedImageError
 
+from app.bgg.edition import BggEdition, write_bgg_edition
 from app.database import Database
 from app.library.artwork import save_uploaded_artwork
+from app.library.box_dimensions import BoxDimensions, write_box_dimensions
 from app.library.game_links import _validate_link
 from app.library.processing_limits import validate_image_pixels
 from app.library.repository import save_game_artwork_override
 
 FORMAT = "forge-gamesheets-metadata"
-VERSION = "1.0"
+VERSION = "1.1"
 KINDS = {"official", "alternate", "bgg"}
 LABELS = {
     "official": "Official resource",
@@ -52,6 +54,7 @@ class ArtworkImport:
 class MetadataImport:
     entries: tuple[dict, ...]
     artwork: tuple[ArtworkImport, ...] = ()
+    game_metadata: tuple[dict, ...] = ()
 
 
 def export_links(database: Database, data_path: Path | None = None) -> bytes:
@@ -72,6 +75,32 @@ def export_links(database: Database, data_path: Path | None = None) -> bytes:
             FROM games g JOIN game_artwork_overrides a ON a.game_id=g.id
             ORDER BY g.relative_path
         """).fetchall()
+        dimension_rows = connection.execute("""
+            SELECT g.relative_path AS game_directory, d.length,d.width,d.depth,d.unit
+            FROM games g JOIN game_box_dimensions d ON d.game_id=g.id
+            ORDER BY g.relative_path
+        """).fetchall()
+        edition_rows = connection.execute("""
+            SELECT g.relative_path AS game_directory,
+                   e.version_id,e.label,e.parent_bgg_id
+            FROM games g JOIN game_bgg_editions e ON e.game_id=g.id
+            ORDER BY g.relative_path
+        """).fetchall()
+    game_records = {}
+    for row in dimension_rows:
+        game_records[row["game_directory"]] = {
+            "game_directory": row["game_directory"],
+            "box_dimensions": {
+                key: row[key] for key in ("length", "width", "depth", "unit")
+            },
+        }
+    for row in edition_rows:
+        record = game_records.setdefault(
+            row["game_directory"], {"game_directory": row["game_directory"]}
+        )
+        record["bgg_edition"] = {
+            key: row[key] for key in ("version_id", "label", "parent_bgg_id")
+        }
     entries = [dict(row) for row in rows]
     artwork_records = []
     artwork_files = []
@@ -96,6 +125,7 @@ def export_links(database: Database, data_path: Path | None = None) -> bytes:
         "format_version": VERSION,
         "entries": entries,
         "artwork": artwork_records,
+        "games": [game_records[name] for name in sorted(game_records)],
     }
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -119,11 +149,15 @@ def parse_export(payload: bytes) -> MetadataImport:
     if len(payload) > MAX_EXPORT_BYTES:
         raise ValueError("The metadata export is too large.")
     if not zipfile.is_zipfile(io.BytesIO(payload)):
-        return MetadataImport(parse_manifest(payload))
+        value = _manifest_value(payload)
+        return MetadataImport(
+            _manifest_entries(value), game_metadata=_game_metadata(value)
+        )
     try:
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             value = _manifest_value(archive.read("forge-metadata-manifest.json"))
             entries = _manifest_entries(value)
+            game_metadata = _game_metadata(value)
             artwork = []
             total_artwork_bytes = 0
             for item in value.get("artwork", []):
@@ -151,11 +185,13 @@ def parse_export(payload: bytes) -> MetadataImport:
     identities = [item.game_directory for item in artwork]
     if len(identities) != len(set(identities)):
         raise ValueError("The metadata export contains duplicate artwork entries.")
-    return MetadataImport(entries, tuple(artwork))
+    return MetadataImport(entries, tuple(artwork), game_metadata)
 
 
 def parse_manifest(payload: bytes) -> tuple[dict, ...]:
-    return _manifest_entries(_manifest_value(payload))
+    value = _manifest_value(payload)
+    _game_metadata(value)
+    return _manifest_entries(value)
 
 
 def _manifest_value(payload: bytes) -> dict:
@@ -168,17 +204,45 @@ def _manifest_value(payload: bytes) -> dict:
     if (
         not isinstance(value, dict)
         or value.get("format") != FORMAT
-        or value.get("format_version") != VERSION
-        or set(value)
-        not in (
-            {"format", "format_version", "entries"},
-            {"format", "format_version", "entries", "artwork"},
-        )
+        or value.get("format_version") not in ("1.0", VERSION)
+        or not {"format", "format_version", "entries"} <= set(value)
+        or set(value) - {"format", "format_version", "entries", "artwork", "games"}
+        or (value.get("format_version") == "1.0" and "games" in value)
     ):
         raise ValueError("The link manifest format or version is unsupported.")
     if not isinstance(value.get("artwork", []), list):
         raise ValueError("The artwork manifest entries are invalid.")
     return value
+
+
+def _game_metadata(value):
+    items = value.get("games", [])
+    if not isinstance(items, list) or len(items) > 10000:
+        raise ValueError("Game metadata entries are invalid.")
+    result = []
+    seen = set()
+    for item in items:
+        if (
+            not isinstance(item, dict)
+            or "game_directory" not in item
+            or not set(item) & {"box_dimensions", "bgg_edition"}
+            or set(item) - {"game_directory", "box_dimensions", "bgg_edition"}
+            or not _valid_game_directory(item["game_directory"])
+        ):
+            raise ValueError("A game metadata entry is invalid.")
+        if item["game_directory"] in seen:
+            raise ValueError("Duplicate game metadata entry.")
+        seen.add(item["game_directory"])
+        record = {"game_directory": item["game_directory"]}
+        for key, model in (
+            ("box_dimensions", BoxDimensions),
+            ("bgg_edition", BggEdition),
+        ):
+            if key in item:
+                metadata = model.from_dict(item[key])
+                record[key] = metadata.to_dict() if metadata else None
+        result.append(record)
+    return tuple(result)
 
 
 def _manifest_entries(value: dict) -> tuple[dict, ...]:
@@ -197,9 +261,12 @@ def preview_import(
     entries: tuple[dict, ...],
     policy: str,
     artwork: tuple[ArtworkImport, ...] = (),
+    *,
+    game_metadata: tuple[dict, ...] = (),
 ) -> LinkImportPreview:
     if policy not in {"empty", "replace"}:
         raise ValueError("Invalid import policy.")
+    game_metadata = _game_metadata({"games": list(game_metadata)})
     with database.connect() as connection:
         games = {
             row["relative_path"]: row
@@ -229,6 +296,24 @@ def preview_import(
                 "ON a.game_id=g.id"
             )
         }
+        current_dimensions = {
+            row["relative_path"]: {
+                key: row[key] for key in ("length", "width", "depth", "unit")
+            }
+            for row in connection.execute(
+                "SELECT g.relative_path,d.length,d.width,d.depth,d.unit "
+                "FROM games g JOIN game_box_dimensions d ON d.game_id=g.id"
+            )
+        }
+        current_editions = {
+            row["relative_path"]: {
+                key: row[key] for key in ("version_id", "label", "parent_bgg_id")
+            }
+            for row in connection.execute(
+                "SELECT g.relative_path,e.version_id,e.label,e.parent_bgg_id "
+                "FROM games g JOIN game_bgg_editions e ON e.game_id=g.id"
+            )
+        }
     add = replace = unchanged = skipped = 0
     for item in entries:
         if item["game_directory"] not in games:
@@ -253,6 +338,25 @@ def preview_import(
             replace += 1
         else:
             skipped += 1
+    for item in game_metadata:
+        name = item["game_directory"]
+        for key, current_values in (
+            ("box_dimensions", current_dimensions),
+            ("bgg_edition", current_editions),
+        ):
+            if key not in item:
+                continue
+            existing = current_values.get(name)
+            if name not in games:
+                skipped += 1
+            elif existing == item[key]:
+                unchanged += 1
+            elif existing is None:
+                add += 1
+            elif policy == "replace":
+                replace += 1
+            else:
+                skipped += 1
     return LinkImportPreview(entries, add, replace, unchanged, skipped)
 
 
@@ -262,8 +366,13 @@ def apply_import(
     policy: str,
     artwork: tuple[ArtworkImport, ...] = (),
     data_path: Path | None = None,
+    *,
+    game_metadata: tuple[dict, ...] = (),
 ) -> LinkImportPreview:
-    preview = preview_import(database, entries, policy, artwork)
+    game_metadata = _game_metadata({"games": list(game_metadata)})
+    preview = preview_import(
+        database, entries, policy, artwork, game_metadata=game_metadata
+    )
     with database.connect() as connection:
         connection.execute("BEGIN IMMEDIATE")
         try:
@@ -316,6 +425,27 @@ def apply_import(
                             0 if item["kind"] == "official" else 1,
                         ),
                     )
+            for item in game_metadata:
+                game = games.get(item["game_directory"])
+                if game is None:
+                    continue
+                for key, table, model, writer in (
+                    (
+                        "box_dimensions",
+                        "game_box_dimensions",
+                        BoxDimensions,
+                        write_box_dimensions,
+                    ),
+                    ("bgg_edition", "game_bgg_editions", BggEdition, write_bgg_edition),
+                ):
+                    if key not in item:
+                        continue
+                    exists = connection.execute(
+                        f"SELECT 1 FROM {table} WHERE game_id=?", (game["id"],)
+                    ).fetchone()
+                    if exists and policy == "empty":
+                        continue
+                    writer(connection, game["id"], model.from_dict(item[key]))
             connection.commit()
         except Exception:
             connection.rollback()

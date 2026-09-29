@@ -337,7 +337,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=10" in response.text
-    assert "/static/styles.css?v=57" in response.text
+    assert "/static/styles.css?v=58" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text
@@ -529,7 +529,8 @@ def test_operator_can_search_select_change_and_unlink_bgg_game(
     assert "Remove BGG association" in linked_page.text
     assert "Refresh BGG information" in linked_page.text
     assert "Find a different match" in linked_page.text
-    assert "boardgame/822/files" in linked_page.text
+    assert "Open BGG to select Files" in linked_page.text
+    assert "boardgame/822/files" not in linked_page.text
     assert "Find BoardGameGeek match" in linked_page.text
 
     unlinked = web_client.post(f"/games/{game_id}/bgg/unlink", follow_redirects=False)

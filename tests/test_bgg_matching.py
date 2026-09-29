@@ -81,6 +81,7 @@ def test_unique_normalized_exact_match_is_linked_and_enriched(
             2000,
             "https://images.example/game.jpg",
             "https://images.example/thumb.jpg",
+            url_slug="carcassonne",
         ),
     )
 
@@ -90,6 +91,9 @@ def test_unique_normalized_exact_match_is_linked_and_enriched(
         game_id=game_id,
         source_title="Carcassonne",
         clock=lambda: NOW,
+    )
+    assert get_bgg_association(database, game_id).versions_url.endswith(
+        "/822/carcassonne/versions"
     )
 
     assert association.match_state is BggMatchState.MATCHED

@@ -5,5 +5,6 @@
       <a class="secondary-button" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.description }}</a>
     {% endfor %}
     {% include "bgg_links.html" %}
+    {% if bgg_edition %}<a class="secondary-button" href="{{ bgg_edition.url }}" target="_blank" rel="noopener noreferrer">View your edition</a>{% endif %}
   </div>
 </div>

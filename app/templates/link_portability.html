@@ -35,7 +35,7 @@
   <section class="page-intro compact-intro">
     <p class="eyebrow">Admin utility</p>
     <h1>Metadata portability</h1>
-    <p>Export or deliberately restore game links and uploaded artwork without changing the read-only PDF library.</p>
+    <p>Export or deliberately restore game links, box dimensions, edition references and uploaded artwork without changing the read-only PDF library.</p>
   </section>
 
   {% if request.query_params.get('imported') %}<p class="status-banner success" role="status">Imported {{ request.query_params.get('imported') }} metadata fields.</p>{% endif %}
@@ -49,7 +49,7 @@
 
   <section class="settings-section metadata-portability-section">
     <div class="settings-heading"><div><p class="eyebrow">Recommended restore method</p><h2>Import a Forge metadata export</h2></div></div>
-    <p>Restore links, their descriptions, BGG associations, uploaded artwork, and source-folder relationships from a Forge export.</p>
+    <p>Restore links, their descriptions, BGG associations, edition references, box dimensions, uploaded artwork, and source-folder relationships from a Forge export.</p>
     <form class="metadata-form settings-form" method="post" enctype="multipart/form-data" action="{{ url_for('link_manifest_preview') }}">
       <label for="metadata-export-file">Forge metadata ZIP or manifest JSON</label>
       <input id="metadata-export-file" type="file" name="export_file" accept="application/zip,application/json,.zip,.json" required>
@@ -63,7 +63,7 @@
 
   <section class="settings-section metadata-portability-section">
     <div class="settings-heading"><div><p class="eyebrow">Folder-based link discovery / alternative recovery</p><h2>Scan library shortcut files</h2></div></div>
-    <p>Search game folders for compatible Windows .url and macOS .webloc shortcuts. Use this for an initial link import from folder-based shortcuts or when a Forge manifest is unavailable. URLs can be discovered, but uploaded artwork and original descriptions cannot.</p>
+    <p>Search game folders for compatible Windows .url and macOS .webloc shortcuts. Use this for an initial link import from folder-based shortcuts or when a Forge manifest is unavailable. URLs can be discovered, but box dimensions, uploaded artwork and original descriptions cannot.</p>
     <form class="metadata-form settings-form" method="post" action="{{ url_for('link_scan_preview') }}">
       <label for="shortcut-policy">Import policy</label>
       <select id="shortcut-policy" name="policy"><option value="empty">Fill empty fields</option><option value="replace">Replace recognized fields</option></select>

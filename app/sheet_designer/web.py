@@ -16,7 +16,7 @@ from fastapi.responses import (
 )
 
 from app.library.previews import PreviewUnavailable
-from app.library.repository import list_games
+from app.library.repository import get_game, list_games
 from app.sheet_designer.model import DocumentValidationError, normalize_document
 from app.sheet_designer.previews import cached_sheet_preview
 from app.sheet_designer.shared_rendering import (
@@ -195,6 +195,11 @@ def game_association(request: Request, q: str | None = None):
         for game in games
         if " ".join(game.title.casefold().split()) == normalized_query
     ]
+    associated_game = (
+        get_game(_database(request), association.game_id)
+        if association and association.game_id is not None
+        else None
+    )
     return JSONResponse(
         {
             "workspace_id": workspace_id,
@@ -205,6 +210,11 @@ def game_association(request: Request, q: str | None = None):
                     "game_id": association.game_id,
                     "game_title": association.game_title,
                     "available": association.game_id is not None,
+                    "box_dimensions": (
+                        associated_game.box_dimensions.display
+                        if associated_game and associated_game.box_dimensions
+                        else None
+                    ),
                 }
                 if association
                 else None

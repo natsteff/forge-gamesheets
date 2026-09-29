@@ -21,6 +21,13 @@ from app.bgg.client import (
     BggClient,
     BggRateLimitError,
     BggUnavailableError,
+    resolve_game_slug,
+)
+from app.bgg.edition import (
+    BggEdition,
+    get_bgg_edition,
+    parse_edition_reference,
+    save_bgg_edition,
 )
 from app.bgg.matching import enrich_game, normalize_game_name
 from app.bgg.repository import (
@@ -37,6 +44,7 @@ from app.library.artwork import (
     delete_uploaded_artwork,
     save_uploaded_artwork,
 )
+from app.library.box_dimensions import BoxDimensions
 from app.library.cache import cleanup_managed_files
 from app.library.filename_parser import ResourceCategory
 from app.library.files import (
@@ -74,6 +82,7 @@ from app.library.repository import (
     reset_game_title_override,
     reset_resource_override,
     save_game_artwork_override,
+    save_game_box_dimensions,
     save_game_categories,
     save_game_title_override,
     save_resource_override,
@@ -852,6 +861,7 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
             "game": game,
             "sections": sections,
             "bgg_association": get_bgg_association(_database(request), game.id),
+            "bgg_edition": get_bgg_edition(_database(request), game.id),
             "game_resource_links": list_game_resource_links(
                 _database(request), game.id
             ),
@@ -895,8 +905,25 @@ async def game_edit_save(request: Request, game_id: int) -> RedirectResponse:
     }
     if any(category_id not in available_ids for category_id in category_ids):
         raise HTTPException(status_code=422, detail="Invalid game category")
+    dimension_fields = ("box_length", "box_width", "box_depth", "box_unit")
+    update_dimensions = any(key in form for key in dimension_fields)
+    dimensions = None
+    if update_dimensions:
+        raw = [str(form.get(key, "")).strip() for key in dimension_fields]
+        if any(raw[:3]):
+            try:
+                dimensions = BoxDimensions(
+                    float(raw[0]), float(raw[1]), float(raw[2]), raw[3]
+                ).to_dict()
+            except (TypeError, ValueError, OverflowError) as error:
+                raise HTTPException(
+                    422,
+                    "Enter all three positive box measurements and choose in or cm.",
+                ) from error
     save_game_title_override(_database(request), game_id, title=title)
     save_game_categories(_database(request), game_id, category_ids=category_ids)
+    if update_dimensions:
+        save_game_box_dimensions(_database(request), game_id, dimensions)
     record_activity(
         _database(request),
         "game_edited",
@@ -1154,6 +1181,7 @@ async def game_bgg_select(request: Request, game_id: int) -> RedirectResponse:
         image_url=details.image_url,
         thumbnail_url=details.thumbnail_url,
         last_lookup_at=_utc_timestamp(),
+        url_slug=details.url_slug,
     )
     save_bgg_association(_database(request), association)
     record_activity(
@@ -1202,7 +1230,7 @@ def game_bgg_refresh(request: Request, game_id: int) -> RedirectResponse:
             image_url=details.image_url,
             thumbnail_url=details.thumbnail_url,
             last_lookup_at=_utc_timestamp(),
-            url_slug=existing.url_slug,
+            url_slug=details.url_slug or existing.url_slug,
         ),
     )
     record_activity(
@@ -1338,6 +1366,55 @@ async def game_bgg_manual(request: Request, game_id: int):
         game_id=game_id,
     )
     return _game_edit_redirect(game_id, bgg_status=status)
+
+
+@router.post("/games/{game_id}/bgg/edition", name="game_bgg_edition_save")
+async def game_bgg_edition_save(request: Request, game_id: int):
+    database = _database(request)
+    if get_game(database, game_id) is None:
+        raise HTTPException(404, "Game not found")
+    form = await request.form()
+    association = get_bgg_association(database, game_id)
+    try:
+        edition = BggEdition(
+            parse_edition_reference(str(form.get("edition_reference", ""))),
+            str(form.get("edition_label", "")).strip(),
+            association.bgg_id if association else None,
+        )
+    except ValueError:
+        return _game_edit_redirect(game_id, bgg_error="invalid-edition")
+    save_bgg_edition(database, game_id, edition)
+    return _game_edit_redirect(game_id, bgg_status="edition-saved")
+
+
+@router.post("/games/{game_id}/bgg/resolve-url", name="game_bgg_resolve_url")
+def game_bgg_resolve_url(request: Request, game_id: int):
+    database = _database(request)
+    if get_game(database, game_id) is None:
+        raise HTTPException(404, "Game not found")
+    association = get_bgg_association(database, game_id)
+    if association is None or association.bgg_id is None:
+        return _game_edit_redirect(game_id, bgg_error="not-linked")
+    slug = association.url_slug or resolve_game_slug(association.bgg_id)
+    if slug is None:
+        return _game_edit_redirect(game_id, bgg_status="page-link-unavailable")
+    with database.connect() as connection:
+        # Only repair the association we inspected; never overwrite a newer selection.
+        connection.execute(
+            "UPDATE game_bgg_associations SET url_slug=? "
+            "WHERE game_id=? AND bgg_id=? AND url_slug IS NULL",
+            (slug, game_id, association.bgg_id),
+        )
+    return _game_edit_redirect(game_id, bgg_status="page-link-resolved")
+
+
+@router.post("/games/{game_id}/bgg/edition/remove", name="game_bgg_edition_remove")
+def game_bgg_edition_remove(request: Request, game_id: int):
+    database = _database(request)
+    if get_game(database, game_id) is None:
+        raise HTTPException(404, "Game not found")
+    save_bgg_edition(database, game_id, None)
+    return _game_edit_redirect(game_id, bgg_status="edition-removed")
 
 
 @router.post(
@@ -1788,6 +1865,7 @@ def _game_edit_response(
             "bgg_configured": bool(request.app.state.settings.bgg_api_token),
             "bgg_candidates": bgg_candidates,
             "bgg_query": bgg_query or game.detected_title,
+            "bgg_edition": get_bgg_edition(_database(request), game.id),
             "bgg_status": request.query_params.get("bgg_status"),
             "bgg_error": bgg_error or request.query_params.get("bgg_error"),
         },

@@ -1,8 +1,14 @@
 # BGG without an API token
 
 Full game URLs preserve the BGG slug (for example, `53412/crag`). The edit field
-shows the saved canonical URL. ID-only and older associations can still open both
-the Game and Files pages because those destinations are derived from the BGG ID.
+shows the saved canonical URL. ID-only and older associations can open the Game
+page, but Files and Versions subpages require the game-name segment. If it is
+missing, Forge offers the main page with instructions to select the relevant tab
+instead of generating a broken subpage URL. Use **Resolve BGG page link** in the
+editor to inspect the public main-page redirect, or paste the full game URL.
+Resolution is explicit, token-free, bounded to one request with a three-second
+timeout and validates the HTTPS BGG host, selected ID and slug. Redirect destinations
+are not contacted; no HTML is read. Failure preserves existing metadata.
 Slugs are not inferred from local display titles; they are retained across
 updates to the same ID and cleared when the ID changes.
 

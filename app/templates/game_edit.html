@@ -30,6 +30,20 @@
           </label>
         {% endfor %}
       </fieldset>
+      <fieldset class="game-link-field-group">
+        <legend>Box Dimensions</legend>
+        <p class="edit-source">Optional outside measurements: length is the longest face dimension, width the second-longest, and depth the thickness/shortest dimension. Enter all three and choose a unit, or leave all measurements blank for unknown.</p>
+        {% for name in ['length', 'width', 'depth'] %}
+        <label for="box-{{ name }}">{{ name|capitalize }}</label>
+        <input id="box-{{ name }}" name="box_{{ name }}" type="number" step="any" min="0" value="{{ game.box_dimensions[name] if game.box_dimensions else '' }}">
+        {% endfor %}
+        <label for="box-unit">Unit</label>
+        <select id="box-unit" name="box_unit">
+          <option value=""{% if not game.box_dimensions %} selected{% endif %}>Choose a unit</option>
+          <option value="in"{% if game.box_dimensions and game.box_dimensions.unit == 'in' %} selected{% endif %}>Inches (in)</option>
+          <option value="cm"{% if game.box_dimensions and game.box_dimensions.unit == 'cm' %} selected{% endif %}>Centimeters (cm)</option>
+        </select>
+      </fieldset>
       <button type="submit">Save game entry</button>
     </form>
 
@@ -98,7 +112,9 @@
       <p class="status-banner warning" role="status">BoardGameGeek could not be reached. Your local game was not affected.</p>
     {% endif %}
 
-    {% if bgg_error == "invalid-reference" %}
+    {% if bgg_error == "invalid-edition" %}
+      <p class="status-banner warning" role="alert">Edition not saved. Enter a BGG boardgameversion URL or positive numeric version ID, and a label of at most 160 characters. Your existing edition and dimensions have not changed.</p>
+    {% elif bgg_error == "invalid-reference" %}
       <p class="status-banner warning" id="bgg-reference-error" role="alert"><strong>BGG URL not saved.</strong> Enter a full game URL containing both its numeric ID and game-name text. The existing association has not changed.</p>
     {% elif bgg_error == "manual-lookup-failed" %}
       <p class="status-banner warning" role="alert"><strong>BGG association not changed.</strong> The submitted URL could not be verified because BoardGameGeek could not complete the request. Try again later.</p>
@@ -169,12 +185,40 @@
       {% endif %}
       {% if not (bgg_association and bgg_association.bgg_id) %}<div class="bgg-action-row">{% include "bgg_links.html" %}</div>{% endif %}
       <form class="metadata-form" method="post" action="{{ url_for('game_bgg_manual', game_id=game.id) }}">
-        <label for="bgg-reference">Full BGG game URL <span>(eg. https://boardgamegeek.com/boardgame/gameID/game-name)</span></label>
-        <input id="bgg-reference" name="bgg_reference" type="url" maxlength="1000" required value="{{ bgg_association.game_url if bgg_association and bgg_association.url_slug else '' }}"{% if bgg_error == 'invalid-reference' %} aria-invalid="true" aria-describedby="bgg-reference-error" autofocus{% endif %}>
+        <label for="bgg-reference">Full BGG game URL</label>
+        <input id="bgg-reference" name="bgg_reference" type="url" maxlength="1000" required value="{{ bgg_association.game_url if bgg_association and bgg_association.url_slug else '' }}" placeholder="Paste a BGG game URL" aria-describedby="bgg-reference-example{% if bgg_error == 'invalid-reference' %} bgg-reference-error{% endif %}"{% if bgg_error == 'invalid-reference' %} aria-invalid="true" autofocus{% endif %}>
+        <small class="edit-source" id="bgg-reference-example">Example: https://boardgamegeek.com/boardgame/game-id/game-name — replace game-id with the numeric ID.</small>
         <button type="submit">{% if bgg_association and bgg_association.bgg_id %}Replace BGG association with this URL{% else %}Save BGG URL{% endif %}</button>
       </form>
     </details>
 
+    <h3>Your edition</h3>
+    <p>Optional manual reference, available without an API token. Forge does not fetch this page, verify that the edition belongs to this game, or change your box dimensions.</p>
+    {% if bgg_status == "edition-saved" %}<p class="status-banner" role="status">Your edition was saved.</p>{% elif bgg_status == "edition-removed" %}<p class="status-banner" role="status">Your edition reference was removed. Box dimensions are unchanged.</p>{% endif %}
+    {% if bgg_edition %}
+      <p><strong>{{ bgg_edition.label or 'BGG version ' ~ bgg_edition.version_id }}</strong> · Manually selected; not API-verified.</p>
+      {% if bgg_edition.parent_bgg_id != (bgg_association.bgg_id if bgg_association else none) %}<p class="status-banner warning" role="status">The BGG game association has changed since this edition was selected. Review the edition, then save it again or remove it.</p>{% endif %}
+    {% endif %}
+    {% if bgg_association and bgg_association.bgg_id %}
+      {% if bgg_association.versions_url %}<a class="secondary-button" href="{{ bgg_association.versions_url }}" target="_blank" rel="noopener noreferrer">Find your edition on BGG</a>{% else %}
+        <p class="edit-source">The BGG game-name segment has not been saved. Open the game on BGG and select Versions, or resolve its page link below.</p>
+        <div class="bgg-action-row">
+          <a class="secondary-button" href="{{ bgg_association.game_url }}" target="_blank" rel="noopener noreferrer">Open BGG to select Versions</a>
+          <form action="{{ url_for('game_bgg_resolve_url', game_id=game.id) }}" method="post"><button class="secondary-button" type="submit">Resolve BGG page link</button></form>
+        </div>
+      {% endif %}
+    {% else %}<p>Link the BGG game above to get a direct link to its Versions page.</p>{% endif %}
+    {% if bgg_status == 'page-link-resolved' %}<p class="status-banner" role="status">The BGG page link was resolved. Your game association, edition and dimensions are unchanged.</p>{% elif bgg_status == 'page-link-unavailable' %}<p class="status-banner warning" role="status">The canonical BGG page link could not be resolved. Open BGG and select Versions or Files, or paste the full game URL above. Saved metadata is unchanged.</p>{% endif %}
+    <p class="edit-source">On BGG, filter Versions by language, then compare publisher, box artwork, release year and product code/barcode where available. Open the matching version and copy its URL.</p>
+    <form class="metadata-form" action="{{ url_for('game_bgg_edition_save', game_id=game.id) }}" method="post">
+      <label for="edition-reference">BGG version URL or ID</label>
+      <input id="edition-reference" name="edition_reference" type="text" maxlength="1000" required value="{{ bgg_edition.url if bgg_edition else '' }}" placeholder="Paste a BGG version URL or enter its ID" aria-describedby="edition-reference-example">
+      <small class="edit-source" id="edition-reference-example">Example: https://boardgamegeek.com/boardgameversion/version-id/edition-name — or just the numeric version ID.</small>
+      <label for="edition-label">Edition label (optional)</label>
+      <input id="edition-label" name="edition_label" maxlength="160" value="{{ bgg_edition.label if bgg_edition else '' }}" placeholder="e.g., English edition, 2012">
+      <button type="submit">Save your edition</button>
+    </form>
+    {% if bgg_edition %}<div class="bgg-action-row"><a class="secondary-button" href="{{ bgg_edition.url }}" target="_blank" rel="noopener noreferrer">View your edition</a><form action="{{ url_for('game_bgg_edition_remove', game_id=game.id) }}" method="post"><button class="danger-button" type="submit">Remove edition reference</button></form></div>{% endif %}
   </section>
 
   <section class="edit-panel artwork-editor">

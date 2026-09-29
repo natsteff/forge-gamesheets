@@ -6,6 +6,7 @@ import sqlite3
 from dataclasses import dataclass
 
 from app.database import Database
+from app.library.box_dimensions import BoxDimensions, write_box_dimensions
 from app.library.filename_parser import ResourceCategory
 
 
@@ -69,6 +70,7 @@ class GameDetail:
     has_uploaded_artwork: bool
     categories: tuple[GameCategory, ...]
     resources: tuple[IndexedResource, ...]
+    box_dimensions: BoxDimensions | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -241,11 +243,13 @@ def get_game(database: Database, game_id: int) -> GameDetail | None:
                    (game_artwork_overrides.game_id IS NOT NULL OR
                     games.artwork_relative_path IS NOT NULL) AS has_artwork,
                    game_artwork_overrides.game_id IS NOT NULL
-                       AS has_uploaded_artwork
+                       AS has_uploaded_artwork,
+                   d.length, d.width, d.depth, d.unit
             FROM games
             LEFT JOIN game_overrides ON game_overrides.game_id = games.id
             LEFT JOIN game_artwork_overrides
               ON game_artwork_overrides.game_id = games.id
+            LEFT JOIN game_box_dimensions d ON d.game_id = games.id
             WHERE games.id = ?
             """,
             (game_id,),
@@ -296,6 +300,11 @@ def get_game(database: Database, game_id: int) -> GameDetail | None:
         has_override=bool(game["has_override"]),
         has_artwork=bool(game["has_artwork"]),
         has_uploaded_artwork=bool(game["has_uploaded_artwork"]),
+        box_dimensions=(
+            BoxDimensions(game["length"], game["width"], game["depth"], game["unit"])
+            if game["length"] is not None
+            else None
+        ),
         categories=tuple(
             GameCategory(id=row["id"], name=row["name"]) for row in category_rows
         ),
@@ -623,6 +632,24 @@ def save_game_title_override(database: Database, game_id: int, *, title: str) ->
             """,
             (game_id, title),
         )
+    return True
+
+
+def save_game_box_dimensions(
+    database: Database, game_id: int, dimensions: dict | None
+) -> bool:
+    """Set or clear manually managed measurements without changing detected data."""
+    value = BoxDimensions.from_dict(dimensions)
+    with database.connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        if (
+            connection.execute("SELECT 1 FROM games WHERE id=?", (game_id,)).fetchone()
+            is None
+        ):
+            connection.rollback()
+            return False
+        write_box_dimensions(connection, game_id, value)
+        connection.commit()
     return True
 
 
