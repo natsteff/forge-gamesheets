@@ -64,6 +64,45 @@ will provide one browsable, searchable place to organize and print them.
 
 ### Current execution sequence
 
+Approved global Links increment (implemented locally; owner review pending):
+Forge only, with
+one Links page showing Personal Favorites for signed-in users above Admin-curated
+Forge Favorites, followed by enabled links grouped by editable categories.
+Admin manages links and Forge Favorites on the same Links page; personal
+favorites reference existing enabled links only.
+The unified directory uses compact resource-style rows, alphabetical within
+each category, with an Admin toolbar and collapsed grouped disabled entries.
+Category editing remains a separate Admin tool; category and shared-favorite
+order stay configurable, but per-link directory order is no longer editable.
+Rows have
+personal stars and Admin-only pins (shared Forge Favorites), edit and confirmed
+delete controls; favorite shortcut sections remain unchanged. Deletion uses a
+focused confirmation page with Cancel. New categories default to the next order
+after the existing maximum, within the supported limit.
+Seed three categories and eleven starter links from `app/defaults/links.json`
+once, with Forge Favorites initially
+empty. Upgrades preserve edits and deletions; explicit Add missing starter links
+restores missing defaults without overwriting records. Preserve existing game
+links, QR guest scope, Designer-only mode and FGS Studio. No scraping, proxying,
+mirroring, automatic URL checks or redistribution of third-party content.
+
+Approved container release increment (implemented locally; CI validation pending):
+publish `linux/amd64` and `linux/arm64` together under the existing image tags.
+Build each runtime variant once, smoke-test and scan both before registry login,
+and assemble the release manifest from those exact verified images. Keep Compose
+architecture-neutral so Docker selects the native variant automatically. Local
+ARM64 builds or emulation are not evidence of published ARM64 support. Completion
+requires successful publishing CI and verification of both registry digests;
+production deployment is not authorized by this increment.
+
+Approved Designer increment (FGS 1.2, implemented locally; publication pending):
+document-level Designer Notes excluded from sheet/PDF/LiveSheet presentation;
+optional score-table first-column heading defaulting to Category across both
+editors, shared preview/PDF, and LiveSheet; rename the score-table Heading UI
+label to Score table title. Preserve 1.0/1.1 compatibility, keep both products
+pinned to the same Page Rendering Profile 1.2 build, and do not include unrelated
+Designer improvements in this increment.
+
 This is the authoritative near-term order. Detailed owner testing may identify
 focused corrections, but completed milestones are not repeated merely as gates
 for the next approved feature.

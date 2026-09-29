@@ -66,8 +66,9 @@ sheets; it is not an editor for existing PDF files.
 
 The approved scope and roadmap are in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 The [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md) and
-[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md) define file content;
-the [Page Rendering Profile](docs/FGS_PAGE_RENDERING_PROFILE_1_1.md)
+[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md) and
+[FGS 1.2 additions](docs/FGS_V1_2_SPECIFICATION.md) define file content;
+the [Page Rendering Profile](docs/FGS_PAGE_RENDERING_PROFILE_1_2.md)
 defines single-page appearance and fit. The renderer's editable source and
 tests live in the [FGS Renderer package](packages/fgs-renderer/README.md). Forge includes
 a verified, version-pinned build; the source package is not required to run the
@@ -357,6 +358,52 @@ home. Mobile Menu shows the same permitted groups with visible links. Admin is
 shown only to Admins; Sheet Designer is shown to Admins and Contributors.
 Recently used is hidden when its configured limit is zero.
 
+### Global Links directory
+
+**Links** in the main navigation opens one page with Personal Favorites (when
+signed in), Admin-selected Forge Favorites, and all enabled links grouped by
+category. Favorites are shortcuts to the same records, not separate copies.
+Forge Favorites start empty. A link may appear in both favorites sections;
+disabled links disappear from both, and deleting a link removes its personal
+favorites. Re-enabling a link restores existing favorites; recreating a deleted
+link does not restore deleted personal favorites.
+
+All Links uses compact rows like the Score Sheets listing, alphabetically within
+each category. Admin tools are at the top of this same page; disabled links
+are in a collapsed Admin-only section, also grouped and alphabetical.
+The star selects a Personal Favorite; the Admin-only pin (⌖) selects a shared
+Forge Favorite. Each row offers Open, plus Edit and confirmed Delete for Admins.
+The Favorites shortcut sections stay unchanged. Category editing is a separate
+Admin tool; category and Forge Favorites order remain configurable.
+
+Admins manage links, visibility and Forge Favorites on **Links**; **Settings →
+Manage links** opens this same page. Signed-in users of any role can select Personal
+Favorites from existing enabled entries, but cannot change directory records.
+Without accounts, trusted operators manage the shared directory and Personal
+Favorites are unavailable. Resource-scoped QR guests do not gain directory
+access when accounts are enabled.
+
+Forge includes an editable starter directory of eleven links in three categories:
+Gamesheet Sources, Live Scoring and Other. The records are populated from
+[`app/defaults/links.json`](app/defaults/links.json) when the feature is first
+initialized—on a new installation or the first upgrade that adds Links. Admins
+can change, disable or remove any entry. Later releases may update that file for
+new installations; upgrades do not overwrite configured records or recreate
+deleted entries. Editing the bundled file after initialization does not update
+the database. The explicit **Add missing starter links** action adds missing
+entries from the currently installed file without overwriting existing entries,
+using stable starter keys rather than editable names or URLs. It can also recreate
+missing starter categories. Do not change or reuse existing starter keys when
+maintaining the bundled file.
+
+Links open the external website in a new tab. Provenance labels are not security
+ratings or endorsements. Forge does not scrape sites, proxy downloads, mirror
+content or automatically check URLs. Free downloads do not necessarily permit
+redistribution. These installation-level links are separate from existing
+per-game resource links and are not part of FGS files or FGS Studio. Back up the
+main application database to retain the directory and both kinds of favorites.
+See [Links directory behavior](docs/LINKS.md).
+
 ### Sheet Designer
 
 Admins and Contributors can open **Sheet Designer** from the main navigation to
@@ -368,6 +415,11 @@ duplicated, deleted, or paired into two columns. Score rows and checklist items
 are editable, and numbered rows such as Round 1 through Round 10 can be generated
 in one step. Letter and A4 output are available in portrait or landscape, with a
 live single-page preview and overflow warning.
+FGS 1.2 adds **Designer Notes**, saved once per document for future editors but
+never shown on the sheet, PDF, or LiveSheet. Notes travel in the exported FGS
+file and are not private storage. Each score table also has a **First column
+heading**, defaulting to **Category**, used in previews, PDFs, and LiveSheets.
+The former **Heading** editor label is now **Score table title** for score tables.
 
 Sheet Designer works best for portable score tracking, reference information,
 checklists, and notes arranged in structured, single-page sections. FGS is
@@ -384,7 +436,8 @@ LiveSheets. The Designer startup page and editor toolbar provide the same short
 
 **Tip:** An LLM can draft an `.fgs` file from a score-sheet image or PDF when it
 is also given the [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md) and
-[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md). Review
+[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md) and
+[FGS 1.2 additions](docs/FGS_V1_2_SPECIFICATION.md). Review
 the generated content, import it as untrusted input, and verify every label,
 calculation, and layout before use. Only upload source documents you are
 permitted to share with that service.
@@ -448,9 +501,11 @@ Designer source uses **FGS**, Forge's portable, JSON-based formal file format fo
 structured GameSheets. FGS remains independent of the Forge web application so
 compatible editors can exchange the same `.fgs` source. See the
 [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md),
-[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md), their
-[1.0](docs/schemas/fgs-v1.schema.json) and
-[1.1](docs/schemas/fgs-v1.1.schema.json) JSON Schemas, and the
+[FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md),
+[FGS 1.2 additions](docs/FGS_V1_2_SPECIFICATION.md), their
+[1.0](docs/schemas/fgs-v1.schema.json),
+[1.1](docs/schemas/fgs-v1.1.schema.json), and
+[1.2](docs/schemas/fgs-v1.2.schema.json) JSON Schemas, and the
 [Sheet Designer boundary and current limitations](docs/SHEET_DESIGNER_PROTOTYPE.md).
 
 The published image can also run as a Designer-only web application. Set
@@ -486,8 +541,14 @@ contents, import policies, folder-based discovery naming, and backup boundary.
 ### Bulk FORGE Reprint maintenance
 
 Admins can open **Admin → FORGE Reprints** to review current, missing,
-stale, and unavailable reprints. Three deliberate operations create only missing
-copies, refresh only existing copies, or create/refresh all eligible indexed PDFs.
+out-of-sync reprints, and unavailable sources. Expand **What do these counts
+mean?** for definitions. Out-of-sync means a mismatch with the recorded source,
+reprint format, QR destination, or generated file—not age or expiration.
+**Create missing reprints** leaves existing copies unchanged. **Refresh existing
+reprints** regenerates both current and out-of-sync copies but does not create
+missing copies. **Create or refresh all reprints** handles both. Unavailable
+sources are skipped and reported. Scan the library first after adding, changing,
+moving, or removing source PDFs; maintenance does not update the library index.
 Forge confirms the number of new and replaced files before starting. Work runs
 sequentially as a durable job with progress, safe cancellation after the current
 file, interruption recovery, and individual skip/failure details. Source PDFs are
@@ -495,9 +556,12 @@ never changed. Every generated copy uses its resource's stable QR address, so
 changing access does not require generating another QR code.
 
 Validated generated copies are recorded in SQLite, allowing the maintenance
-inventory to use fast database aggregation and a single directory scan instead
+inventory to use recorded metadata and a single generated-directory scan instead
 of reopening every generated PDF on each visit. The first inventory visit after
 this upgrade performs a one-time compatibility pass for existing reprints.
+Every inventory visit also checks indexed source paths for safe availability,
+including resources with current or missing copies. Counts are recalculated
+when the maintenance page is reopened after an operation.
 
 Upgrading from the earlier test-only secure-link design retires `/s/…` QR
 addresses. Use **Create or refresh all reprints** once after this upgrade to
@@ -694,7 +758,11 @@ Before publishing Docker images, [GitHub Actions](.github/workflows/publish-cont
 runs automated tests, code-quality checks, and dependency vulnerability audits.
 Dependency audit findings block publication. Container scans report High and
 Critical findings and block publication for Critical vulnerabilities with an
-available fix. The workflow publishes the same image that passed these checks.
+available fix. The workflow builds, smoke-tests and scans both `linux/amd64` and
+`linux/arm64`, then publishes those same verified images under one shared tag.
+Docker selects the native architecture automatically; no Mac-specific Compose
+setting is required. This workflow update requires a successful publishing run
+before existing registry tags gain ARM64 support.
 
 These safeguards and scoped self-assessments reduce risk but cannot guarantee
 that no vulnerabilities exist. Independent security testing is not currently
