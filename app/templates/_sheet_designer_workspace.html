@@ -32,7 +32,7 @@
       <a class="designer-source-link" href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Forge GameSheets on GitHub</a>
       {% endif %}
       <button class="secondary-button" data-about-designer type="button">About</button>
-      {% if not standalone %}<button class="secondary-button" data-game-link type="button">Associate game</button><span class="designer-box-dimensions" data-game-box-dimensions hidden></span>{% endif %}
+      {% if not standalone %}<button class="secondary-button" data-game-link type="button">Associate game</button>{% endif %}
       {% if not standalone %}<button class="secondary-button" data-livesheet type="button">LiveSheet</button>{% endif %}
       <button class="secondary-button" data-new-sheet type="button">New</button>
       <button class="secondary-button" data-open-sheets type="button">Open</button>
@@ -40,6 +40,7 @@
         <summary>Export <span aria-hidden="true">▾</span></summary>
         <div>
           <a class="primary-button" data-export-pdf href="/sheet-designer/export.pdf">Export PDF</a>
+          <button class="secondary-button" data-open-print-sheet type="button">Arrange copies for printing…</button>
           <a class="secondary-button" data-export-fgs href="/sheet-designer/export.fgs">Export .fgs</a>
         </div>
       </details>
@@ -89,15 +90,19 @@
       <div class="designer-toolbar">
         <label>Page <select data-page-size><option value="letter">Letter</option><option value="a4">A4</option></select></label>
         <label>Orientation <select data-orientation><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+        <label>Print size <select data-print-size><option value="full">Full Page</option><option value="half">Half Page</option><option value="poker">Poker Card</option><option value="bridge">Bridge Card</option><option value="custom">Custom Size</option></select></label>
+        <span class="designer-custom-size" data-custom-size hidden><label>Width <input data-custom-width type="number" min="0.5" max="14" step="0.01" value="5"></label><label>Height <input data-custom-height type="number" min="0.5" max="14" step="0.01" value="7"></label><label>Unit <select data-custom-unit><option value="in">in</option><option value="cm">cm</option></select></label></span>
         <label>Accent color <input data-accent type="color" aria-label="Accent color"></label>
         <button class="secondary-button" data-undo type="button" aria-label="Undo">↶ Undo</button>
         <button class="secondary-button" data-redo type="button" aria-label="Redo">↷ Redo</button>
       </div>
+      <p class="designer-print-note">For ordinary Letter/A4 printers, use Export → Arrange copies; direct Export PDF makes one finished-size page without cut guides. Custom Width and Height set its orientation directly. Print size is not saved in the .fgs file; add the intended size to Designer Notes and reselect it after reopening.{% if not standalone %} <span class="designer-box-dimensions" data-game-box-dimensions hidden></span>{% endif %}</p>
       <div class="designer-message" data-message role="alert" hidden></div>
       <div class="designer-message" data-fit-message role="status" hidden></div>
       <div class="sheet-preview" data-sheet-preview></div>
     </section>
   </div>
+  <dialog data-print-sheet-dialog class="designer-print-dialog"><form data-print-sheet-form><h2>Arrange copies for printing</h2><p>This places finished-size copies on Letter or A4. The direct Export PDF makes one card-sized page without cut guides and may be clipped by an ordinary printer.</p><label>Printer paper <select data-print-paper><option value="letter">Letter</option><option value="a4">A4</option></select></label><label>Copies <input data-print-copies type="number" min="1" max="48" value="2" required></label><label class="designer-print-check"><input data-cut-guides type="checkbox" checked> Cut guides</label><label class="designer-print-check"><input data-borderless type="checkbox"> Borderless two-up</label><p class="designer-print-hint" data-borderless-help>Only for Half Page on matching paper, with a printer that supports edge-to-edge printing. Unavailable for card sizes.</p><p class="designer-print-plan" data-print-plan role="status"></p><p class="designer-print-hint">In the printer dialog, choose the paper and orientation shown above, print at Actual size / 100%, and turn off Fit to page. Check your printer's printable margins.</p><div class="designer-dialog-actions"><button class="secondary-button" data-close-print-sheet type="button">Cancel</button><button class="primary-button" type="submit">Export print-sheet PDF</button></div></form></dialog>
   </div>
 
   <dialog class="designer-dialog" data-new-dialog>

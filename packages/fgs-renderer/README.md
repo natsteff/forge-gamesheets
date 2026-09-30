@@ -13,6 +13,15 @@ use the same content options, validation and physical-unit conversions.
 Both Forge GameSheets and FGS Studio must consume a pinned build from this
 source; neither should maintain its own independent print layout rules.
 
+Print jobs may select Full Page, Half Page, Poker Card, Bridge Card, or a bounded
+custom finished size. These options are outside the strict `.fgs` schema. One
+display list drives the SVG preview and finished-size PDF. A separate imposition
+step places unchanged copies on Letter or A4 with optional cut guides and keeps
+ordinary-printer output at least 0.5 inch from the page edge; exact
+two-up Half Page is available only with an explicit borderless option. The
+renderer refuses content that cannot fit without reducing type below its
+defined profile sizes.
+
 The same point-based display list produces an SVG preview and a vector PDF
 with extractable text. Fonts are pinned Noto files under `fonts/OFL.txt`.
 The renderer itself and its local distribution are AGPL-3.0-only; bundled

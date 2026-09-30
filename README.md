@@ -451,6 +451,25 @@ duplicated, deleted, or paired into two columns. Score rows and checklist items
 are editable, and numbered rows such as Round 1 through Round 10 can be generated
 in one step. Letter and A4 output are available in portrait or landscape, with a
 live single-page preview and overflow warning.
+The separate **Print size** control offers Full Page (the existing output),
+Half Page, Poker Card (2.5 × 3.5 in), Bridge Card (2.25 × 3.5 in), or an explicit
+custom size in inches/centimeters. Preview and PDF use the same finished-size
+layout. This first mode reflows content at readable type sizes; it does not
+proportionally shrink an existing full-page sheet. Content that cannot fit is
+rejected rather than silently scaled.
+**Arrange copies for printing** places identical finished-size sheets on Letter
+or A4 with optional cut guides; normal layouts keep the content and guides at
+least 0.5 inch from the paper edge. The dialog reports the PDF orientation,
+copies per page, and page count before export. Eight poker cards normally use
+two pages (six plus two), rather than crowding the printable edge. Direct
+**Export PDF** makes one card-sized page without cut guides; use it with
+matching card stock or a suitable borderless printer, not ordinary Letter/A4
+paper. Exact two-up Half Page requires the explicit borderless option and
+matching paper. Print at actual size (100%), choose the shown orientation, and
+turn off Fit to page. See [small-format printing guide](docs/PRINT_SIZE_PRINTING.md).
+Print size is an export choice, **not saved
+in `.fgs`**; note an intended size in Designer Notes and reselect it after
+opening the file. The notes are never interpreted by the renderer.
 FGS 1.2 adds **Designer Notes**, saved once per document for future editors but
 never shown on the sheet, PDF, or LiveSheet. Notes travel in the exported FGS
 file and are not private storage. Each score table also has a **First column

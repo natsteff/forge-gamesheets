@@ -4,11 +4,12 @@
   "profile": "fgs-page-1.3",
   "sourceFiles": {
     "src/browser.mjs": "b12dcb751aef21641a8a6bd7bd2d694ff51cce7b4d0a5fcbd8900e0ef2c03a31",
-    "src/cli.mjs": "41a7ca4158bf119f071bbb6cdee2f4420c0971e976c11904b21d0ec42335ff02",
-    "src/index.mjs": "7113d2ce7301b68d419a9bde95f162857c2a5c20cee3842151d24f5dca20c0d1",
+    "src/cli.mjs": "70c778d775fd19dac8167cd32660c57841c6e9e42324e3f9c98d11690e08a04b",
+    "src/index.mjs": "75dd96d5e92b5ad9a3e2d40c6ea9c1559da01421a331d94549a38842575aeb4a",
     "src/content.mjs": "610853fb2a1a453be9063afe4843fa72f970606d3a0b3a507cf6acc0e734f76e",
     "src/layout-content.mjs": "aed6f499eb5a28a03bbb6f1f91db634c13e8e1ce8cf8d88045bd4d6a9bf38f8c",
-    "scripts/build.mjs": "d83add6e14e704f56ea0138cbcba0791a66f8f8bf36a32a6bab29e4fb83ff1b5",
+    "src/print-sizes.mjs": "ae34921d9fc9f365946d8f834c74eab7a047e26311761560115cbbbbb853d6dd",
+    "scripts/build.mjs": "6e64f938bc4ce03dd63e8d8bd83c3afd49f833ebbfbf6caf8000d3f119b9bdc0",
     "package.json": "011ebf18bdf5ce232856ebc695188c26fa7af36d3bfbbeee307ee663c70df3f5",
     "pnpm-lock.yaml": "34840bfcfd38b829e1a3e4a7c66af9549f28dc797f7839ccd83068a2ad46ccff",
     "fonts/NotoSans-Regular.ttf": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
@@ -24,8 +25,8 @@
     "licenses/tslib-0BSD.txt": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
   },
   "files": {
-    "browser.mjs": "84a161856ed479e098c8ce5c87017ed16d63fdcaa2ddab93ed553e7ee1e80d4a",
-    "cli.mjs": "4510453d6091727f0d0502b1ea62a229867c686bb1edba688a91bfac7e76e572",
+    "browser.mjs": "9b73f11b0cabaa8373cf037f4528fbbe67ddd38da9fc30c2da7d51978382967b",
+    "cli.mjs": "b12ceff10c61b01baab29ff949bb206b3b55a0bfb12c0d8e9c0c98a163649725",
     "fonts/NotoSans-Regular.ttf": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
     "fonts/NotoSans-Bold.ttf": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a",
     "fonts/NotoSerif-Bold.ttf": "3b2086a869bcded2aeb4416fc281ceec9d6ce3c06756cda19f8f763636204e7d",

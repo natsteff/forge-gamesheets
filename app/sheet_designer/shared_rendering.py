@@ -26,8 +26,18 @@ class RendererUnavailableError(RuntimeError):
     """Raised when the pinned shared renderer cannot run safely."""
 
 
-def render_pdf(document: dict, output_path: Path) -> Path:
-    """Validate and atomically render one FGS page with the shared engine."""
+class PrintOptionError(ValueError):
+    """Raised when a requested physical print layout is invalid."""
+
+
+def render_pdf(
+    document: dict,
+    output_path: Path,
+    *,
+    print_size: dict | None = None,
+    print_sheet: dict | None = None,
+) -> Path:
+    """Validate and atomically render one finished sheet or a sheet of copies."""
     model = normalize_document(document)
     node = shutil.which("node")
     if not node or not RENDERER.is_file():
@@ -37,9 +47,17 @@ def render_pdf(document: dict, output_path: Path) -> Path:
         source = Path(work) / "source.fgs"
         target = Path(work) / "result.pdf"
         source.write_text(json.dumps(model, ensure_ascii=False), encoding="utf-8")
+        arguments = [node, str(RENDERER), str(source), str(target)]
+        if print_size is not None or print_sheet is not None:
+            options_path = Path(work) / "print-options.json"
+            settings = {"printSize": print_size or {}}
+            if print_sheet is not None:
+                settings["printSheet"] = print_sheet
+            options_path.write_text(json.dumps(settings), encoding="utf-8")
+            arguments.append(str(options_path))
         try:
             result = subprocess.run(
-                [node, str(RENDERER), str(source), str(target)],
+                arguments,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -52,20 +70,38 @@ def render_pdf(document: dict, output_path: Path) -> Path:
             problem = result.stderr.strip()[:500]
             if problem.startswith("FGS_OVERFLOW: "):
                 raise PageOverflowError(problem.removeprefix("FGS_OVERFLOW: "))
+            if problem.startswith("FGS_OPTIONS: "):
+                raise PrintOptionError(problem.removeprefix("FGS_OPTIONS: "))
             raise RendererUnavailableError(problem or "FGS PDF rendering failed.")
         if not target.is_file() or target.stat().st_size > MAX_PDF_BYTES:
             raise RendererUnavailableError(
                 "The generated FGS PDF is missing or too large."
             )
-        with pymupdf.open(target) as check:
-            if check.page_count != 1:
-                raise RendererUnavailableError("The generated FGS PDF is not one page.")
+        try:
+            verification = json.loads(result.stdout)
+            expected_pages = int(verification["pages"])
+            size = (float(verification["width"]), float(verification["height"]))
+        except (ValueError, KeyError, TypeError) as error:
+            raise RendererUnavailableError(
+                "The shared renderer gave no page geometry."
+            ) from error
+        if expected_pages < 1 or expected_pages > 48:
+            raise RendererUnavailableError(
+                "The shared renderer gave an invalid page count."
+            )
+        if print_size is None and print_sheet is None:
             size = PAGE_SIZES[model["page"]["size"]]
             if model["page"]["orientation"] == "landscape":
                 size = size[::-1]
-            if (
-                abs(check[0].rect.width - size[0]) > 0.01
-                or abs(check[0].rect.height - size[1]) > 0.01
+        with pymupdf.open(target) as check:
+            if check.page_count != expected_pages:
+                raise RendererUnavailableError(
+                    "The generated FGS PDF has the wrong page count."
+                )
+            if any(
+                abs(page.rect.width - size[0]) > 0.01
+                or abs(page.rect.height - size[1]) > 0.01
+                for page in check
             ):
                 raise RendererUnavailableError(
                     "The generated FGS PDF has the wrong page size."

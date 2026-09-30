@@ -21,6 +21,7 @@ from app.sheet_designer.model import DocumentValidationError, normalize_document
 from app.sheet_designer.previews import cached_sheet_preview
 from app.sheet_designer.shared_rendering import (
     PageOverflowError,
+    PrintOptionError,
     RendererUnavailableError,
     render_pdf,
 )
@@ -269,13 +270,37 @@ def export_fgs(request: Request):
 
 
 @router.get("/sheet-designer/export.pdf", name="sheet_designer_pdf")
-def export_pdf(request: Request):
+def export_pdf(
+    request: Request,
+    print_size: str = "full",
+    custom_width: float | None = None,
+    custom_height: float | None = None,
+    custom_unit: str = "in",
+    print_sheet: bool = False,
+    paper: str | None = None,
+    copies: int = 1,
+    cut_guides: bool = True,
+    borderless: bool = False,
+):
     current = normalize_document(_store(request).load())
     output = _store(request).root / "current.pdf"
     try:
-        render_pdf(current, output)
+        if print_size == "full" and not print_sheet:
+            render_pdf(current, output)
+        else:
+            size = {"preset": print_size}
+            if print_size == "custom":
+                size.update(width=custom_width, height=custom_height, unit=custom_unit)
+            sheet = (
+                {"paper": paper or current["page"]["size"], "copies": copies,
+                 "cutGuides": cut_guides, "borderless": borderless}
+                if print_sheet else None
+            )
+            render_pdf(current, output, print_size=size, print_sheet=sheet)
     except PageOverflowError as error:
         raise HTTPException(409, str(error)) from error
+    except PrintOptionError as error:
+        raise HTTPException(422, str(error)) from error
     except RendererUnavailableError as error:
         raise HTTPException(503, str(error)) from error
     return FileResponse(

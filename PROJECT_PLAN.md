@@ -600,6 +600,19 @@ renderer, header logos/footer, FGS 1.2 editorial notes and configurable table
 headings are implemented. Global external-resource navigation is provided by Links.
 These are not future-work items.
 
+The first small-format print increment is implemented locally for Forge Designer
+and Studio: Full Page, Half Page, Poker Card, Bridge Card, and Custom Size; one
+shared finished-size preview/PDF layout with overflow refusal; and a separate
+Letter/A4 copy-layout export with cut guides and explicit borderless two-up
+Half Page. Print size remains an export choice outside `.fgs`; Designer Notes
+may record a human recommendation, but reopening requires reselection. A
+portable optional preferred-print-size field, true multi-page pagination, and
+fit-to-box behavior remain separate future decisions.
+Review proportional reduction for half-page output with a minimum readable
+type-size threshold; treat card formats as constrained layouts/templates, not
+as scaled-down full pages. This is a follow-up design decision, not part of
+the current reflow increment.
+
 Remaining future components include richer section types beyond the supported
 headers, score tables, references, checklists and lined notes; multi-page output;
 advanced layout; optional desktop/offline editor packaging; additional render

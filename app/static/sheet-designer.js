@@ -16,12 +16,56 @@
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
-  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=3")
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=5")
     .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
-  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=3");
+  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=5");
   let contentTools=null;
   logoTools.then(tools=>{contentTools=tools;}).catch(error=>message(error.message));
   let previewRevision = 0;
+  let printPlanRevision = 0;
+  function printSizeSelection() {
+    const selection = {preset: $("print-size").value};
+    if (selection.preset === "custom") Object.assign(selection, {
+      width: $("custom-width").value, height: $("custom-height").value, unit: $("custom-unit").value
+    });
+    return selection;
+  }
+  function syncCustomBounds() {
+    const cm=$("custom-unit").value==="cm";
+    for(const name of ["custom-width","custom-height"]){$(name).min=cm?"1.27":"0.5";$(name).max=cm?"35.56":"14";}
+  }
+  function updatePrintControls() {
+    const preset=$("print-size").value;
+    $("custom-size").hidden=preset!=="custom";
+    $("open-print-sheet").disabled=preset==="full";
+    $("open-print-sheet").title=preset==="full"?"Full Page already occupies the printer sheet; use Export PDF.":"";
+    preview();
+  }
+  function printQuery(sheet = false) {
+    const size = printSizeSelection();
+    const query = new URLSearchParams({print_size: size.preset});
+    if (size.preset === "custom") Object.entries({custom_width:size.width,custom_height:size.height,custom_unit:size.unit}).forEach(([key,value])=>query.set(key,value));
+    if (sheet) Object.entries({print_sheet:"true",paper:$("print-paper").value,copies:$("print-copies").value,cut_guides:String($("cut-guides").checked),borderless:String($("borderless").checked)}).forEach(([key,value])=>query.set(key,value));
+    return `/sheet-designer/export.pdf?${query}`;
+  }
+  function printSheetOptions() {
+    return {paper:$("print-paper").value,copies:Number($("print-copies").value),cutGuides:$("cut-guides").checked,borderless:$("borderless").checked};
+  }
+  async function updatePrintPlan() {
+    const revision=++printPlanRevision;
+    const eligible=$("print-size").value==="half"&&$("print-paper").value===model.page.size;
+    $("borderless").disabled=!eligible;
+    if(!eligible)$("borderless").checked=false;
+    try {
+      const engine=await printEngine;
+      const result=engine.layout(model,printSizeSelection());
+      if(!result.fits)throw new Error(result.reason || `Section "${result.overflow}" does not fit at this print size.`);
+      const plan=engine.printSheetPlan(result,printSheetOptions());
+      if(revision!==printPlanRevision)return;
+      const counts=plan.pages.map(page=>page.length).join(" + ");
+      $("print-plan").textContent=`Output: ${plan.paper.toUpperCase()} ${plan.orientation} PDF; ${plan.capacity} ${plan.capacity===1?"copy":"copies"} per page. ${plan.pages.length} ${plan.pages.length===1?"page":"pages"} (${counts}). ${plan.borderless?"Edge-to-edge printing required.":"0.5-inch printable margin, including cut guides."}`;
+    } catch(error) {if(revision===printPlanRevision)$("print-plan").textContent=error.message;}
+  }
 
   const calculationKind = (label) => {
     const normalized = String(label).trim().replace(/\s+/g, " ").toLowerCase();
@@ -143,14 +187,14 @@
     page.className = "sheet-preview is-print-profile";
     printEngine.then((engine) => {
       if (revision !== previewRevision) return;
-      const result = engine.layout(model);
+      const result = engine.layout(model, printSizeSelection());
       page.innerHTML = engine.toSvg(result);
-      fitMessage.textContent = result.fits ? "" : `Section "${result.overflow}" does not fit on one page.`;
+      fitMessage.textContent = result.fits ? "" : (result.reason || `Section "${result.overflow}" does not fit at the selected print size.`);
       fitMessage.hidden = result.fits;
     }).catch((error) => {
       if (revision === previewRevision) {
-        fitMessage.hidden = true;
-        message(`Page preview unavailable: ${error.message}`);
+        fitMessage.hidden = false;
+        fitMessage.textContent = `Print size cannot be previewed: ${error.message}`;
       }
     });
   }
@@ -323,6 +367,8 @@
     clearTimeout(saveTimer);
     saveTimer = null;
     model = document;
+    $("print-size").value = "full";
+    updatePrintControls();
     lastSaved = clone(document);
     selected = model.rows[0].blocks[0].id;
     history.length = 0;
@@ -352,7 +398,7 @@
     $("game-link").textContent = association ? `Game: ${association.game_title}` : "Associate game";
     const boxDimensions = $("game-box-dimensions");
     boxDimensions.hidden = !association?.available || !association.box_dimensions;
-    boxDimensions.textContent = boxDimensions.hidden ? "" : `Box: ${association.box_dimensions}`;
+    boxDimensions.textContent = boxDimensions.hidden ? "" : `Associated game box size is ${association.box_dimensions}.`;
     boxDimensions.title = boxDimensions.hidden ? "" : "Outside box dimensions (length × width × depth); reference only";
     $("game-link-current").textContent = association
       ? `${association.available ? "Currently associated with" : "Associated game is currently unavailable:"} ${association.game_title}`
@@ -446,6 +492,40 @@
   $("document-title").addEventListener("change", (event) => commit((draft) => { draft.title = event.target.value; }));
   $("page-size").addEventListener("change", (event) => commit((draft) => { draft.page.size = event.target.value; }));
   $("orientation").addEventListener("change", (event) => commit((draft) => { draft.page.orientation = event.target.value; }));
+  $("print-size").addEventListener("change", updatePrintControls);
+  ["custom-width","custom-height","custom-unit"].forEach(name=>$(name).addEventListener("change",()=>{syncCustomBounds();preview();}));
+  syncCustomBounds();
+  $("open-print-sheet").disabled=true;
+  $("export-pdf").addEventListener("click", async (event) => {
+    event.preventDefault();
+    if (!await flushSave()) return;
+    try {
+      const result=(await printEngine).layout(model,printSizeSelection());
+      if (!result.fits) throw new Error(result.reason || `Section "${result.overflow}" does not fit at the selected print size.`);
+      location.href=printQuery();
+    } catch(error) {message(error.message);}
+  });
+  $("open-print-sheet").addEventListener("click", () => {
+    $("print-paper").value=model.page.size;
+    $("borderless").checked=false;
+    $("print-sheet-dialog").showModal();
+    updatePrintPlan();
+  });
+  ["print-paper","print-copies","cut-guides","borderless"].forEach(name=>$(name).addEventListener("change",updatePrintPlan));
+  $("print-copies").addEventListener("input",updatePrintPlan);
+  $("close-print-sheet").addEventListener("click",()=>$("print-sheet-dialog").close());
+  $("print-sheet-form").addEventListener("submit",async(event)=>{
+    event.preventDefault();
+    if (!await flushSave()) return;
+    try {
+      const engine=await printEngine;
+      const result=engine.layout(model,printSizeSelection());
+      if (!result.fits) throw new Error(result.reason || `Section "${result.overflow}" does not fit at the selected print size.`);
+      engine.printSheetPlan(result,printSheetOptions());
+      $("print-sheet-dialog").close();
+      location.href=printQuery(true);
+    } catch(error) {message(error.message);}
+  });
   $("accent").addEventListener("change", (event) => commit((draft) => { draft.theme.accent = event.target.value; }));
   $("footer").addEventListener("change", (event) => commit((draft) => {
     const footer = event.target.value.trim();

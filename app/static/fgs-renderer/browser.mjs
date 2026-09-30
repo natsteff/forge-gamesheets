@@ -52545,10 +52545,92 @@ function drawContent(b, x, y, w, h, { line, text, circle, widthOf }) {
   }
 }
 
+// src/print-sizes.mjs
+var PAPER_SIZES = Object.freeze({ letter: [612, 792], a4: [595.28, 841.89] });
+var PRINT_PRESETS = Object.freeze(["full", "half", "poker", "bridge", "custom"]);
+var CARD_SIZES = Object.freeze({ poker: [180, 252], bridge: [162, 252] });
+var roundPoint = (value) => Math.round(value * 1e3) / 1e3;
+function paperSize(name5) {
+  const dimensions = PAPER_SIZES[name5];
+  if (!dimensions) throw new Error("Choose Letter or A4 printer paper.");
+  return dimensions;
+}
+function finishedSize(document2, selection = {}) {
+  if (!selection || typeof selection !== "object" || Array.isArray(selection)) throw new Error("Invalid print size selection.");
+  const preset = selection.preset ?? "full";
+  if (!PRINT_PRESETS.includes(preset)) throw new Error("Choose a supported print size.");
+  const [paperWidth, paperHeight] = paperSize(document2.page.size);
+  const orientation = document2.page.orientation;
+  if (!["portrait", "landscape"].includes(orientation)) throw new Error("Unsupported page orientation.");
+  let dimensions;
+  if (preset === "full") dimensions = [paperWidth, paperHeight];
+  else if (preset === "half") dimensions = [paperHeight / 2, paperWidth];
+  else if (CARD_SIZES[preset]) dimensions = CARD_SIZES[preset];
+  else {
+    const unit = selection.unit;
+    if (!["in", "cm"].includes(unit)) throw new Error("Custom size needs an explicit inch or centimeter unit.");
+    const factor = unit === "in" ? 72 : 72 / 2.54;
+    dimensions = [selection.width, selection.height].map((value) => {
+      if (typeof value !== "number" && typeof value !== "string") throw new Error("Custom width and height must be numbers.");
+      const number = Number(value);
+      const points = number * factor;
+      if (value === "" || value === null || value === void 0 || !Number.isFinite(points) || points < 36 || points > 1008)
+        throw new Error("Custom width and height must each be between 0.5 and 14 inches (1.27\u201335.56 cm).");
+      return roundPoint(points);
+    });
+  }
+  const [width, height] = preset === "custom" || orientation === "portrait" ? dimensions : [dimensions[1], dimensions[0]];
+  return { preset, width, height };
+}
+function coordinates(width, height, pieceWidth, pieceHeight, margin, gap) {
+  const columns = Math.floor((width - 2 * margin + gap + 1e-3) / (pieceWidth + gap));
+  const rows = Math.floor((height - 2 * margin + gap + 1e-3) / (pieceHeight + gap));
+  return { width, height, columns: Math.max(0, columns), rows: Math.max(0, rows), capacity: Math.max(0, columns) * Math.max(0, rows) };
+}
+function printSheetPlan(result, options = {}) {
+  if (!result?.fits) throw new Error("The finished sheet must fit before creating a print sheet.");
+  if (!options || typeof options !== "object" || Array.isArray(options)) throw new Error("Invalid print-sheet options.");
+  const paper = options.paper ?? "letter";
+  const [short, long] = paperSize(paper);
+  const copies = options.copies ?? 1;
+  if (!Number.isInteger(copies) || copies < 1 || copies > 48) throw new Error("Choose between 1 and 48 copies.");
+  const cutGuides = options.cutGuides ?? true;
+  if (typeof cutGuides !== "boolean") throw new Error("Cut guides must be on or off.");
+  const borderless = options.borderless ?? false;
+  if (typeof borderless !== "boolean") throw new Error("Borderless mode must be on or off.");
+  let chosen;
+  if (borderless) {
+    if (result.printPreset !== "half") throw new Error("Borderless two-up is only available for Half Page.");
+    const candidates = [
+      { width: short, height: long, columns: 1, rows: 2, capacity: 2 },
+      { width: long, height: short, columns: 2, rows: 1, capacity: 2 }
+    ];
+    chosen = candidates.find((candidate) => Math.abs(candidate.width - candidate.columns * result.width) < 0.011 && Math.abs(candidate.height - candidate.rows * result.height) < 0.011);
+    if (!chosen) throw new Error("Borderless two-up requires the same Letter or A4 paper used for Half Page.");
+  } else {
+    const margin = 36 + (cutGuides ? 8 : 0), gap2 = 12;
+    const portrait = coordinates(short, long, result.width, result.height, margin, gap2);
+    const landscape = coordinates(long, short, result.width, result.height, margin, gap2);
+    chosen = portrait.capacity >= copies ? portrait : landscape.capacity > portrait.capacity ? landscape : portrait;
+    if (!chosen.capacity) throw new Error("The finished sheet does not fit within the printer paper's 0.5-inch printable margins. Use larger paper or export the finished-size PDF for suitable card stock.");
+  }
+  const gap = borderless ? 0 : 12;
+  const usedWidth = chosen.columns * result.width + (chosen.columns - 1) * gap;
+  const usedHeight = chosen.rows * result.height + (chosen.rows - 1) * gap;
+  const left = (chosen.width - usedWidth) / 2, top = (chosen.height - usedHeight) / 2;
+  const pages = [];
+  for (let copy = 0; copy < copies; copy++) {
+    const pageIndex = Math.floor(copy / chosen.capacity), slot = copy % chosen.capacity;
+    pages[pageIndex] ??= [];
+    pages[pageIndex].push({ x: left + slot % chosen.columns * (result.width + gap), y: top + Math.floor(slot / chosen.columns) * (result.height + gap) });
+  }
+  return { paper, width: chosen.width, height: chosen.height, orientation: chosen.width > chosen.height ? "landscape" : "portrait", capacity: chosen.capacity, pages, cutGuides, borderless };
+}
+
 // src/index.mjs
 var PROFILE = Object.freeze({
   id: "fgs-page-1.3",
-  pages: { letter: [612, 792], a4: [595.28, 841.89] },
+  pages: PAPER_SIZES,
   margin: 36,
   columnGap: 16,
   rowGap: 14,
@@ -52637,12 +52719,27 @@ function createPrintEngine(fontData) {
     }
     return output;
   }
-  function layout(document2) {
+  function layout(document2, printSize = {}) {
     if (!document2 || document2.format !== "forge-gamesheets" || !["1.0", "1.1", "1.2", "1.3"].includes(document2.format_version)) throw new Error("Expected validated FGS 1.0\u20131.3");
     validateFill(document2);
-    const page = PROFILE.pages[document2.page.size];
-    if (!page) throw new Error("Unsupported page size");
-    const [width, height] = document2.page.orientation === "landscape" ? [page[1], page[0]] : page;
+    const size = finishedSize(document2, printSize);
+    const { width, height } = size;
+    const profile = size.preset === "full" ? PROFILE : {
+      ...PROFILE,
+      margin: Math.min(width, height) < 300 ? 12 : 24,
+      columnGap: 10,
+      rowGap: 9,
+      logoWidth: 32,
+      logoHeight: 24,
+      logoGap: 5,
+      titleSize: 14,
+      sectionSize: 10,
+      tableTitleHeight: 20,
+      tableLabelMinimum: 54,
+      footerReserve: 18,
+      footerSize: 7,
+      footerLineHeight: 9
+    };
     if (document2.footer && document2.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
     const commands = [];
     const push = (command) => {
@@ -52652,37 +52749,47 @@ function createPrintEngine(fontData) {
     const accent = document2.theme.accent;
     parseColor(accent);
     const accentText = headingAccent(accent);
-    const line = (x1, y1, x2, y2, color = GRID, thickness = PROFILE.tableLine) => push({ type: "line", x1, y1, x2, y2, color, thickness });
+    const line = (x1, y1, x2, y2, color = GRID, thickness = profile.tableLine) => push({ type: "line", x1, y1, x2, y2, color, thickness });
     const rect = (x, y, w, h, color) => push({ type: "rect", x, y, w, h, color });
     const circle = (x, y, r, color) => push({ type: "circle", x, y, r, color });
-    const text = (value, x, y, font = "sans", size = PROFILE.bodySize, color = BLACK, anchor = "start") => {
+    const text = (value, x, y, font = "sans", size2 = profile.bodySize, color = BLACK, anchor = "start") => {
       const content = String(value);
-      for (const character of content) if (!parsed[font].hasGlyphForCodePoint(character.codePointAt(0))) throw new Error(`FGS page rendering profile ${PROFILE.id} cannot render U+${character.codePointAt(0).toString(16).toUpperCase()}; a fallback font is required.`);
-      push({ type: "text", value: content, x, y, font, size, color, anchor });
+      for (const character of content) if (!parsed[font].hasGlyphForCodePoint(character.codePointAt(0))) throw new Error(`FGS page rendering profile ${profile.id} cannot render U+${character.codePointAt(0).toString(16).toUpperCase()}; a fallback font is required.`);
+      push({ type: "text", value: content, x, y, font, size: size2, color, anchor });
     };
     const cellText = (value, left, top, cellWidth, cellHeight, options = {}) => {
-      const { font = "sans", size = PROFILE.bodySize, center = false, marker = false } = options;
-      const lines = wrap(value, cellWidth - 10, font, size);
-      const lineHeight = size + 1.5;
+      const { font = "sans", size: size2 = profile.bodySize, center = false, marker = false } = options;
+      const lines = wrap(value, cellWidth - 10, font, size2);
+      const lineHeight = size2 + 1.5;
       const reserved = marker ? 7 : 0;
-      const base = top + Math.max(size + 2, (cellHeight - lines.length * lineHeight - reserved) / 2 + size);
-      for (const [index, part] of lines.entries()) text(part, center ? left + cellWidth / 2 : left + 5, base + index * lineHeight, font, size, BLACK, center ? "middle" : "start");
+      const base = top + Math.max(size2 + 2, (cellHeight - lines.length * lineHeight - reserved) / 2 + size2);
+      for (const [index, part] of lines.entries()) text(part, center ? left + cellWidth / 2 : left + 5, base + index * lineHeight, font, size2, BLACK, center ? "middle" : "start");
       if (marker) text("CALCULATED", left + 5, top + cellHeight - 3, "bold", 5, MUTED);
     };
     const scoreGeometry = (block, width2) => {
       const labels = labelsFor(block);
-      const labelWidth = Math.max(PROFILE.tableLabelMinimum, width2 * (width2 < 350 && block.players.length <= 2 ? 0.5 : PROFILE.tableLabelFraction));
+      const labelWidth = Math.max(profile.tableLabelMinimum, width2 * (width2 < 350 && block.players.length <= 2 ? 0.5 : profile.tableLabelFraction));
       const columnWidth = (width2 - labelWidth) / block.players.length;
+      if (size.preset !== "full" && columnWidth < 28) throw new Error("Too many player columns for this finished size; use fewer players or a larger size.");
       const playerLines = block.players.map((name5, index) => wrap(name5 || `Player ${index + 1}`, columnWidth - 8, "bold", 8));
-      const firstHeadingLines = wrap(block.first_column_heading ?? "Category", labelWidth - 10, "bold", PROFILE.bodySize);
-      const headerHeight = Math.max(PROFILE.tableRowHeight, firstHeadingLines.length * 10 + 6, ...playerLines.map((lines) => lines.length * 9.5 + 8));
-      const labelLines = labels.map((label) => wrap(label, labelWidth - 10, "bold", PROFILE.bodySize));
-      const rowHeights = labelLines.map((lines, index) => Math.max(PROFILE.tableRowHeight, lines.length * 10 + 6 + (calculated(labels[index]) ? 7 : 0)));
-      return { labels, labelWidth, columnWidth, headerHeight, rowHeights, height: PROFILE.tableTitleHeight + headerHeight + rowHeights.reduce((a, b) => a + b, 0) };
+      const firstHeadingLines = wrap(block.first_column_heading ?? "Category", labelWidth - 10, "bold", profile.bodySize);
+      const headerHeight = Math.max(profile.tableRowHeight, firstHeadingLines.length * 10 + 6, ...playerLines.map((lines) => lines.length * 9.5 + 8));
+      const labelLines = labels.map((label) => wrap(label, labelWidth - 10, "bold", profile.bodySize));
+      const rowHeights = labelLines.map((lines, index) => Math.max(profile.tableRowHeight, lines.length * 10 + 6 + (calculated(labels[index]) ? 7 : 0)));
+      return { labels, labelWidth, columnWidth, headerHeight, rowHeights, height: profile.tableTitleHeight + headerHeight + rowHeights.reduce((a, b) => a + b, 0) };
+    };
+    const headerLines = (block, blockWidth) => {
+      const titleWidth = block.logo ? blockWidth - 2 * (profile.logoWidth + profile.logoGap) : blockWidth - 10;
+      const lines = size.preset === "full" ? [block.title] : wrap(block.title, titleWidth, "serif", profile.titleSize);
+      if (lines.length > 2 || lines.some((value) => widthOf(value, "serif", profile.titleSize) > titleWidth))
+        throw new Error(size.preset === "full" ? `Page heading "${block.title}" is too wide for this layout.` : `Page heading "${block.title}" needs more than two lines at this print size. Shorten it or choose a larger size.`);
+      if (block.subtitle && widthOf(block.subtitle, "sans", 10) > titleWidth)
+        throw new Error(`Subtitle in "${block.title}" is too wide for this layout.`);
+      return lines;
     };
     const measure = (block, blockWidth, available) => {
       if (["tracker", "paper_pattern"].includes(block.type)) return contentHeight(block, blockWidth, available);
-      if (block.type === "header") return block.subtitle ? 54 : 40;
+      if (block.type === "header") return (block.subtitle ? 54 : 40) + (headerLines(block, blockWidth).length - 1) * 16;
       if (block.type === "score_table") return scoreGeometry(block, blockWidth).height;
       if (block.type === "notes") return 27 + block.lines * 24;
       if (block.type === "reference" || block.type === "checklist") {
@@ -52694,32 +52801,30 @@ function createPrintEngine(fontData) {
     const drawBlock = (block, x, y, blockWidth) => {
       if (block.type === "header") {
         if (block.logo && document2.format_version === "1.0") throw new Error("A header logo requires FGS 1.1 or later");
-        const titleWidth = block.logo ? blockWidth - 2 * (PROFILE.logoWidth + PROFILE.logoGap) : blockWidth - 10;
-        if (widthOf(block.title, "serif", PROFILE.titleSize) > titleWidth) throw new Error(`Page heading "${block.title}" is too wide for this layout.`);
-        if (block.subtitle && widthOf(block.subtitle, "sans", 10) > titleWidth) throw new Error(`Subtitle in "${block.title}" is too wide for this layout.`);
+        const titleLines = headerLines(block, blockWidth);
         if (block.logo) {
           const image = atob(block.logo.data);
           const dimension = (at) => ((image.charCodeAt(at) * 256 + image.charCodeAt(at + 1)) * 256 + image.charCodeAt(at + 2)) * 256 + image.charCodeAt(at + 3);
-          const ratio = Math.min(PROFILE.logoWidth / dimension(16), PROFILE.logoHeight / dimension(20));
+          const ratio = Math.min(profile.logoWidth / dimension(16), profile.logoHeight / dimension(20));
           const w = dimension(16) * ratio, h = dimension(20) * ratio;
-          commands.push({ type: "image", data: block.logo.data, alt: block.logo.alt, decorative: block.logo.decorative, x: x + (PROFILE.logoWidth - w) / 2, y: y + (PROFILE.logoHeight - h) / 2, w, h });
+          commands.push({ type: "image", data: block.logo.data, alt: block.logo.alt, decorative: block.logo.decorative, x: x + (profile.logoWidth - w) / 2, y: y + (profile.logoHeight - h) / 2, w, h });
         }
         const titleCenter = x + blockWidth / 2;
-        text(block.title, titleCenter, y + 25, "serif", PROFILE.titleSize, accentText, "middle");
-        if (block.subtitle) text(block.subtitle, titleCenter, y + 43, "sans", 10, MUTED, "middle");
+        titleLines.forEach((value, index) => text(value, titleCenter, y + 25 + index * 16, "serif", profile.titleSize, accentText, "middle"));
+        if (block.subtitle) text(block.subtitle, titleCenter, y + 43 + (titleLines.length - 1) * 16, "sans", 10, MUTED, "middle");
         return;
       }
-      if (widthOf(block.title, "serif", PROFILE.sectionSize) > blockWidth) throw new Error(`Section heading "${block.title}" is too wide for this layout.`);
+      if (widthOf(block.title, "serif", profile.sectionSize) > blockWidth) throw new Error(`Section heading "${block.title}" is too wide for this layout.`);
       if (["tracker", "paper_pattern"].includes(block.type)) {
-        if (block.title) text(block.title, x, y + 14, "serif", PROFILE.sectionSize, accentText);
-        drawContent(block, x, y, blockWidth, contentHeight(block, blockWidth, height - PROFILE.margin - (document2.footer ? PROFILE.footerReserve : 0) - y), { line, text, circle, widthOf });
+        if (block.title) text(block.title, x, y + 14, "serif", profile.sectionSize, accentText);
+        drawContent(block, x, y, blockWidth, contentHeight(block, blockWidth, height - profile.margin - (document2.footer ? profile.footerReserve : 0) - y), { line, text, circle, widthOf });
         return;
       }
-      text(block.title, x, y + 14, "serif", PROFILE.sectionSize, accentText);
-      line(x, y + 21, x + blockWidth, y + 21, accent, PROFILE.accentLine);
+      text(block.title, x, y + 14, "serif", profile.sectionSize, accentText);
+      line(x, y + 21, x + blockWidth, y + 21, accent, profile.accentLine);
       if (block.type === "score_table") {
         const geometry = scoreGeometry(block, blockWidth);
-        const top = y + PROFILE.tableTitleHeight;
+        const top = y + profile.tableTitleHeight;
         const boundaries = [top, top + geometry.headerHeight];
         geometry.rowHeights.forEach((h) => boundaries.push(boundaries.at(-1) + h));
         geometry.labels.forEach((label, index) => {
@@ -52752,30 +52857,41 @@ function createPrintEngine(fontData) {
         cursor2 += Math.max(17, lines.length * 13 + 3);
       }
     };
-    let cursor = PROFILE.margin;
+    let cursor = profile.margin;
     const blockBounds = [];
     for (const row of document2.rows) {
-      const columns = row.blocks.length;
-      if (columns !== 1 && columns !== 2) throw new Error("FGS rows must have one or two blocks");
-      const blockWidth = (width - 2 * PROFILE.margin - (columns === 2 ? PROFILE.columnGap : 0)) / columns;
-      const blockHeight = Math.max(...row.blocks.map((block) => measure(block, blockWidth, height - PROFILE.margin - (document2.footer ? PROFILE.footerReserve : 0) - cursor)));
-      if (cursor + blockHeight > height - PROFILE.margin - (document2.footer ? PROFILE.footerReserve : 0) + 1e-3) return { profile: PROFILE.id, width, height, fits: false, overflow: row.blocks[0].title, commands, blockBounds };
-      row.blocks.forEach((block, index) => {
-        const x = PROFILE.margin + index * (blockWidth + PROFILE.columnGap);
-        blockBounds.push({ id: block.id, x, y: cursor, width: blockWidth, height: blockHeight });
-        drawBlock(block, x, cursor, blockWidth);
-      });
-      cursor += blockHeight + PROFILE.rowGap;
+      const commandCount = commands.length, boundCount = blockBounds.length;
+      try {
+        const columns = row.blocks.length;
+        if (columns !== 1 && columns !== 2) throw new Error("FGS rows must have one or two blocks");
+        const blockWidth = (width - 2 * profile.margin - (columns === 2 ? profile.columnGap : 0)) / columns;
+        const blockHeight = Math.max(...row.blocks.map((block) => measure(block, blockWidth, height - profile.margin - (document2.footer ? profile.footerReserve : 0) - cursor)));
+        if (cursor + blockHeight > height - profile.margin - (document2.footer ? profile.footerReserve : 0) + 1e-3) return { profile: profile.id, width, height, printPreset: size.preset, fits: false, overflow: row.blocks[0].title, commands, blockBounds };
+        row.blocks.forEach((block, index) => {
+          const x = profile.margin + index * (blockWidth + profile.columnGap);
+          blockBounds.push({ id: block.id, x, y: cursor, width: blockWidth, height: blockHeight });
+          drawBlock(block, x, cursor, blockWidth);
+        });
+        cursor += blockHeight + profile.rowGap;
+      } catch (error2) {
+        if (size.preset === "full") throw error2;
+        commands.length = commandCount;
+        blockBounds.length = boundCount;
+        return { profile: profile.id, width, height, printPreset: size.preset, fits: false, overflow: row.blocks[0].title, reason: error2.message, commands, blockBounds };
+      }
     }
     if (document2.footer) {
       const lines = document2.footer.split("\n");
       for (const [index, value] of lines.entries()) {
-        if (widthOf(value, "sans", PROFILE.footerSize) > width - 2 * PROFILE.margin) throw new Error("Author footer is too wide for the page.");
-        const baseline = height - PROFILE.margin + 10 + (index - (lines.length - 1)) * PROFILE.footerLineHeight;
-        text(value, width / 2, baseline, "sans", PROFILE.footerSize, MUTED, "middle");
+        if (widthOf(value, "sans", profile.footerSize) > width - 2 * profile.margin) {
+          if (size.preset !== "full") return { profile: profile.id, width, height, printPreset: size.preset, fits: false, overflow: "Footer", reason: "Author footer is too wide for the selected print size.", commands, blockBounds };
+          throw new Error("Author footer is too wide for the page.");
+        }
+        const baseline = height - profile.margin + (size.preset === "full" ? 10 : 0) + (index - (lines.length - 1)) * profile.footerLineHeight;
+        text(value, width / 2, baseline, "sans", profile.footerSize, MUTED, "middle");
       }
     }
-    return { profile: PROFILE.id, width, height, fits: true, commands, blockBounds };
+    return { profile: profile.id, width, height, printPreset: size.preset, fits: true, commands, blockBounds };
   }
   function toSvg(result) {
     const parts = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${result.width} ${result.height}" role="img" aria-label="GameSheet page" class="fgs-page-render"><rect width="100%" height="100%" fill="#ffffff"/>`];
@@ -52789,26 +52905,51 @@ function createPrintEngine(fontData) {
     parts.push("</svg>");
     return parts.join("");
   }
-  async function toPdf(result, title2 = "GameSheet") {
+  async function makePdf(result, title2, plan) {
     if (!result.fits) throw new Error(`Section "${result.overflow}" does not fit on one page.`);
     const pdf = await PDFDocument_default.create();
     pdf.registerFontkit(fontkit_es_default);
     const fonts = {};
     for (const key2 of ["sans", "bold", "serif"]) fonts[key2] = await pdf.embedFont(bytes[key2], { subset: true });
-    const page = pdf.addPage([result.width, result.height]);
-    for (const command of result.commands) {
-      if (command.type === "rect") page.drawRectangle({ x: command.x, y: result.height - command.y - command.h, width: command.w, height: command.h, color: parseColor(command.color) });
-      else if (command.type === "line") page.drawLine({ start: { x: command.x1, y: result.height - command.y1 }, end: { x: command.x2, y: result.height - command.y2 }, thickness: command.thickness, color: parseColor(command.color) });
-      else if (command.type === "circle") page.drawCircle({ x: command.x, y: result.height - command.y, size: command.r, color: parseColor(command.color) });
-      else if (command.type === "image") {
-        const bytes2 = Uint8Array.from(atob(command.data), (ch) => ch.charCodeAt(0));
-        const logo = await pdf.embedPng(bytes2);
-        page.drawImage(logo, { x: command.x, y: result.height - command.y - command.h, width: command.w, height: command.h });
-      } else {
-        const font = fonts[command.font];
-        const textWidth = widthOf(command.value, command.font, command.size);
-        const x = command.anchor === "middle" ? command.x - textWidth / 2 : command.x;
-        page.drawText(command.value, { x, y: result.height - command.y, size: command.size, font, color: parseColor(command.color) });
+    const images = /* @__PURE__ */ new Map();
+    const pdfLine = (page, x1, y1, x2, y2, thickness = 0.5) => page.drawLine({ start: { x: x1, y: plan.height - y1 }, end: { x: x2, y: plan.height - y2 }, thickness, color: parseColor(MUTED) });
+    for (const placements of plan.pages) {
+      const page = pdf.addPage([plan.width, plan.height]);
+      for (const placement of placements) {
+        const ox = placement.x, oy = placement.y;
+        for (const command of result.commands) {
+          if (command.type === "rect") page.drawRectangle({ x: ox + command.x, y: plan.height - oy - command.y - command.h, width: command.w, height: command.h, color: parseColor(command.color) });
+          else if (command.type === "line") page.drawLine({ start: { x: ox + command.x1, y: plan.height - oy - command.y1 }, end: { x: ox + command.x2, y: plan.height - oy - command.y2 }, thickness: command.thickness, color: parseColor(command.color) });
+          else if (command.type === "circle") page.drawCircle({ x: ox + command.x, y: plan.height - oy - command.y, size: command.r, color: parseColor(command.color) });
+          else if (command.type === "image") {
+            let logo = images.get(command.data);
+            if (!logo) {
+              logo = await pdf.embedPng(Uint8Array.from(atob(command.data), (ch) => ch.charCodeAt(0)));
+              images.set(command.data, logo);
+            }
+            page.drawImage(logo, { x: ox + command.x, y: plan.height - oy - command.y - command.h, width: command.w, height: command.h });
+          } else {
+            const font = fonts[command.font];
+            const textWidth = widthOf(command.value, command.font, command.size);
+            const x = command.anchor === "middle" ? command.x - textWidth / 2 : command.x;
+            page.drawText(command.value, { x: ox + x, y: plan.height - oy - command.y, size: command.size, font, color: parseColor(command.color) });
+          }
+        }
+        if (plan.cutGuides && !plan.borderless) {
+          const x = ox, y = oy, w = result.width, h = result.height;
+          for (const edgeY of [y, y + h]) {
+            pdfLine(page, x - 8, edgeY, x - 2, edgeY);
+            pdfLine(page, x + w + 2, edgeY, x + w + 8, edgeY);
+          }
+          for (const edgeX of [x, x + w]) {
+            pdfLine(page, edgeX, y - 8, edgeX, y - 2);
+            pdfLine(page, edgeX, y + h + 2, edgeX, y + h + 8);
+          }
+        }
+      }
+      if (plan.cutGuides && plan.borderless) {
+        if (Math.abs(plan.width - 2 * result.width) < 0.011) pdfLine(page, result.width, 0, result.width, plan.height);
+        else pdfLine(page, 0, result.height, plan.width, result.height);
       }
     }
     pdf.setTitle(title2);
@@ -52818,7 +52959,14 @@ function createPrintEngine(fontData) {
     pdf.setModificationDate(/* @__PURE__ */ new Date("2000-01-01T00:00:00Z"));
     return pdf.save({ useObjectStreams: false });
   }
-  return { layout, toSvg, toPdf, widthOf };
+  function toPdf(result, title2 = "GameSheet") {
+    return makePdf(result, title2, { width: result.width, height: result.height, pages: [[{ x: 0, y: 0 }]], cutGuides: false, borderless: false });
+  }
+  function toPrintSheetPdf(result, title2 = "GameSheet", options = {}) {
+    const plan = printSheetPlan(result, options);
+    return makePdf(result, title2, plan);
+  }
+  return { layout, toSvg, toPdf, toPrintSheetPdf, printSheetPlan, widthOf };
 }
 
 // src/browser.mjs

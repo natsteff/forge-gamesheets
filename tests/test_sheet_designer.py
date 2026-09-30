@@ -312,6 +312,68 @@ def test_pdf_is_single_page_correct_size_and_deterministic(tmp_path: Path):
     assert "Milestones" in text
 
 
+def test_finished_print_sizes_and_copy_layout_remain_outside_fgs(tmp_path: Path):
+    document = FileDraftStore(tmp_path / "drafts").load()
+    original = json.dumps(document, sort_keys=True)
+    half = render_pdf(document, tmp_path / "half.pdf", print_size={"preset": "half"})
+    with pymupdf.open(half) as pdf:
+        assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((396, 612))
+    card = {
+        **document,
+        "rows": [{"id": "card-row", "blocks": [{
+            "id": "card-header",
+            "type": "header",
+            "title": "Phase 10 Player Card",
+            "subtitle": "",
+        }]}],
+    }
+    poker = render_pdf(card, tmp_path / "poker.pdf", print_size={"preset": "poker"})
+    with pymupdf.open(poker) as pdf:
+        assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((180, 252))
+        assert "Phase 10" in pdf[0].get_text()
+        assert "Player" in pdf[0].get_text()
+        assert "Card" in pdf[0].get_text()
+        assert all(
+            word[0] >= 0 and word[2] <= pdf[0].rect.width
+            for word in pdf[0].get_text("words")
+        )
+    sheet = render_pdf(
+        document,
+        tmp_path / "copies.pdf",
+        print_size={"preset": "half"},
+        print_sheet={
+            "paper": "letter", "copies": 2, "cutGuides": True, "borderless": True
+        },
+    )
+    with pymupdf.open(sheet) as pdf:
+        assert pdf.page_count == 1
+        assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((792, 612))
+    assert json.dumps(document, sort_keys=True) == original
+
+
+def test_print_size_http_validation_and_compatibility(tmp_path: Path):
+    app = create_standalone_app(tmp_path / "standalone-print")
+    with TestClient(
+        app, base_url="http://localhost", headers={"Origin": "http://localhost"}
+    ) as client:
+        designer = client.get("/sheet-designer")
+        assert "data-print-size" in designer.text
+        assert "data-print-sheet-dialog" in designer.text
+        assert "not saved in the .fgs file" in designer.text
+        assert client.get("/sheet-designer/export.pdf").status_code == 200
+        assert (
+            client.get("/sheet-designer/export.pdf?print_size=poker").status_code
+            == 409
+        )
+        assert (
+            client.get("/sheet-designer/export.pdf?print_size=poster").status_code
+            == 422
+        )
+        assert client.get(
+            "/sheet-designer/export.pdf?print_size=custom&custom_width=5"
+        ).status_code == 422
+
+
 def test_pdf_category_labels_use_the_shared_bold_font(tmp_path: Path):
     output = render_pdf(expedition_document(), tmp_path / "font-check.pdf")
     with pymupdf.open(output) as pdf:
@@ -698,7 +760,12 @@ def test_game_association_controls_are_integrated_only():
     assert "not added to exported FGS files" in template
     assert "data-game-link" in template
     assert "data-game-box-dimensions" in template
+    assert template.index("data-game-box-dimensions") > template.index(
+        "designer-print-note"
+    )
+    assert "data-game-box-dimensions" not in template.split("</header>", 1)[0]
     assert 'boxDimensions.textContent = boxDimensions.hidden ? ""' in script
+    assert "Associated game box size is ${association.box_dimensions}." in script
     assert 'requestDocument("/sheet-designer/game-association"' in script
     assert "encodeURIComponent(query)" in script
     assert "query === null" in script
