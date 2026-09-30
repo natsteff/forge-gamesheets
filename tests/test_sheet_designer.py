@@ -5,6 +5,8 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import shutil
+import subprocess
 from io import BytesIO
 from pathlib import Path
 
@@ -44,6 +46,30 @@ def test_fgs_export_filename_preserves_safe_sheet_title():
     script = (Path(__file__).parents[1] / "app/static/sheet-designer.js").read_text()
     assert '$("export-fgs").addEventListener("click", async (event)' in script
     assert "if (!await flushSave()) return;" in script
+
+
+def test_section_order_controls_match_reading_order():
+    root = Path(__file__).parents[1]
+    template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
+    script = (root / "app/static/sheet-designer.js").read_text()
+    assert "Sections read left to right, then top to bottom." in template
+    assert 'data-row-up=' in script
+    assert 'data-row-down=' in script
+    assert 'moveSectionTo(draft, blockId, neighbor.block.id)' in script
+    assert 'canMoveSectionTo(model, fromId, item.dataset.blockId)' in script
+    for page in ("sheet_designer.html", "sheet_designer_standalone.html"):
+        html = (root / "app/templates" / page).read_text()
+        assert 'type="module"' in html
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is not available for the browser ordering tests")
+    subprocess.run(
+        [node, "--test", "tests/sheet-order.test.mjs"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_fgs_1_1_footer_round_trips_without_changing_1_0(tmp_path: Path):

@@ -1017,6 +1017,11 @@ input[type="checkbox"] {
 .designer-properties { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
 .designer-structure h2, .designer-properties h2 { margin-top: 0; font-size: 1.25rem; }
 .designer-structure > p { margin-top: 0; color: var(--muted); font-size: 0.9rem; }
+.designer-structure-row { margin-bottom: 0.75rem; padding: 0.4rem; border: 1px solid var(--line); border-radius: 0.7rem; }
+.designer-row-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin: 0 0.35rem 0.4rem; color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.designer-row-actions { display: flex; gap: 0.2rem; }
+.designer-row-actions button { min-height: 0; padding: 0.15rem 0.4rem; border: 1px solid var(--line); border-radius: 0.3rem; background: var(--surface); color: var(--forge-dark); }
+.designer-row-actions button:disabled, .designer-mini-actions button:disabled { opacity: 0.35; cursor: default; }
 .designer-structure-item { display: flex; align-items: stretch; margin-bottom: 0.65rem; overflow: hidden; border: 1px solid var(--line); border-radius: 0.65rem; background: var(--surface); }
 .designer-structure-item.is-selected { border-color: var(--forge); box-shadow: inset 3px 0 var(--forge); background: #fff7f3; }
 .designer-structure-item button.designer-section-select { display: flex; flex: 1; gap: 0.6rem; min-height: 0; align-items: center; justify-content: flex-start; padding: 0.75rem; border: 0; border-radius: 0; background: transparent; color: var(--ink); text-align: left; }

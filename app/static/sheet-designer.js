@@ -1,5 +1,7 @@
 "use strict";
 
+import {canMoveSectionTo, moveSectionTo, sectionNeighbor} from "./sheet-order.mjs?v=1";
+
 (() => {
   const root = document.querySelector("[data-designer-app]");
   if (!root) return;
@@ -157,26 +159,54 @@
     commit((draft) => draft.rows.splice(to, 0, draft.rows.splice(from, 1)[0]));
   }
 
+  function moveSection(blockId, direction) {
+    const neighbor = sectionNeighbor(model, blockId, direction);
+    if (!neighbor || neighbor.blocked) return;
+    commit((draft) => moveSectionTo(draft, blockId, neighbor.block.id));
+  }
+
   function structure() {
     const sectionCount = model.rows.reduce((count, row) => count + row.blocks.length, 0);
     $("section-count").textContent = `${sectionCount} section${sectionCount === 1 ? "" : "s"}`;
-    $("structure-list").innerHTML = model.rows.map((row, rowIndex) => row.blocks.map((block) => `
-      <div class="designer-structure-item${selected === block.id ? " is-selected" : ""}" draggable="true" data-block-id="${block.id}" data-row-index="${rowIndex}">
-        <button type="button" class="designer-section-select" data-select="${block.id}">
+    $("structure-list").innerHTML = model.rows.map((row, rowIndex) => `<div class="designer-structure-row">
+      <div class="designer-row-toolbar"><span>Row ${rowIndex + 1} · ${row.blocks.length === 2 ? "left and right" : "full width"}</span>
+        <span class="designer-row-actions">
+          <button type="button" data-row-up="${rowIndex}" aria-label="Move entire row ${rowIndex + 1} up" ${rowIndex === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" data-row-down="${rowIndex}" aria-label="Move entire row ${rowIndex + 1} down" ${rowIndex === model.rows.length - 1 ? "disabled" : ""}>↓</button>
+        </span>
+      </div>
+      ${row.blocks.map((block) => {
+        const up = sectionNeighbor(model, block.id, -1);
+        const down = sectionNeighbor(model, block.id, 1);
+        const label = escape(block.title || blockName[block.type]);
+        return `
+      <div class="designer-structure-item${selected === block.id ? " is-selected" : ""}" draggable="true" data-block-id="${escape(block.id)}">
+        <button type="button" class="designer-section-select" data-select="${escape(block.id)}">
           <span aria-hidden="true">⠿</span><span>${escape(block.title || blockName[block.type])}</span>
         </button>
         <span class="designer-mini-actions">
-          <button type="button" data-up="${rowIndex}" aria-label="Move ${escape(block.title)} up">↑</button>
-          <button type="button" data-down="${rowIndex}" aria-label="Move ${escape(block.title)} down">↓</button>
+          <button type="button" data-up="${escape(block.id)}" aria-label="Move ${label} before ${up ? escape(up.block.title) : "previous section"}" ${!up || up.blocked ? "disabled" : ""}>↑</button>
+          <button type="button" data-down="${escape(block.id)}" aria-label="Move ${label} after ${down ? escape(down.block.title) : "next section"}" ${!down || down.blocked ? "disabled" : ""}>↓</button>
         </span>
-      </div>`).join("")).join("");
+      </div>`;}).join("")}</div>`).join("");
     root.querySelectorAll("[data-select]").forEach((button) => button.addEventListener("click", () => { selected = button.dataset.select; render(); }));
-    root.querySelectorAll("[data-up]").forEach((button) => button.addEventListener("click", () => moveRow(Number(button.dataset.up), Number(button.dataset.up) - 1)));
-    root.querySelectorAll("[data-down]").forEach((button) => button.addEventListener("click", () => moveRow(Number(button.dataset.down), Number(button.dataset.down) + 1)));
+    root.querySelectorAll("[data-up]").forEach((button) => button.addEventListener("click", () => moveSection(button.dataset.up, -1)));
+    root.querySelectorAll("[data-down]").forEach((button) => button.addEventListener("click", () => moveSection(button.dataset.down, 1)));
+    root.querySelectorAll("[data-row-up]").forEach((button) => button.addEventListener("click", () => moveRow(Number(button.dataset.rowUp), Number(button.dataset.rowUp) - 1)));
+    root.querySelectorAll("[data-row-down]").forEach((button) => button.addEventListener("click", () => moveRow(Number(button.dataset.rowDown), Number(button.dataset.rowDown) + 1)));
     root.querySelectorAll("[draggable=true]").forEach((item) => {
-      item.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", item.dataset.rowIndex));
+      item.addEventListener("dragstart", (event) => event.dataTransfer.setData("text/plain", item.dataset.blockId));
       item.addEventListener("dragover", (event) => event.preventDefault());
-      item.addEventListener("drop", (event) => { event.preventDefault(); moveRow(Number(event.dataTransfer.getData("text/plain")), Number(item.dataset.rowIndex)); });
+      item.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const fromId = event.dataTransfer.getData("text/plain");
+        if (fromId === item.dataset.blockId) return;
+        if (!canMoveSectionTo(model, fromId, item.dataset.blockId)) {
+          message("Sections cannot cross a full-width row. Use the row arrows to move the whole row.");
+          return;
+        }
+        commit((draft) => moveSectionTo(draft, fromId, item.dataset.blockId));
+      });
     });
   }
 
