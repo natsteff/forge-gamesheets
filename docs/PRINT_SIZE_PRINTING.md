@@ -21,7 +21,7 @@ change physical size when a composition is reduced.
 
 1. Choose the Finished size before composing the sheet. Review the fit percentage
    and apparent text size in the preview; headings may wrap across multiple lines.
-2. Open **Export → Arrange copies for printing**, choose printer paper and the
+2. Open **Export → Create print sheet**, choose printer paper and the
    number of copies, and leave **Cut guides** on if the sheets will be trimmed.
 3. Review the first arranged printer page and its output summary before export.
    The summary gives the PDF's paper orientation, maximum copies per page, and
@@ -45,7 +45,7 @@ borderless page.
 guides or Letter/A4 placement. Use it for matching card stock or a printer that
 supports that page size and edge-to-edge output. An ordinary printer may clip
 content close to a card-sized page edge, even when the PDF itself is correct.
-For ordinary Letter/A4 printing, use **Arrange copies for printing** instead.
+For ordinary Letter/A4 printing, use **Create print sheet** instead.
 
 ## Borderless two-up Half Page
 

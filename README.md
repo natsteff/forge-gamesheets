@@ -460,7 +460,7 @@ headings and content wrap at the selected width, then the complete composition
 is uniformly fitted if necessary. The preview reports the fit percentage and
 approximate body-text size so the designer can decide whether to shorten a
 card; it does not enforce an arbitrary readability threshold.
-**Arrange copies for printing** places identical finished-size sheets on Letter
+**Create print sheet** places identical finished-size sheets on Letter
 or A4 with optional cut guides; normal layouts keep the content and guides at
 least 0.5 inch from the paper edge. The dialog reports the PDF orientation,
 copies per page, and page count before export. Eight poker cards normally use

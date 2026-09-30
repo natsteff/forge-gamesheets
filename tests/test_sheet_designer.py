@@ -359,7 +359,14 @@ def test_print_size_http_validation_and_compatibility(tmp_path: Path):
         designer = client.get("/sheet-designer")
         assert "data-print-size" in designer.text
         assert "data-print-sheet-dialog" in designer.text
+        assert ">Create print sheet</button>" in designer.text
+        assert "Create print sheet…" not in designer.text
         assert "not saved in the .fgs file" in designer.text
+        script = (
+            Path(__file__).parents[1] / "app/static/sheet-designer.js"
+        ).read_text()
+        assert 'printSheet.classList.toggle("primary-button",compact)' in script
+        assert "insertBefore(printSheet,pdf)" in script
         assert client.get("/sheet-designer/export.pdf").status_code == 200
         poker = client.get("/sheet-designer/export.pdf?print_size=poker")
         assert poker.status_code == 200

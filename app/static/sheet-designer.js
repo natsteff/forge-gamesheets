@@ -36,9 +36,18 @@
   }
   function updatePrintControls() {
     const preset=$("print-size").value;
+    const compact=preset!=="full";
+    const pdf=$("export-pdf");
+    const printSheet=$("open-print-sheet");
+    pdf.classList.toggle("primary-button",!compact);
+    pdf.classList.toggle("secondary-button",compact);
+    printSheet.classList.toggle("primary-button",compact);
+    printSheet.classList.toggle("secondary-button",!compact);
+    if(compact)pdf.parentElement.insertBefore(printSheet,pdf);
+    else pdf.parentElement.insertBefore(pdf,printSheet);
     $("custom-size").hidden=preset!=="custom";
-    $("open-print-sheet").disabled=preset==="full";
-    $("open-print-sheet").title=preset==="full"?"Full Page already occupies the printer sheet; use Export PDF.":"";
+    printSheet.disabled=!compact;
+    printSheet.title=compact?"":"Full Page already occupies the printer sheet; use Export PDF.";
     preview();
   }
   function printQuery(sheet = false) {
