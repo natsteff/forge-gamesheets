@@ -976,6 +976,7 @@ input[type="checkbox"] {
   background: var(--surface); box-shadow: var(--shadow);
 }
 .designer-export-menu a, .designer-export-menu button { display: block; width: 100%; text-align: center; }
+.designer-export-menu [hidden], .designer-print-note [hidden] { display: none; }
 .designer-export-menu > div { width: 15rem; }
 .designer-custom-size { display: flex; align-items: end; gap: .35rem; }
 .designer-custom-size[hidden] { display: none; }

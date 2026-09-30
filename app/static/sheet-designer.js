@@ -23,6 +23,7 @@
   logoTools.then(tools=>{contentTools=tools;}).catch(error=>message(error.message));
   let previewRevision = 0;
   let printPlanRevision = 0;
+  let copiesManuallyEdited = false;
   function printSizeSelection() {
     const selection = {preset: $("print-size").value};
     if (selection.preset === "custom") Object.assign(selection, {
@@ -46,8 +47,10 @@
     if(compact)pdf.parentElement.insertBefore(printSheet,pdf);
     else pdf.parentElement.insertBefore(pdf,printSheet);
     $("custom-size").hidden=preset!=="custom";
+    $("print-note-full").hidden=compact;
+    $("print-note-compact").hidden=!compact;
+    printSheet.hidden=!compact;
     printSheet.disabled=!compact;
-    printSheet.title=compact?"":"Full Page already occupies the printer sheet; use Export PDF.";
     preview();
   }
   function printQuery(sheet = false) {
@@ -64,7 +67,10 @@
     const revision=++printPlanRevision;
     const eligible=$("print-size").value==="half"&&$("print-paper").value===model.page.size;
     $("borderless").disabled=!eligible;
-    if(!eligible)$("borderless").checked=false;
+    if(!eligible && $("borderless").checked){
+      $("borderless").checked=false;
+      if(!copiesManuallyEdited)$("print-copies").value="1";
+    }
     try {
       const engine=await printEngine;
       const result=engine.layout(model,printSizeSelection());
@@ -526,12 +532,19 @@
   });
   $("open-print-sheet").addEventListener("click", () => {
     $("print-paper").value=model.page.size;
+    $("print-copies").value="1";
+    copiesManuallyEdited=false;
     $("borderless").checked=false;
     $("print-sheet-dialog").showModal();
     updatePrintPlan();
   });
-  ["print-paper","print-copies","cut-guides","borderless"].forEach(name=>$(name).addEventListener("change",updatePrintPlan));
-  $("print-copies").addEventListener("input",updatePrintPlan);
+  ["print-paper","cut-guides"].forEach(name=>$(name).addEventListener("change",updatePrintPlan));
+  $("print-copies").addEventListener("input",()=>{copiesManuallyEdited=true;updatePrintPlan();});
+  $("print-copies").addEventListener("change",()=>{copiesManuallyEdited=true;updatePrintPlan();});
+  $("borderless").addEventListener("change",()=>{
+    if(!copiesManuallyEdited)$("print-copies").value=$("borderless").checked?"2":"1";
+    updatePrintPlan();
+  });
   $("close-print-sheet").addEventListener("click",()=>$("print-sheet-dialog").close());
   $("print-sheet-form").addEventListener("submit",async(event)=>{
     event.preventDefault();

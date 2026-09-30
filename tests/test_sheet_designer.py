@@ -360,6 +360,14 @@ def test_print_size_http_validation_and_compatibility(tmp_path: Path):
         assert "data-print-size" in designer.text
         assert "data-print-sheet-dialog" in designer.text
         assert ">Create print sheet</button>" in designer.text
+        assert 'data-open-print-sheet type="button" hidden' in designer.text
+        assert "<h2>Create print sheet</h2>" in designer.text
+        assert (
+            'data-print-copies type="number" min="1" max="48" value="1"'
+            in designer.text
+        )
+        assert "data-print-note-full" in designer.text
+        assert "data-print-note-compact hidden" in designer.text
         assert "Create print sheet…" not in designer.text
         assert "not saved in the .fgs file" in designer.text
         script = (
@@ -367,6 +375,12 @@ def test_print_size_http_validation_and_compatibility(tmp_path: Path):
         ).read_text()
         assert 'printSheet.classList.toggle("primary-button",compact)' in script
         assert "insertBefore(printSheet,pdf)" in script
+        assert "printSheet.hidden=!compact" in script
+        assert '$("print-note-full").hidden=compact' in script
+        assert '$("print-note-compact").hidden=!compact' in script
+        assert '$("print-copies").value="1"' in script
+        assert '$("print-copies").value=$("borderless").checked?"2":"1"' in script
+        assert "copiesManuallyEdited=true" in script
         assert client.get("/sheet-designer/export.pdf").status_code == 200
         poker = client.get("/sheet-designer/export.pdf?print_size=poker")
         assert poker.status_code == 200
