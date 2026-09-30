@@ -1,6 +1,7 @@
 "use strict";
 
 import {canMoveSectionTo, moveSectionTo, sectionNeighbor} from "./sheet-order.mjs?v=1";
+import {lineSelection, previewTargetAt} from "./preview-navigation.mjs?v=1";
 
 (() => {
   const root = document.querySelector("[data-designer-app]");
@@ -18,12 +19,13 @@ import {canMoveSectionTo, moveSectionTo, sectionNeighbor} from "./sheet-order.mj
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
-  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=8")
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3.1&layout=9")
     .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
-  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=8");
+  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3.1&layout=9");
   let contentTools=null;
   logoTools.then(tools=>{contentTools=tools;}).catch(error=>message(error.message));
   let previewRevision = 0;
+  let latestPreviewLayout = null;
   let printPlanRevision = 0;
   let copiesManuallyEdited = false;
   function printSizeSelection() {
@@ -234,6 +236,7 @@ import {canMoveSectionTo, moveSectionTo, sectionNeighbor} from "./sheet-order.mj
     printEngine.then((engine) => {
       if (revision !== previewRevision) return;
       const result = engine.layout(model, printSizeSelection());
+      latestPreviewLayout = result.fits ? result : null;
       page.innerHTML = engine.toSvg(result);
       page.style.width=result.fitScale===undefined?"":`${Math.round(result.width*96/72)}px`;
       const info=$('fit-info');
@@ -247,12 +250,55 @@ import {canMoveSectionTo, moveSectionTo, sectionNeighbor} from "./sheet-order.mj
       fitMessage.hidden = result.fits;
     }).catch((error) => {
       if (revision === previewRevision) {
+        latestPreviewLayout = null;
         $('fit-info').hidden=true;
         fitMessage.hidden = false;
         fitMessage.textContent = `Print size cannot be previewed: ${error.message}`;
       }
     });
   }
+
+  function previewPoint(event) {
+    const svg = $("sheet-preview").querySelector("svg");
+    const matrix = svg?.getScreenCTM();
+    if (!matrix) return null;
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    return point.matrixTransform(matrix.inverse());
+  }
+
+  function focusPreviewTarget(target) {
+    if (target.blockId) {
+      selected = target.blockId;
+      render();
+    }
+    const fields = {
+      title: '[data-field="title"]', subtitle: '[data-field="subtitle"]',
+      first_column_heading: "[data-first-column-heading]", players: '[data-list="players"]',
+      score_rows: '[data-list="score_rows"]', items: '[data-list="items"]',
+      lines: '[data-field="lines"]', footer: "[data-footer]"
+    };
+    const input = (target.field === "footer" ? $("footer") : $("properties-panel").querySelector(fields[target.field] || fields.title))
+      || $("properties-panel").querySelector(fields.title);
+    if (!input) return;
+    input.focus({preventScroll:true});
+    if (input.tagName === "TEXTAREA" && target.lineIndex !== undefined) {
+      const {start,end} = lineSelection(input.value, target.lineIndex);
+      input.setSelectionRange(start,end);
+    }
+    input.scrollIntoView({block:"center"});
+  }
+
+  $("sheet-preview").addEventListener("mousemove", (event) => {
+    const point=previewPoint(event);
+    $("sheet-preview").style.cursor=point&&previewTargetAt(latestPreviewLayout,point.x,point.y)?"pointer":"";
+  });
+  $("sheet-preview").addEventListener("click", (event) => {
+    const point=previewPoint(event);
+    const target=point&&previewTargetAt(latestPreviewLayout,point.x,point.y);
+    if(target)focusPreviewTarget(target);
+  });
 
   const textList = (label, items, key) => `<label>${label}<textarea data-list="${key}" rows="${Math.min(12, Math.max(4, items.length))}">${escape(items.join("\n"))}</textarea></label>`;
   function properties() {

@@ -1,4 +1,4 @@
-import {loadPrintEngine} from "/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3";
+import {loadPrintEngine} from "/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3.1";
 const nodes=[...document.querySelectorAll("[data-live-paper]")];
 if(nodes.length){
   try{

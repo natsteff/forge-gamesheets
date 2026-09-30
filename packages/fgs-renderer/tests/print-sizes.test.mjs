@@ -72,6 +72,11 @@ test("small formats compose crowded content and uniformly fit it without omissio
   assert.ok(layout.fitScale>0&&layout.fitScale<1);
   assert.ok(layout.commands.some(command=>command.type==="text"&&command.value==="Scores"));
   assert.ok(layout.commands.some(command=>command.type==="text"&&command.value.includes("8")));
+  const rowTarget=layout.editTargets.find(target=>target.blockId==="score-1"&&target.field==="score_rows");
+  assert.ok(rowTarget);
+  assert.equal(rowTarget.lineIndex,0);
+  assert.ok(rowTarget.x>=0&&rowTarget.x+rowTarget.width<=layout.width);
+  assert.ok(rowTarget.y>=0&&rowTarget.y+rowTarget.height<=layout.height);
   assert.equal((await PDFDocument.load(await engine.toPdf(layout))).getPageCount(),1);
   const footed=document();footed.footer="A long credit line that cannot fit across a narrow poker card";
   const footerLayout=engine.layout(footed,{preset:"poker"});

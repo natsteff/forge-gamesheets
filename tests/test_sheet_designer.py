@@ -72,6 +72,26 @@ def test_section_order_controls_match_reading_order():
     )
 
 
+def test_preview_click_navigation_is_connected_to_designer_fields():
+    root = Path(__file__).parents[1]
+    script = (root / "app/static/sheet-designer.js").read_text()
+    template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
+    assert "previewTargetAt(latestPreviewLayout,point.x,point.y)" in script
+    assert "input.setSelectionRange(start,end)" in script
+    assert "selected = target.blockId" in script
+    assert "Click a heading, table label, or list item" in template
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is not available for preview navigation tests")
+    subprocess.run(
+        [node, "--test", "tests/preview-navigation.test.mjs"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 def test_fgs_1_1_footer_round_trips_without_changing_1_0(tmp_path: Path):
     store = FileDraftStore(tmp_path / "drafts")
     original = store.load()
@@ -478,7 +498,7 @@ def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
             for line in block["lines"]
             for span in line["spans"]
         ]
-        assert "fgs-page-1.3" in pdf.metadata["creator"]
+        assert "fgs-page-1.3.1" in pdf.metadata["creator"]
     assert any(
         span["text"] == "Expedition Score Sheet" and span["color"] == 0xA52F23
         for span in spans
@@ -492,7 +512,7 @@ def test_pdf_titles_use_accent_but_table_labels_remain_neutral(tmp_path: Path):
 def test_pinned_renderer_files_match_the_build_manifest():
     root = Path(__file__).resolve().parents[1] / "app" / "static" / "fgs-renderer"
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["profile"] == "fgs-page-1.3"
+    assert manifest["profile"] == "fgs-page-1.3.1"
     for name, expected in manifest["files"].items():
         assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected
     source = Path(__file__).resolve().parents[1] / "packages" / "fgs-renderer"

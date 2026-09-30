@@ -21,4 +21,4 @@ const sourceFiles=["src/browser.mjs","src/cli.mjs","src/index.mjs","src/content.
 const sourceHashes={};
 for(const file of sourceFiles) sourceHashes[file]=createHash("sha256").update(await readFile(join(root,file))).digest("hex");
 const packageInfo=JSON.parse(await readFile(join(root,"package.json"),"utf8"));
-await writeFile(join(destination,"manifest.json"),JSON.stringify({package:packageInfo.name,version:packageInfo.version,profile:"fgs-page-1.3",sourceFiles:sourceHashes,files:hashes},null,2)+"\n");
+await writeFile(join(destination,"manifest.json"),JSON.stringify({package:packageInfo.name,version:packageInfo.version,profile:"fgs-page-1.3.1",sourceFiles:sourceHashes,files:hashes},null,2)+"\n");

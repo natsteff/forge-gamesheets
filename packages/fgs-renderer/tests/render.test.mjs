@@ -58,6 +58,18 @@ test("one display list specifies bold category labels for both outputs",async()=
   assert.deepEqual(pdf,await engine.toPdf(layout,document.title));
 });
 
+test("preview edit targets identify a heading and individual score rows without changing the PDF",async()=>{
+  const document=sheet();
+  const layout=engine.layout(document);
+  const header=layout.editTargets.find(target=>target.blockId==="header"&&target.field==="title");
+  const rows=layout.editTargets.filter(target=>target.blockId==="score"&&target.field==="score_rows");
+  assert.ok(header);
+  assert.deepEqual(rows.map(target=>target.lineIndex),[0,1]);
+  assert.ok(rows[0].y>=layout.blockBounds[1].y);
+  assert.ok(rows[1].y>rows[0].y);
+  assert.ok((await engine.toPdf(layout)).length>0);
+});
+
 test("FGS 1.2 heading is shared, wraps without clipping, and notes never render",async()=>{
   const document=sheet();
   const old=engine.layout(document);
@@ -135,8 +147,23 @@ test("FGS 1.1 reserves footer space in preview and PDF without changing old shee
   const credit=layout.commands.find((item)=>item.value==="Created by Example");
   assert.equal(credit.font,"sans");
   assert.equal(credit.anchor,"middle");
+  assert.equal(credit.y,layout.height-PROFILE.margin-6-PROFILE.footerLineHeight);
+  assert.equal(layout.commands.find((item)=>item.value==="example.test").y,layout.height-PROFILE.margin-6);
   assert.match(engine.toSvg(layout),/Created by Example/);
   assert.equal((await PDFDocument.load(await engine.toPdf(layout))).getPageCount(),1);
+});
+
+test("two-line footer reserves extra content space without moving the top layout",()=>{
+  const document=sheet();
+  document.format_version="1.1";
+  document.footer="First line\nSecond line";
+  const layout=engine.layout(document);
+  const top=engine.layout(sheet());
+  assert.equal(layout.fits,true);
+  assert.equal(layout.blockBounds[0].y,top.blockBounds[0].y);
+  const footer=layout.commands.filter(command=>command.type==="text"&&command.value.endsWith("line"));
+  assert.deepEqual(footer.map(command=>command.y),[layout.height-53,layout.height-42]);
+  assert.ok(layout.blockBounds.at(-1).y+layout.blockBounds.at(-1).height<=layout.height-PROFILE.margin-33);
 });
 
 test("long footer text remains intact and overwide lines warn without PDF clipping",async()=>{

@@ -1,10 +1,11 @@
 # FGS Page Rendering Profile — implementation reference
 
 The current normative contract is
-[FGS Page Rendering Profile 1.2](../../docs/FGS_PAGE_RENDERING_PROFILE_1_2.md),
-extending [1.1](../../docs/FGS_PAGE_RENDERING_PROFILE_1_1.md) and the original
+[FGS Page Rendering Profile 1.3.1](../../docs/FGS_PAGE_RENDERING_PROFILE_1_3.md),
+extending [1.2](../../docs/FGS_PAGE_RENDERING_PROFILE_1_2.md),
+[1.1](../../docs/FGS_PAGE_RENDERING_PROFILE_1_1.md), and the original
 [1.0](../../docs/FGS_PAGE_RENDERING_PROFILE_1_0.md). The renderer accepts FGS
-1.0, 1.1, and 1.2. Designer Notes are excluded from drawing commands and PDF
+1.0–1.3. Designer Notes are excluded from drawing commands and PDF
 metadata; first-column headings use the same wrapped geometry for SVG and PDF.
 During beta, score-table widths are based on measured headings and row labels,
 not a fixed first-column percentage. Footer width is validated at layout time;
@@ -19,7 +20,9 @@ the conformance suite. This profile is not yet a published FGS standard.
 
 All dimensions are PDF points (1/72 inch), not screen pixels. The page is one
 Letter (612 × 792 pt) or A4 (595.28 × 841.89 pt) page, transposed for landscape.
-Content begins 36 pt from every edge. Rows have 14 pt vertical separation; a
+Content begins 36 pt from every edge. The last full-page footer baseline is
+42 pt above the lower edge, inside the printable margin; a second footer line
+reserves 11 additional points above it. Rows have 14 pt vertical separation; a
 two-block row has two equal widths with a 16 pt gap. Content that crosses the
 bottom 36 pt margin must report overflow and must not export a clipped PDF.
 

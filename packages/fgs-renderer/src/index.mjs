@@ -4,9 +4,9 @@ import {validateFill} from "./content.mjs";
 import {contentHeight,drawContent,CONTENT_COMMAND_LIMIT} from "./layout-content.mjs";
 import {finishedSize,printSheetPlan,PAPER_SIZES} from "./print-sizes.mjs";
 
-// FGS Page Rendering Profile 1.3. All geometry is in PDF points (1/72 inch).
+// FGS Page Rendering Profile 1.3.1. All geometry is in PDF points (1/72 inch).
 export const PROFILE = Object.freeze({
-  id: "fgs-page-1.3",
+  id: "fgs-page-1.3.1",
   pages: PAPER_SIZES,
   margin: 36, columnGap: 16, rowGap: 14,
   footerReserve: 22, footerSize: 8, footerLineHeight: 11,
@@ -116,7 +116,11 @@ export function createPrintEngine(fontData) {
     const width=compact?Math.max(size.width,minimumContentWidth+2*profile.margin):size.width;
     const height=compact?20000:size.height;
     if (document.footer && document.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
+    const footerLineCount=document.footer?document.footer.split("\n").length:0;
+    const footerReserve=compact?profile.footerReserve:profile.footerReserve+Math.max(0,footerLineCount-1)*profile.footerLineHeight;
     const commands = [];
+    const editTargets=[];
+    const editTarget=(blockId,field,x,y,w,h,lineIndex)=>editTargets.push({blockId,field,x,y,width:w,height:h,...(lineIndex===undefined?{}:{lineIndex})});
     const push=command=>{if(commands.length>=CONTENT_COMMAND_LIMIT)throw new Error("Page exceeds the 20,000 drawing operation limit.");commands.push(command);};
     const accent = document.theme.accent;
     parseColor(accent);
@@ -190,7 +194,7 @@ export function createPrintEngine(fontData) {
     };
     const measure = (block, blockWidth, available) => {
       const headingExtra=compact&&block.type!=="header"?(sectionLines(block,blockWidth).length-1)*13:0;
-      const patternAvailable=compact?Math.max(0,size.height-2*profile.margin-(document.footer?profile.footerReserve:0)):available;
+      const patternAvailable=compact?Math.max(0,size.height-2*profile.margin-(document.footer?footerReserve:0)):available;
       if (["tracker","paper_pattern"].includes(block.type)) return headingExtra+contentHeight(block,blockWidth,patternAvailable);
       if (block.type === "header") return 40+(headerLines(block,blockWidth).length-1)*16+(subtitleLines(block,blockWidth).length?14+(subtitleLines(block,blockWidth).length-1)*12:0);
       if (block.type === "score_table") return headingExtra+scoreGeometry(block, blockWidth).height;
@@ -215,15 +219,18 @@ export function createPrintEngine(fontData) {
         }
         const titleCenter=x+blockWidth/2;
         titleLines.forEach((value,index)=>text(value,titleCenter,y+25+index*16,"serif",profile.titleSize,accentText,"middle"));
+        editTarget(block.id,"title",x,y+4,blockWidth,30+(titleLines.length-1)*16);
         subtitleLines(block,blockWidth).forEach((value,index)=>text(value,titleCenter,y+43+(titleLines.length-1)*16+index*12,"sans",10,MUTED,"middle"));
+        if(block.subtitle)editTarget(block.id,"subtitle",x,y+32+(titleLines.length-1)*16,blockWidth,16+(subtitleLines(block,blockWidth).length-1)*12);
         return;
       }
       const heading=sectionLines(block,blockWidth);
       const headingExtra=compact?(heading.length-1)*13:0;
       const contentY=y+headingExtra;
+      if(block.title)editTarget(block.id,"title",x,y,blockWidth,contentY+21-y);
       if (["tracker","paper_pattern"].includes(block.type)) {
         if(block.title)heading.forEach((value,index)=>text(value,x,y+14+index*13,"serif",profile.sectionSize,accentText));
-        const patternAvailable=compact?Math.max(0,size.height-2*profile.margin-(document.footer?profile.footerReserve:0)):height-profile.margin-(document.footer?profile.footerReserve:0)-y;
+        const patternAvailable=compact?Math.max(0,size.height-2*profile.margin-(document.footer?footerReserve:0)):height-profile.margin-(document.footer?footerReserve:0)-y;
         drawContent(block,x,contentY,blockWidth,contentHeight(block,blockWidth,patternAvailable),{line,text,circle,widthOf});
         return;
       }
@@ -242,31 +249,41 @@ export function createPrintEngine(fontData) {
         line(columnEdge,top,columnEdge,boundaries.at(-1));
         for(const columnWidth of geometry.columnWidths){columnEdge+=columnWidth;line(columnEdge,top,columnEdge,boundaries.at(-1));}
         cellText(block.first_column_heading ?? "Category",x,top,geometry.labelWidth,geometry.headerHeight,{font:"bold"});
+        editTarget(block.id,"first_column_heading",x,top,geometry.labelWidth,geometry.headerHeight);
         let playerX=x+geometry.labelWidth;
-        block.players.forEach((name,index)=>{cellText(name||`Player ${index+1}`,playerX,top,geometry.columnWidths[index],geometry.headerHeight,{font:"bold",size:8,center:true});playerX+=geometry.columnWidths[index];});
-        geometry.labels.forEach((label,index)=>cellText(label,x,boundaries[index+1],geometry.labelWidth,geometry.rowHeights[index],{font:"bold",marker:calculated(label)}));
+        block.players.forEach((name,index)=>{
+          cellText(name||`Player ${index+1}`,playerX,top,geometry.columnWidths[index],geometry.headerHeight,{font:"bold",size:8,center:true});
+          editTarget(block.id,"players",playerX,top,geometry.columnWidths[index],geometry.headerHeight,index);
+          playerX+=geometry.columnWidths[index];
+        });
+        geometry.labels.forEach((label,index)=>{
+          cellText(label,x,boundaries[index+1],geometry.labelWidth,geometry.rowHeights[index],{font:"bold",marker:calculated(label)});
+          editTarget(block.id,"score_rows",x,boundaries[index+1],geometry.labelWidth,geometry.rowHeights[index],index);
+        });
         return;
       }
-      if (block.type === "notes") { for(let index=0;index<block.lines;index++) line(x,contentY+29+index*24,x+blockWidth,contentY+29+index*24,MUTED); return; }
+      if (block.type === "notes") { for(let index=0;index<block.lines;index++) line(x,contentY+29+index*24,x+blockWidth,contentY+29+index*24,MUTED); editTarget(block.id,"lines",x,contentY+22,blockWidth,block.lines*24); return; }
       let cursor=contentY+40;
-      for(const item of block.items) {
+      for(const [itemIndex,item] of block.items.entries()) {
         if(block.type==="checklist") {line(x+3,cursor-9,x+12,cursor-9);line(x+12,cursor-9,x+12,cursor);line(x+12,cursor,x+3,cursor);line(x+3,cursor,x+3,cursor-9);}
         else text("•",x+5,cursor,"sans",10);
         const lines=wrap(item,blockWidth-36,"sans",9.5);
         lines.forEach((part,index)=>text(part,x+22,cursor+index*13,"sans",9.5));
-        cursor+=Math.max(17,lines.length*13+3);
+        const itemHeight=Math.max(17,lines.length*13+3);
+        editTarget(block.id,"items",x,cursor-12,blockWidth,itemHeight,itemIndex);
+        cursor+=itemHeight;
       }
     };
     let cursor = profile.margin;
     const blockBounds=[];
     for(const row of document.rows) {
-      const commandCount=commands.length,boundCount=blockBounds.length;
+      const commandCount=commands.length,boundCount=blockBounds.length,targetCount=editTargets.length;
       try {
       const columns=row.blocks.length;
       if(columns!==1&&columns!==2) throw new Error("FGS rows must have one or two blocks");
       const blockWidth=(width-2*profile.margin-(columns===2?profile.columnGap:0))/columns;
-      const blockHeight=Math.max(...row.blocks.map((block)=>measure(block,blockWidth,height-profile.margin-(document.footer?profile.footerReserve:0)-cursor)));
-      if(cursor+blockHeight>height-profile.margin-(document.footer?profile.footerReserve:0)+0.001) return {profile:profile.id,width,height,printPreset:size.preset,fits:false,overflow:row.blocks[0].title,commands,blockBounds};
+      const blockHeight=Math.max(...row.blocks.map((block)=>measure(block,blockWidth,height-profile.margin-(document.footer?footerReserve:0)-cursor)));
+      if(cursor+blockHeight>height-profile.margin-(document.footer?footerReserve:0)+0.001) return {profile:profile.id,width,height,printPreset:size.preset,fits:false,overflow:row.blocks[0].title,commands,blockBounds};
       row.blocks.forEach((block,index)=>{
         const x=profile.margin+index*(blockWidth+profile.columnGap);
         blockBounds.push({id:block.id,x,y:cursor,width:blockWidth,height:blockHeight});
@@ -275,7 +292,7 @@ export function createPrintEngine(fontData) {
       cursor+=blockHeight+profile.rowGap;
       }catch(error){
         if(size.preset==="full")throw error;
-        commands.length=commandCount;blockBounds.length=boundCount;
+        commands.length=commandCount;blockBounds.length=boundCount;editTargets.length=targetCount;
         return {profile:profile.id,width,height,printPreset:size.preset,fits:false,overflow:row.blocks[0].title,reason:error.message,commands,blockBounds};
       }
     }
@@ -291,8 +308,9 @@ export function createPrintEngine(fontData) {
         if (widthOf(value,"sans",profile.footerSize)>width-2*profile.margin) {
           return {profile:profile.id,width:compact?size.width:width,height:compact?size.height:height,printPreset:size.preset,fits:false,overflow:"Footer",reason:`Footer line ${index+1} is too wide for the selected finished size. Shorten or split the text; it has not been cut off.`,commands,blockBounds};
         }
-        const baseline = naturalHeight-profile.margin+(size.preset==="full"?10:0)+(index-(footerLines.length-1))*profile.footerLineHeight;
+        const baseline = naturalHeight-profile.margin+(size.preset==="full"?-6:0)+(index-(footerLines.length-1))*profile.footerLineHeight;
         text(value,width/2,baseline,"sans",profile.footerSize,MUTED,"middle");
+        editTarget(null,"footer",profile.margin,baseline-profile.footerSize-2,width-2*profile.margin,profile.footerLineHeight,index);
       }
     }
     if(compact){
@@ -324,11 +342,14 @@ export function createPrintEngine(fontData) {
       const fittedBounds=blockBounds.map(bound=>({
         ...bound,x:tx(bound.x),y:ty(bound.y),width:bound.width*scale,height:bound.height*scale,
       }));
+      const fittedTargets=editTargets.map(target=>({
+        ...target,x:tx(target.x),y:ty(target.y),width:target.width*scale,height:target.height*scale,
+      }));
       return {profile:profile.id,width:size.width,height:size.height,printPreset:size.preset,
-        fits:true,commands:fittedCommands,blockBounds:fittedBounds,fitScale:scale,
+        fits:true,commands:fittedCommands,blockBounds:fittedBounds,editTargets:fittedTargets,fitScale:scale,
         effectiveBodySize:profile.bodySize*scale};
     }
-    return {profile:profile.id,width,height,printPreset:size.preset,fits:true,commands,blockBounds};
+    return {profile:profile.id,width,height,printPreset:size.preset,fits:true,commands,blockBounds,editTargets};
   }
 
   function toSvg(result) {

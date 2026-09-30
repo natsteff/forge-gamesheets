@@ -1,10 +1,16 @@
-# FGS Page Rendering Profile 1.3
+# FGS Page Rendering Profile 1.3.1
 
 Status: Implemented and owner-reviewed. Publication is verified separately.
-Profile ID: `fgs-page-1.3`. Extends [Profile 1.2](FGS_PAGE_RENDERING_PROFILE_1_2.md)
+Profile ID: `fgs-page-1.3.1`. Extends [Profile 1.2](FGS_PAGE_RENDERING_PROFILE_1_2.md)
 and accepts FGS 1.0–1.3. Fonts, 36-point margins,
 16-point column gap, 14-point row gap, logo/title placement and optional
-22-point footer reserve remain unchanged. No automatic pagination is introduced.
+footer reserve remain unchanged for one-line footers. No automatic pagination is introduced.
+
+The 1.3.1 adjustment moves the final full-page footer baseline from 26 to
+42 points above the lower edge. The reserve above a two-line footer increases
+from 22 to 33 points so dense content cannot overlap it. Page dimensions,
+upper and side margins, row spacing, and compact-size geometry are unchanged.
+Dense sheets that no longer fit report overflow rather than shrinking.
 
 ## Score-table column widths (beta adjustment)
 

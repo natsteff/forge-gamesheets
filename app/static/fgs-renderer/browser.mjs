@@ -52629,7 +52629,7 @@ function printSheetPlan(result, options = {}) {
 
 // src/index.mjs
 var PROFILE = Object.freeze({
-  id: "fgs-page-1.3",
+  id: "fgs-page-1.3.1",
   pages: PAPER_SIZES,
   margin: 36,
   columnGap: 16,
@@ -52751,7 +52751,11 @@ function createPrintEngine(fontData) {
     const width = compact ? Math.max(size.width, minimumContentWidth + 2 * profile.margin) : size.width;
     const height = compact ? 2e4 : size.height;
     if (document2.footer && document2.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
+    const footerLineCount = document2.footer ? document2.footer.split("\n").length : 0;
+    const footerReserve = compact ? profile.footerReserve : profile.footerReserve + Math.max(0, footerLineCount - 1) * profile.footerLineHeight;
     const commands = [];
+    const editTargets = [];
+    const editTarget = (blockId, field, x, y, w, h, lineIndex) => editTargets.push({ blockId, field, x, y, width: w, height: h, ...lineIndex === void 0 ? {} : { lineIndex } });
     const push = (command) => {
       if (commands.length >= CONTENT_COMMAND_LIMIT) throw new Error("Page exceeds the 20,000 drawing operation limit.");
       commands.push(command);
@@ -52832,7 +52836,7 @@ function createPrintEngine(fontData) {
     };
     const measure = (block, blockWidth, available) => {
       const headingExtra = compact && block.type !== "header" ? (sectionLines(block, blockWidth).length - 1) * 13 : 0;
-      const patternAvailable = compact ? Math.max(0, size.height - 2 * profile.margin - (document2.footer ? profile.footerReserve : 0)) : available;
+      const patternAvailable = compact ? Math.max(0, size.height - 2 * profile.margin - (document2.footer ? footerReserve : 0)) : available;
       if (["tracker", "paper_pattern"].includes(block.type)) return headingExtra + contentHeight(block, blockWidth, patternAvailable);
       if (block.type === "header") return 40 + (headerLines(block, blockWidth).length - 1) * 16 + (subtitleLines(block, blockWidth).length ? 14 + (subtitleLines(block, blockWidth).length - 1) * 12 : 0);
       if (block.type === "score_table") return headingExtra + scoreGeometry(block, blockWidth).height;
@@ -52857,15 +52861,18 @@ function createPrintEngine(fontData) {
         }
         const titleCenter = x + blockWidth / 2;
         titleLines.forEach((value, index) => text(value, titleCenter, y + 25 + index * 16, "serif", profile.titleSize, accentText, "middle"));
+        editTarget(block.id, "title", x, y + 4, blockWidth, 30 + (titleLines.length - 1) * 16);
         subtitleLines(block, blockWidth).forEach((value, index) => text(value, titleCenter, y + 43 + (titleLines.length - 1) * 16 + index * 12, "sans", 10, MUTED, "middle"));
+        if (block.subtitle) editTarget(block.id, "subtitle", x, y + 32 + (titleLines.length - 1) * 16, blockWidth, 16 + (subtitleLines(block, blockWidth).length - 1) * 12);
         return;
       }
       const heading = sectionLines(block, blockWidth);
       const headingExtra = compact ? (heading.length - 1) * 13 : 0;
       const contentY = y + headingExtra;
+      if (block.title) editTarget(block.id, "title", x, y, blockWidth, contentY + 21 - y);
       if (["tracker", "paper_pattern"].includes(block.type)) {
         if (block.title) heading.forEach((value, index) => text(value, x, y + 14 + index * 13, "serif", profile.sectionSize, accentText));
-        const patternAvailable = compact ? Math.max(0, size.height - 2 * profile.margin - (document2.footer ? profile.footerReserve : 0)) : height - profile.margin - (document2.footer ? profile.footerReserve : 0) - y;
+        const patternAvailable = compact ? Math.max(0, size.height - 2 * profile.margin - (document2.footer ? footerReserve : 0)) : height - profile.margin - (document2.footer ? footerReserve : 0) - y;
         drawContent(block, x, contentY, blockWidth, contentHeight(block, blockWidth, patternAvailable), { line, text, circle, widthOf });
         return;
       }
@@ -52889,20 +52896,26 @@ function createPrintEngine(fontData) {
           line(columnEdge, top, columnEdge, boundaries.at(-1));
         }
         cellText(block.first_column_heading ?? "Category", x, top, geometry.labelWidth, geometry.headerHeight, { font: "bold" });
+        editTarget(block.id, "first_column_heading", x, top, geometry.labelWidth, geometry.headerHeight);
         let playerX = x + geometry.labelWidth;
         block.players.forEach((name5, index) => {
           cellText(name5 || `Player ${index + 1}`, playerX, top, geometry.columnWidths[index], geometry.headerHeight, { font: "bold", size: 8, center: true });
+          editTarget(block.id, "players", playerX, top, geometry.columnWidths[index], geometry.headerHeight, index);
           playerX += geometry.columnWidths[index];
         });
-        geometry.labels.forEach((label, index) => cellText(label, x, boundaries[index + 1], geometry.labelWidth, geometry.rowHeights[index], { font: "bold", marker: calculated(label) }));
+        geometry.labels.forEach((label, index) => {
+          cellText(label, x, boundaries[index + 1], geometry.labelWidth, geometry.rowHeights[index], { font: "bold", marker: calculated(label) });
+          editTarget(block.id, "score_rows", x, boundaries[index + 1], geometry.labelWidth, geometry.rowHeights[index], index);
+        });
         return;
       }
       if (block.type === "notes") {
         for (let index = 0; index < block.lines; index++) line(x, contentY + 29 + index * 24, x + blockWidth, contentY + 29 + index * 24, MUTED);
+        editTarget(block.id, "lines", x, contentY + 22, blockWidth, block.lines * 24);
         return;
       }
       let cursor2 = contentY + 40;
-      for (const item of block.items) {
+      for (const [itemIndex, item] of block.items.entries()) {
         if (block.type === "checklist") {
           line(x + 3, cursor2 - 9, x + 12, cursor2 - 9);
           line(x + 12, cursor2 - 9, x + 12, cursor2);
@@ -52911,19 +52924,21 @@ function createPrintEngine(fontData) {
         } else text("\u2022", x + 5, cursor2, "sans", 10);
         const lines = wrap(item, blockWidth - 36, "sans", 9.5);
         lines.forEach((part, index) => text(part, x + 22, cursor2 + index * 13, "sans", 9.5));
-        cursor2 += Math.max(17, lines.length * 13 + 3);
+        const itemHeight = Math.max(17, lines.length * 13 + 3);
+        editTarget(block.id, "items", x, cursor2 - 12, blockWidth, itemHeight, itemIndex);
+        cursor2 += itemHeight;
       }
     };
     let cursor = profile.margin;
     const blockBounds = [];
     for (const row of document2.rows) {
-      const commandCount = commands.length, boundCount = blockBounds.length;
+      const commandCount = commands.length, boundCount = blockBounds.length, targetCount = editTargets.length;
       try {
         const columns = row.blocks.length;
         if (columns !== 1 && columns !== 2) throw new Error("FGS rows must have one or two blocks");
         const blockWidth = (width - 2 * profile.margin - (columns === 2 ? profile.columnGap : 0)) / columns;
-        const blockHeight = Math.max(...row.blocks.map((block) => measure(block, blockWidth, height - profile.margin - (document2.footer ? profile.footerReserve : 0) - cursor)));
-        if (cursor + blockHeight > height - profile.margin - (document2.footer ? profile.footerReserve : 0) + 1e-3) return { profile: profile.id, width, height, printPreset: size.preset, fits: false, overflow: row.blocks[0].title, commands, blockBounds };
+        const blockHeight = Math.max(...row.blocks.map((block) => measure(block, blockWidth, height - profile.margin - (document2.footer ? footerReserve : 0) - cursor)));
+        if (cursor + blockHeight > height - profile.margin - (document2.footer ? footerReserve : 0) + 1e-3) return { profile: profile.id, width, height, printPreset: size.preset, fits: false, overflow: row.blocks[0].title, commands, blockBounds };
         row.blocks.forEach((block, index) => {
           const x = profile.margin + index * (blockWidth + profile.columnGap);
           blockBounds.push({ id: block.id, x, y: cursor, width: blockWidth, height: blockHeight });
@@ -52934,6 +52949,7 @@ function createPrintEngine(fontData) {
         if (size.preset === "full") throw error2;
         commands.length = commandCount;
         blockBounds.length = boundCount;
+        editTargets.length = targetCount;
         return { profile: profile.id, width, height, printPreset: size.preset, fits: false, overflow: row.blocks[0].title, reason: error2.message, commands, blockBounds };
       }
     }
@@ -52945,8 +52961,9 @@ function createPrintEngine(fontData) {
         if (widthOf(value, "sans", profile.footerSize) > width - 2 * profile.margin) {
           return { profile: profile.id, width: compact ? size.width : width, height: compact ? size.height : height, printPreset: size.preset, fits: false, overflow: "Footer", reason: `Footer line ${index + 1} is too wide for the selected finished size. Shorten or split the text; it has not been cut off.`, commands, blockBounds };
         }
-        const baseline = naturalHeight - profile.margin + (size.preset === "full" ? 10 : 0) + (index - (footerLines.length - 1)) * profile.footerLineHeight;
+        const baseline = naturalHeight - profile.margin + (size.preset === "full" ? -6 : 0) + (index - (footerLines.length - 1)) * profile.footerLineHeight;
         text(value, width / 2, baseline, "sans", profile.footerSize, MUTED, "middle");
+        editTarget(null, "footer", profile.margin, baseline - profile.footerSize - 2, width - 2 * profile.margin, profile.footerLineHeight, index);
       }
     }
     if (compact) {
@@ -52988,6 +53005,13 @@ function createPrintEngine(fontData) {
         width: bound.width * scale2,
         height: bound.height * scale2
       }));
+      const fittedTargets = editTargets.map((target) => ({
+        ...target,
+        x: tx(target.x),
+        y: ty(target.y),
+        width: target.width * scale2,
+        height: target.height * scale2
+      }));
       return {
         profile: profile.id,
         width: size.width,
@@ -52996,11 +53020,12 @@ function createPrintEngine(fontData) {
         fits: true,
         commands: fittedCommands,
         blockBounds: fittedBounds,
+        editTargets: fittedTargets,
         fitScale: scale2,
         effectiveBodySize: profile.bodySize * scale2
       };
     }
-    return { profile: profile.id, width, height, printPreset: size.preset, fits: true, commands, blockBounds };
+    return { profile: profile.id, width, height, printPreset: size.preset, fits: true, commands, blockBounds, editTargets };
   }
   function toSvg(result) {
     const parts = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${result.width} ${result.height}" role="img" aria-label="GameSheet page" class="fgs-page-render"><rect width="100%" height="100%" fill="#ffffff"/>`];
