@@ -56,9 +56,19 @@ def _filename(title: str, suffix: str) -> str:
     return f"{stem or 'game-sheet'}{suffix}"
 
 
-def _fgs_filename(title: str) -> str:
+def _sheet_filename(title: str, suffix: str) -> str:
     stem = re.sub(r'[<>:"/\\|?*\x00-\x1f\x7f]', "-", title).strip(" .")
-    return f"{stem or 'Game Sheet'}.fgs"
+    return f"{stem or 'Game Sheet'}{suffix}"
+
+
+def _fgs_filename(title: str) -> str:
+    return _sheet_filename(title, ".fgs")
+
+
+def _download_disposition(title: str, suffix: str) -> str:
+    filename = _sheet_filename(title, suffix)
+    fallback = filename if filename.isascii() else _filename(title, suffix)
+    return f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{quote(filename)}'
 
 
 @router.get("/sheet-designer", response_class=HTMLResponse, name="sheet_designer")
@@ -267,11 +277,7 @@ def game_association_remove(request: Request):
 def export_fgs(request: Request):
     current = _store(request).load()
     body = json.dumps(current, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    filename = _fgs_filename(current["title"])
-    fallback = filename if filename.isascii() else _filename(current["title"], ".fgs")
-    disposition = (
-        f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{quote(filename)}'
-    )
+    disposition = _download_disposition(current["title"], ".fgs")
     return Response(
         body,
         media_type="application/vnd.forge-gamesheets+json",
@@ -316,5 +322,9 @@ def export_pdf(
     return FileResponse(
         Path(output),
         media_type="application/pdf",
-        filename=_filename(current["title"], ".pdf"),
+        headers={
+            "Content-Disposition": _download_disposition(
+                current["title"], " - print sheet.pdf" if print_sheet else ".pdf"
+            )
+        },
     )

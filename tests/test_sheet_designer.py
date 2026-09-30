@@ -36,7 +36,7 @@ from app.sheet_designer.shared_rendering import (
 )
 from app.sheet_designer.standalone import create_standalone_app
 from app.sheet_designer.storage import FileDraftStore
-from app.sheet_designer.web import _fgs_filename
+from app.sheet_designer.web import _download_disposition, _fgs_filename, _sheet_filename
 
 
 def test_fgs_export_filename_preserves_safe_sheet_title():
@@ -46,6 +46,19 @@ def test_fgs_export_filename_preserves_safe_sheet_title():
     script = (Path(__file__).parents[1] / "app/static/sheet-designer.js").read_text()
     assert '$("export-fgs").addEventListener("click", async (event)' in script
     assert "if (!await flushSave()) return;" in script
+
+
+def test_pdf_export_filenames_preserve_safe_sheet_title():
+    assert _sheet_filename("Phase 10 Player Card", ".pdf") == "Phase 10 Player Card.pdf"
+    assert _sheet_filename("Phase 10 Player Card", " - print sheet.pdf") == (
+        "Phase 10 Player Card - print sheet.pdf"
+    )
+    assert _sheet_filename("Café / Notes", ".pdf") == "Café - Notes.pdf"
+    assert _sheet_filename("  ...  ", ".pdf") == "Game Sheet.pdf"
+    assert _download_disposition("Café / Notes", ".pdf") == (
+        'attachment; filename="caf-notes.pdf"; '
+        "filename*=UTF-8''Caf%C3%A9%20-%20Notes.pdf"
+    )
 
 
 def test_section_order_controls_match_reading_order():
@@ -633,6 +646,10 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         assert client.post("/sheet-designer/document", json=document).status_code == 200
         fgs = client.get("/sheet-designer/export.fgs")
         pdf = client.get("/sheet-designer/export.pdf")
+        print_sheet_pdf = client.get(
+            "/sheet-designer/export.pdf?print_size=poker&print_sheet=true"
+            "&paper=letter&copies=1"
+        )
         assert fgs.status_code == 200
         assert fgs.headers["content-disposition"] == (
             'attachment; filename="Standalone Test.fgs"; '
@@ -640,6 +657,15 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         )
         assert pdf.status_code == 200
         assert pdf.content.startswith(b"%PDF")
+        assert pdf.headers["content-disposition"] == (
+            'attachment; filename="Standalone Test.pdf"; '
+            "filename*=UTF-8''Standalone%20Test.pdf"
+        )
+        assert print_sheet_pdf.status_code == 200
+        assert print_sheet_pdf.headers["content-disposition"] == (
+            'attachment; filename="Standalone Test - print sheet.pdf"; '
+            "filename*=UTF-8''Standalone%20Test%20-%20print%20sheet.pdf"
+        )
 
         prototype = expedition_document()
         prototype["format_version"] = PROTOTYPE_VERSION
