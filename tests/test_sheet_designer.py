@@ -34,6 +34,16 @@ from app.sheet_designer.shared_rendering import (
 )
 from app.sheet_designer.standalone import create_standalone_app
 from app.sheet_designer.storage import FileDraftStore
+from app.sheet_designer.web import _fgs_filename
+
+
+def test_fgs_export_filename_preserves_safe_sheet_title():
+    assert _fgs_filename("Phase 10 Player Card") == "Phase 10 Player Card.fgs"
+    assert _fgs_filename("Café / Notes") == "Café - Notes.fgs"
+    assert _fgs_filename("  ...  ") == "Game Sheet.fgs"
+    script = (Path(__file__).parents[1] / "app/static/sheet-designer.js").read_text()
+    assert '$("export-fgs").addEventListener("click", async (event)' in script
+    assert "if (!await flushSave()) return;" in script
 
 
 def test_fgs_1_1_footer_round_trips_without_changing_1_0(tmp_path: Path):
@@ -558,8 +568,9 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         fgs = client.get("/sheet-designer/export.fgs")
         pdf = client.get("/sheet-designer/export.pdf")
         assert fgs.status_code == 200
-        assert fgs.headers["content-disposition"].endswith(
-            'filename="standalone-test.fgs"'
+        assert fgs.headers["content-disposition"] == (
+            'attachment; filename="Standalone Test.fgs"; '
+            "filename*=UTF-8''Standalone%20Test.fgs"
         )
         assert pdf.status_code == 200
         assert pdf.content.startswith(b"%PDF")

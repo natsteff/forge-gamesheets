@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import (
@@ -53,6 +54,11 @@ def _database(request: Request):
 def _filename(title: str, suffix: str) -> str:
     stem = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
     return f"{stem or 'game-sheet'}{suffix}"
+
+
+def _fgs_filename(title: str) -> str:
+    stem = re.sub(r'[<>:"/\\|?*\x00-\x1f\x7f]', "-", title).strip(" .")
+    return f"{stem or 'Game Sheet'}.fgs"
 
 
 @router.get("/sheet-designer", response_class=HTMLResponse, name="sheet_designer")
@@ -261,7 +267,11 @@ def game_association_remove(request: Request):
 def export_fgs(request: Request):
     current = _store(request).load()
     body = json.dumps(current, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    disposition = f'attachment; filename="{_filename(current["title"], ".fgs")}"'
+    filename = _fgs_filename(current["title"])
+    fallback = filename if filename.isascii() else _filename(current["title"], ".fgs")
+    disposition = (
+        f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{quote(filename)}'
+    )
     return Response(
         body,
         media_type="application/vnd.forge-gamesheets+json",

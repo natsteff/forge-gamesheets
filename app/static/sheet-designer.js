@@ -521,6 +521,11 @@
   ["custom-width","custom-height","custom-unit"].forEach(name=>$(name).addEventListener("change",()=>{syncCustomBounds();preview();}));
   syncCustomBounds();
   $("open-print-sheet").disabled=true;
+  $("export-fgs").addEventListener("click", async (event) => {
+    event.preventDefault();
+    if (!await flushSave()) return;
+    location.href=$("export-fgs").href;
+  });
   $("export-pdf").addEventListener("click", async (event) => {
     event.preventDefault();
     if (!await flushSave()) return;
