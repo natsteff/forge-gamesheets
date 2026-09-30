@@ -711,11 +711,27 @@ def test_score_row_editor_explains_dynamic_line_behavior():
     assert 'normalized === "total"' in script
     assert 'normalized === "grand total"' in script
     assert "Generate numbered rows" in script
-    assert "Array.from({length: count}" in script
+    assert "Label (optional)" in script
+    assert "block.score_rows = numberedRows(prefix, start, count)" in script
+    assert "Enter a label for the numbered rows." not in script
     assert "Math.min(12, Math.max(4, items.length))" in script
     assert "Checklist items" in script
     assert "Reminders" in script
     assert "block.items = items" in script
+
+
+def test_numbered_row_generator_accepts_blank_labels():
+    root = Path(__file__).parents[1]
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is not available for numbered row tests")
+    subprocess.run(
+        [node, "--test", "tests/numbered-rows.test.mjs"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_section_picker_lists_supported_blocks_without_a_text_prompt():
