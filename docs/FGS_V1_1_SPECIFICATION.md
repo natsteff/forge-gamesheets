@@ -10,9 +10,11 @@ and score-table first-column heading additions; this 1.1 definition is unchanged
 
 ## Author footer
 
-The root may contain `footer`, a one- or two-line plain-text credit of at most
-160 Unicode characters including a single optional line feed. Neither line may
-be blank. Other control characters are invalid. The footer is presentation
+The root may contain `footer`, one or two nonempty plain-text lines with a
+single optional line feed. A 4,000-character ceiling protects importers but is
+not a visual layout limit; editors must not truncate text at that ceiling.
+The selected page layout determines whether each line can actually print.
+Other control characters are invalid. The footer is presentation
 content, not a URL, an executable link, a rights claim supplied by Forge, or a
 FORGE Reprint footer. On a LiveSheet it follows the sheet content.
 

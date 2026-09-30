@@ -6,6 +6,9 @@ extending [1.1](../../docs/FGS_PAGE_RENDERING_PROFILE_1_1.md) and the original
 [1.0](../../docs/FGS_PAGE_RENDERING_PROFILE_1_0.md). The renderer accepts FGS
 1.0, 1.1, and 1.2. Designer Notes are excluded from drawing commands and PDF
 metadata; first-column headings use the same wrapped geometry for SVG and PDF.
+During beta, score-table widths are based on measured headings and row labels,
+not a fixed first-column percentage. Footer width is validated at layout time;
+unprintable text reports a fit warning without truncating the FGS value.
 
 The following explains the unchanged base geometry:
 

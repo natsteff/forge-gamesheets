@@ -16,9 +16,9 @@
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
-  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=6")
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=7")
     .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
-  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=6");
+  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=7");
   let contentTools=null;
   logoTools.then(tools=>{contentTools=tools;}).catch(error=>message(error.message));
   let previewRevision = 0;

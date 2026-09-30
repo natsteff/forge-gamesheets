@@ -85,6 +85,30 @@ test("FGS 1.2 heading is shared, wraps without clipping, and notes never render"
   assert.match(engine.toSvg(engine.layout(document)),/&lt;Action &amp;/);
 });
 
+test("score-table headings and row labels determine column widths",()=>{
+  const document=sheet();
+  document.format_version="1.2";
+  const score=document.rows[1].blocks[0];
+  score.first_column_heading="Entry";
+  score.score_rows=["1","2","3"];
+  score.players=["Date","Card(s) added","Player count and first names","Score"];
+  const widths=()=>{
+    const layout=engine.layout(document);
+    assert.equal(layout.fits,true);
+    const top=layout.blockBounds[1].y+PROFILE.tableTitleHeight;
+    const edges=layout.commands.filter(command=>command.type==="line"&&command.x1===command.x2&&command.y1===top).map(command=>command.x1).sort((a,b)=>a-b);
+    assert.equal(edges.length,6);
+    return edges.slice(1).map((edge,index)=>edge-edges[index]);
+  };
+  const initial=widths();
+  assert.ok(initial[0]<90,"Entry should not reserve the old 26% label width");
+  assert.ok(initial[3]>initial[1]*1.5,"names should have more writing room than Date");
+  score.players[0]="Date played (month/day/year)";
+  assert.ok(widths()[1]>initial[1],"a longer heading should widen its column");
+  score.score_rows[0]="A much longer row label";
+  assert.ok(widths()[0]>initial[0],"a longer row label should widen the first column");
+});
+
 test("FGS 1.1 reserves footer space in preview and PDF without changing old sheets",async()=>{
   const old=engine.layout(sheet());
   const document=sheet();
@@ -98,6 +122,20 @@ test("FGS 1.1 reserves footer space in preview and PDF without changing old shee
   assert.equal(credit.anchor,"middle");
   assert.match(engine.toSvg(layout),/Created by Example/);
   assert.equal((await PDFDocument.load(await engine.toPdf(layout))).getPageCount(),1);
+});
+
+test("long footer text remains intact and overwide lines warn without PDF clipping",async()=>{
+  const document=sheet();
+  document.format_version="1.1";
+  document.footer="Biggest Win = largest VP margin. Add an entry whenever a new record is set; keep earlier entries as history.\nCustomize this sheet (with source FGS file) at https://natsteff.github.io/FGS-Studio/";
+  const fitting=engine.layout(document);
+  assert.equal(fitting.fits,true);
+  assert.ok(fitting.commands.some(command=>command.value===document.footer.split("\n")[1]));
+  document.footer="This footer is far too wide for a full page. ".repeat(8);
+  const overwide=engine.layout(document);
+  assert.equal(overwide.fits,false);
+  assert.match(overwide.reason,/Footer line 1 is too wide/);
+  await assert.rejects(engine.toPdf(overwide),/does not fit/);
 });
 
 test("a footer can make an otherwise fitting one-page sheet overflow",async()=>{

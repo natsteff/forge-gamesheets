@@ -63,6 +63,26 @@ def test_fgs_1_1_footer_round_trips_without_changing_1_0(tmp_path: Path):
         normalize_document({**updated, "footer": "three\nlines\nhere"})
 
 
+def test_footer_accepts_printable_text_beyond_old_character_limit():
+    document = expedition_document()
+    document["format_version"] = FORMAT_VERSION_1_1
+    document["footer"] = (
+        "Biggest Win = largest VP margin. Add an entry whenever a new record is "
+        "set; keep earlier entries as history.\n"
+        "Customize this sheet (with source FGS file) at "
+        "https://natsteff.github.io/FGS-Studio/"
+    )
+    assert len(document["footer"]) > 160
+    assert normalize_document(document)["footer"] == document["footer"]
+    with pytest.raises(DocumentValidationError, match="4,000"):
+        normalize_document({**document, "footer": "x" * 4001})
+    template = (
+        Path(__file__).parents[1] / "app/templates/_sheet_designer_workspace.html"
+    ).read_text()
+    assert 'data-footer rows="2"' in template
+    assert 'data-footer rows="2" maxlength=' not in template
+
+
 def test_fgs_1_2_editor_metadata_and_heading_round_trip_and_pdf(tmp_path: Path):
     store = FileDraftStore(tmp_path / "drafts")
     document = store.load()

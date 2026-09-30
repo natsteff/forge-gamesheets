@@ -164,7 +164,7 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
         footer = value["footer"]
         if (
             not isinstance(footer, str)
-            or not 1 <= len(footer) <= 160
+            or not 1 <= len(footer) <= 4000
             or footer.count("\n") > 1
             or any(
                 (ord(char) < 32 and char != "\n") or ord(char) == 127 for char in footer
@@ -172,7 +172,8 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
             or any(not line.strip() for line in footer.split("\n"))
         ):
             raise DocumentValidationError(
-                "Footer must be one or two nonempty lines, at most 160 characters."
+                "Footer must be one or two nonempty lines "
+                "(up to 4,000 characters for import safety)."
             )
         result["footer"] = footer
     if (

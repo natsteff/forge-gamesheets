@@ -2,9 +2,26 @@
 
 Status: Implemented and owner-reviewed. Publication is verified separately.
 Profile ID: `fgs-page-1.3`. Extends [Profile 1.2](FGS_PAGE_RENDERING_PROFILE_1_2.md)
-and accepts FGS 1.0–1.3. All existing block geometry, fonts, 36-point margins,
+and accepts FGS 1.0–1.3. Fonts, 36-point margins,
 16-point column gap, 14-point row gap, logo/title placement and optional
 22-point footer reserve remain unchanged. No automatic pagination is introduced.
+
+## Score-table column widths (beta adjustment)
+
+The first column uses the measured width of its heading and row labels plus
+12 points of padding, with a 44-point minimum on a full page (40 points in
+compact composition) and a 40% table-width maximum. The other columns have a
+54-point minimum when space permits; remaining width is divided in proportion
+to each heading's font-measured width, with weights bounded between 12 points
+and 40% of the table width. Very narrow tables reduce the minimum evenly.
+Headings and labels wrap within their resulting cells, increasing row height
+where needed. The same geometry drives preview and PDF; overflowing tables
+produce a fit warning rather than clipped output.
+
+Footer input is not cut off at 160 characters. A 4,000-character import-safety
+ceiling remains, but actual printability is checked against the selected
+finished size. An overwide full-page footer reports a fit warning and blocks
+PDF export without discarding the entered text.
 
 ## Shared geometry
 

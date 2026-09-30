@@ -45,7 +45,7 @@
     "footer": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 160,
+      "maxLength": 4000,
       "pattern": "^[^\\x00-\\x09\\x0B-\\x1F\\x7F\\n]+(?:\\n[^\\x00-\\x09\\x0B-\\x1F\\x7F\\n]+)?$"
     },
     "extensions": {

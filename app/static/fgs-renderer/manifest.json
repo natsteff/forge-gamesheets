@@ -5,7 +5,7 @@
   "sourceFiles": {
     "src/browser.mjs": "b12dcb751aef21641a8a6bd7bd2d694ff51cce7b4d0a5fcbd8900e0ef2c03a31",
     "src/cli.mjs": "70c778d775fd19dac8167cd32660c57841c6e9e42324e3f9c98d11690e08a04b",
-    "src/index.mjs": "8a89704fc4a4015ca07bbcc7d54314df77f87ace2baac09956cba33225aaa5cf",
+    "src/index.mjs": "4880d59c72c44f29a77a7b4e412a8264dc1c8babb9d37124b16d7986f313d6ae",
     "src/content.mjs": "610853fb2a1a453be9063afe4843fa72f970606d3a0b3a507cf6acc0e734f76e",
     "src/layout-content.mjs": "aed6f499eb5a28a03bbb6f1f91db634c13e8e1ce8cf8d88045bd4d6a9bf38f8c",
     "src/print-sizes.mjs": "63c0705165056f8cd3a88bcbd1a3234705b33d102a8c7668ab40095932402dfd",
@@ -25,8 +25,8 @@
     "licenses/tslib-0BSD.txt": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
   },
   "files": {
-    "browser.mjs": "72dbfe84fb0bfe4ca5391c23d044f7c301af5dedd1e708f0c37e9ab322c8f575",
-    "cli.mjs": "5cc34985add48001b6edffde00d116e5dfb88429791d8f4385759a84be3fd271",
+    "browser.mjs": "59f61098a9a4a5ea2d3d07c259b43beb48b304c0417453ce83a493b43662df6a",
+    "cli.mjs": "14a8a0fc1da03ffca58d3b801d33f48dd56f52144dc81a5783c44feab1b2f013",
     "fonts/NotoSans-Regular.ttf": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
     "fonts/NotoSans-Bold.ttf": "c976e4b1b99edc88775377fcc21692ca4bfa46b6d6ca6522bfda505b28ff9d6a",
     "fonts/NotoSerif-Bold.ttf": "3b2086a869bcded2aeb4416fc281ceec9d6ce3c06756cda19f8f763636204e7d",

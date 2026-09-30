@@ -70,8 +70,8 @@ test("small formats compose crowded content and uniformly fit it without omissio
   const layout=engine.layout(crowded,{preset:"poker"});
   assert.equal(layout.fits,true);
   assert.ok(layout.fitScale>0&&layout.fitScale<1);
-  assert.ok(layout.commands.filter(command=>command.type==="text").length>16);
-  assert.ok(layout.commands.some(command=>command.type==="text"&&command.value==="8"));
+  assert.ok(layout.commands.some(command=>command.type==="text"&&command.value==="Round 1"));
+  assert.ok(layout.commands.some(command=>command.type==="text"&&command.value.includes("8")));
   assert.equal((await PDFDocument.load(await engine.toPdf(layout))).getPageCount(),1);
   const footed=document();footed.footer="A long credit line that cannot fit across a narrow poker card";
   const footerLayout=engine.layout(footed,{preset:"poker"});

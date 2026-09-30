@@ -13,7 +13,7 @@ export const PROFILE = Object.freeze({
   logoWidth: 48, logoHeight: 32, logoGap: 8,
   titleSize: 20, sectionSize: 11, bodySize: 8.5,
   tableTitleHeight: 22, tableRowHeight: 19,
-  tableLabelFraction: .26, tableLabelMinimum: 68,
+  tableLabelMinimum: 44, tableLabelMaximumFraction: .4, tablePlayerMinimum: 54,
   tableLine: .5, accentLine: 1.2,
 });
 
@@ -98,7 +98,7 @@ export function createPrintEngine(fontData) {
       ...PROFILE,
       margin:Math.min(size.width,size.height)<300?12:24,
       columnGap:10,rowGap:9,logoWidth:32,logoHeight:24,logoGap:5,
-      titleSize:14,sectionSize:10,tableTitleHeight:20,tableLabelMinimum:54,
+      titleSize:14,sectionSize:10,tableTitleHeight:20,tableLabelMinimum:40,
       footerReserve:18,footerSize:7,footerLineHeight:9,
     };
     // A compact design is composed on a canvas tall enough to hold all content.
@@ -140,15 +140,22 @@ export function createPrintEngine(fontData) {
     };
     const scoreGeometry = (block, width) => {
       const labels = labelsFor(block);
-      const labelWidth = Math.max(profile.tableLabelMinimum, width * (width < 350 && block.players.length <= 2 ? .5 : profile.tableLabelFraction));
-      const columnWidth = (width - labelWidth) / block.players.length;
-      if(columnWidth<=0)throw new Error("Score table has no room for player columns.");
-      const playerLines = block.players.map((name, index) => wrap(name || `Player ${index + 1}`, columnWidth - 8, "bold", 8));
+      const labelText = [block.first_column_heading ?? "Category", ...labels];
+      const labelPreferred = Math.max(...labelText.map(value=>widthOf(value,"bold",profile.bodySize)))+12;
+      const labelWidth = Math.min(width*profile.tableLabelMaximumFraction,Math.max(profile.tableLabelMinimum,labelPreferred));
+      const playerRoom = width-labelWidth;
+      if(playerRoom<=0)throw new Error("Score table has no room for player columns.");
+      const playerMinimum=Math.min(profile.tablePlayerMinimum,playerRoom/block.players.length);
+      const playerWeights=block.players.map((name,index)=>Math.max(12,Math.min(width*.4,widthOf(name||`Player ${index+1}`,"bold",8))));
+      const weightTotal=playerWeights.reduce((sum,value)=>sum+value,0);
+      const extra=playerRoom-playerMinimum*block.players.length;
+      const columnWidths=playerWeights.map(weight=>playerMinimum+extra*weight/weightTotal);
+      const playerLines = block.players.map((name, index) => wrap(name || `Player ${index + 1}`, columnWidths[index] - 8, "bold", 8));
       const firstHeadingLines = wrap(block.first_column_heading ?? "Category", labelWidth - 10, "bold", profile.bodySize);
       const headerHeight = Math.max(profile.tableRowHeight, firstHeadingLines.length * 10 + 6, ...playerLines.map((lines) => lines.length * 9.5 + 8));
       const labelLines = labels.map((label) => wrap(label, labelWidth - 10, "bold", profile.bodySize));
       const rowHeights = labelLines.map((lines, index) => Math.max(profile.tableRowHeight, lines.length * 10 + 6 + (calculated(labels[index]) ? 7 : 0)));
-      return {labels,labelWidth,columnWidth,headerHeight,rowHeights,height:profile.tableTitleHeight + headerHeight + rowHeights.reduce((a,b)=>a+b,0)};
+      return {labels,labelWidth,columnWidths,headerHeight,rowHeights,height:profile.tableTitleHeight + headerHeight + rowHeights.reduce((a,b)=>a+b,0)};
     };
     const headerLines=(block,blockWidth)=>{
       const titleWidth=block.logo?blockWidth-2*(profile.logoWidth+profile.logoGap):blockWidth-10;
@@ -222,12 +229,14 @@ export function createPrintEngine(fontData) {
         geometry.rowHeights.forEach((h)=>boundaries.push(boundaries.at(-1)+h));
         geometry.labels.forEach((label,index)=>{if(calculated(label)) rect(x,boundaries[index+1],blockWidth,geometry.rowHeights[index],FILL);});
         boundaries.forEach((at)=>line(x,at,x+blockWidth,at));
-        for(let index=0;index<=block.players.length+1;index++) {
-          const at=index===0?x:index===1?x+geometry.labelWidth:x+geometry.labelWidth+(index-1)*geometry.columnWidth;
-          line(at,top,at,boundaries.at(-1));
-        }
+        let columnEdge=x;
+        line(columnEdge,top,columnEdge,boundaries.at(-1));
+        columnEdge+=geometry.labelWidth;
+        line(columnEdge,top,columnEdge,boundaries.at(-1));
+        for(const columnWidth of geometry.columnWidths){columnEdge+=columnWidth;line(columnEdge,top,columnEdge,boundaries.at(-1));}
         cellText(block.first_column_heading ?? "Category",x,top,geometry.labelWidth,geometry.headerHeight,{font:"bold"});
-        block.players.forEach((name,index)=>cellText(name||`Player ${index+1}`,x+geometry.labelWidth+index*geometry.columnWidth,top,geometry.columnWidth,geometry.headerHeight,{font:"bold",size:8,center:true}));
+        let playerX=x+geometry.labelWidth;
+        block.players.forEach((name,index)=>{cellText(name||`Player ${index+1}`,playerX,top,geometry.columnWidths[index],geometry.headerHeight,{font:"bold",size:8,center:true});playerX+=geometry.columnWidths[index];});
         geometry.labels.forEach((label,index)=>cellText(label,x,boundaries[index+1],geometry.labelWidth,geometry.rowHeights[index],{font:"bold",marker:calculated(label)}));
         return;
       }
@@ -273,8 +282,7 @@ export function createPrintEngine(fontData) {
     if (document.footer) {
       for (const [index, value] of footerLines.entries()) {
         if (widthOf(value,"sans",profile.footerSize)>width-2*profile.margin) {
-          if(size.preset!=="full")return {profile:profile.id,width,height,printPreset:size.preset,fits:false,overflow:"Footer",reason:"Author footer is too wide for the selected print size.",commands,blockBounds};
-          throw new Error("Author footer is too wide for the page.");
+          return {profile:profile.id,width:compact?size.width:width,height:compact?size.height:height,printPreset:size.preset,fits:false,overflow:"Footer",reason:`Footer line ${index+1} is too wide for the selected finished size. Shorten or split the text; it has not been cut off.`,commands,blockBounds};
         }
         const baseline = naturalHeight-profile.margin+(size.preset==="full"?10:0)+(index-(footerLines.length-1))*profile.footerLineHeight;
         text(value,width/2,baseline,"sans",profile.footerSize,MUTED,"middle");
