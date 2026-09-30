@@ -93,14 +93,28 @@ export function createPrintEngine(fontData) {
     if (!document || document.format !== "forge-gamesheets" || !["1.0","1.1","1.2","1.3"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0–1.3");
     validateFill(document);
     const size=finishedSize(document,printSize);
-    const {width,height}=size;
+    const compact=size.preset!=="full";
     const profile=size.preset==="full"?PROFILE:{
       ...PROFILE,
-      margin:Math.min(width,height)<300?12:24,
+      margin:Math.min(size.width,size.height)<300?12:24,
       columnGap:10,rowGap:9,logoWidth:32,logoHeight:24,logoGap:5,
       titleSize:14,sectionSize:10,tableTitleHeight:20,tableLabelMinimum:54,
       footerReserve:18,footerSize:7,footerLineHeight:9,
     };
+    // A compact design is composed on a canvas tall enough to hold all content.
+    // Only after composition do we uniformly fit it to the finished item. The
+    // Full Page path continues to use its exact historical page dimensions.
+    let minimumContentWidth=size.width-2*profile.margin;
+    if(compact)for(const row of document.rows){
+      let rowMinimum=row.blocks.length===2?220+profile.columnGap:0;
+      for(const block of row.blocks)if(block.type==="score_table"){
+        const tableMinimum=54+block.players.length*28;
+        rowMinimum=Math.max(rowMinimum,row.blocks.length===2?2*tableMinimum+profile.columnGap:tableMinimum);
+      }
+      minimumContentWidth=Math.max(minimumContentWidth,rowMinimum);
+    }
+    const width=compact?Math.max(size.width,minimumContentWidth+2*profile.margin):size.width;
+    const height=compact?20000:size.height;
     if (document.footer && document.format_version === "1.0") throw new Error("An author footer requires FGS 1.1 or later");
     const commands = [];
     const push=command=>{if(commands.length>=CONTENT_COMMAND_LIMIT)throw new Error("Page exceeds the 20,000 drawing operation limit.");commands.push(command);};
@@ -128,7 +142,7 @@ export function createPrintEngine(fontData) {
       const labels = labelsFor(block);
       const labelWidth = Math.max(profile.tableLabelMinimum, width * (width < 350 && block.players.length <= 2 ? .5 : profile.tableLabelFraction));
       const columnWidth = (width - labelWidth) / block.players.length;
-      if(size.preset!=="full"&&columnWidth<28)throw new Error("Too many player columns for this finished size; use fewer players or a larger size.");
+      if(columnWidth<=0)throw new Error("Score table has no room for player columns.");
       const playerLines = block.players.map((name, index) => wrap(name || `Player ${index + 1}`, columnWidth - 8, "bold", 8));
       const firstHeadingLines = wrap(block.first_column_heading ?? "Category", labelWidth - 10, "bold", profile.bodySize);
       const headerHeight = Math.max(profile.tableRowHeight, firstHeadingLines.length * 10 + 6, ...playerLines.map((lines) => lines.length * 9.5 + 8));
@@ -138,22 +152,38 @@ export function createPrintEngine(fontData) {
     };
     const headerLines=(block,blockWidth)=>{
       const titleWidth=block.logo?blockWidth-2*(profile.logoWidth+profile.logoGap):blockWidth-10;
-      const lines=size.preset==="full"?[block.title]:wrap(block.title,titleWidth,"serif",profile.titleSize);
-      if(lines.length>2||lines.some(value=>widthOf(value,"serif",profile.titleSize)>titleWidth))
+      const lines=compact?wrap(block.title,titleWidth,"serif",profile.titleSize):[block.title];
+      if(lines.some(value=>widthOf(value,"serif",profile.titleSize)>titleWidth))
         throw new Error(size.preset==="full"
           ? `Page heading "${block.title}" is too wide for this layout.`
-          : `Page heading "${block.title}" needs more than two lines at this print size. Shorten it or choose a larger size.`);
-      if(block.subtitle&&widthOf(block.subtitle,"sans",10)>titleWidth)
+          : `Page heading "${block.title}" cannot be wrapped for this print size.`);
+      if(!compact&&block.subtitle&&widthOf(block.subtitle,"sans",10)>titleWidth)
         throw new Error(`Subtitle in "${block.title}" is too wide for this layout.`);
       return lines;
     };
+    const subtitleLines=(block,blockWidth)=>{
+      if(!block.subtitle)return [];
+      if(!compact)return [block.subtitle];
+      const titleWidth=block.logo?blockWidth-2*(profile.logoWidth+profile.logoGap):blockWidth-10;
+      return wrap(block.subtitle,titleWidth,"sans",10);
+    };
+    const sectionLines=(block,blockWidth)=>{
+      if(!compact){
+        if(widthOf(block.title,"serif",profile.sectionSize)>blockWidth)throw new Error(`Section heading "${block.title}" is too wide for this layout.`);
+        return [block.title];
+      }
+      return wrap(block.title,blockWidth,"serif",profile.sectionSize);
+    };
     const measure = (block, blockWidth, available) => {
-      if (["tracker","paper_pattern"].includes(block.type)) return contentHeight(block,blockWidth,available);
-      if (block.type === "header") return (block.subtitle ? 54 : 40)+(headerLines(block,blockWidth).length-1)*16;
-      if (block.type === "score_table") return scoreGeometry(block, blockWidth).height;
-      if (block.type === "notes") return 27 + block.lines * 24;
+      const headingExtra=compact&&block.type!=="header"?(sectionLines(block,blockWidth).length-1)*13:0;
+      const patternAvailable=compact?Math.max(0,size.height-2*profile.margin-(document.footer?profile.footerReserve:0)):available;
+      if (["tracker","paper_pattern"].includes(block.type)) return headingExtra+contentHeight(block,blockWidth,patternAvailable);
+      if (block.type === "header") return 40+(headerLines(block,blockWidth).length-1)*16+(subtitleLines(block,blockWidth).length?14+(subtitleLines(block,blockWidth).length-1)*12:0);
+      if (block.type === "score_table") return headingExtra+scoreGeometry(block, blockWidth).height;
+      if (block.type === "notes") return headingExtra+27 + block.lines * 24;
       if (block.type === "reference" || block.type === "checklist") {
         const textWidth = blockWidth - 36;
+        if(compact)return headingExtra+40+block.items.reduce((sum,item)=>sum+Math.max(17,Math.max(1,wrap(item,textWidth,"sans",9.5).length)*13+3),0);
         return 27 + block.items.reduce((sum,item) => sum + Math.max(1, wrap(item,textWidth,"sans",9.5).length) * 13 + 3, 0);
       }
       throw new Error(`Unsupported FGS block: ${block.type}`);
@@ -171,20 +201,23 @@ export function createPrintEngine(fontData) {
         }
         const titleCenter=x+blockWidth/2;
         titleLines.forEach((value,index)=>text(value,titleCenter,y+25+index*16,"serif",profile.titleSize,accentText,"middle"));
-        if (block.subtitle) text(block.subtitle,titleCenter,y+43+(titleLines.length-1)*16,"sans",10,MUTED,"middle");
+        subtitleLines(block,blockWidth).forEach((value,index)=>text(value,titleCenter,y+43+(titleLines.length-1)*16+index*12,"sans",10,MUTED,"middle"));
         return;
       }
-      if (widthOf(block.title,"serif",profile.sectionSize)>blockWidth) throw new Error(`Section heading "${block.title}" is too wide for this layout.`);
+      const heading=sectionLines(block,blockWidth);
+      const headingExtra=compact?(heading.length-1)*13:0;
+      const contentY=y+headingExtra;
       if (["tracker","paper_pattern"].includes(block.type)) {
-        if(block.title)text(block.title,x,y+14,"serif",profile.sectionSize,accentText);
-        drawContent(block,x,y,blockWidth,contentHeight(block,blockWidth,height-profile.margin-(document.footer?profile.footerReserve:0)-y),{line,text,circle,widthOf});
+        if(block.title)heading.forEach((value,index)=>text(value,x,y+14+index*13,"serif",profile.sectionSize,accentText));
+        const patternAvailable=compact?Math.max(0,size.height-2*profile.margin-(document.footer?profile.footerReserve:0)):height-profile.margin-(document.footer?profile.footerReserve:0)-y;
+        drawContent(block,x,contentY,blockWidth,contentHeight(block,blockWidth,patternAvailable),{line,text,circle,widthOf});
         return;
       }
-      text(block.title,x,y+14,"serif",profile.sectionSize,accentText);
-      line(x,y+21,x+blockWidth,y+21,accent,profile.accentLine);
+      heading.forEach((value,index)=>text(value,x,y+14+index*13,"serif",profile.sectionSize,accentText));
+      line(x,contentY+21,x+blockWidth,contentY+21,accent,profile.accentLine);
       if (block.type === "score_table") {
         const geometry = scoreGeometry(block,blockWidth);
-        const top = y + profile.tableTitleHeight;
+        const top = contentY + profile.tableTitleHeight;
         const boundaries = [top,top+geometry.headerHeight];
         geometry.rowHeights.forEach((h)=>boundaries.push(boundaries.at(-1)+h));
         geometry.labels.forEach((label,index)=>{if(calculated(label)) rect(x,boundaries[index+1],blockWidth,geometry.rowHeights[index],FILL);});
@@ -198,8 +231,8 @@ export function createPrintEngine(fontData) {
         geometry.labels.forEach((label,index)=>cellText(label,x,boundaries[index+1],geometry.labelWidth,geometry.rowHeights[index],{font:"bold",marker:calculated(label)}));
         return;
       }
-      if (block.type === "notes") { for(let index=0;index<block.lines;index++) line(x,y+29+index*24,x+blockWidth,y+29+index*24,MUTED); return; }
-      let cursor=y+40;
+      if (block.type === "notes") { for(let index=0;index<block.lines;index++) line(x,contentY+29+index*24,x+blockWidth,contentY+29+index*24,MUTED); return; }
+      let cursor=contentY+40;
       for(const item of block.items) {
         if(block.type==="checklist") {line(x+3,cursor-9,x+12,cursor-9);line(x+12,cursor-9,x+12,cursor);line(x+12,cursor,x+3,cursor);line(x+3,cursor,x+3,cursor-9);}
         else text("•",x+5,cursor,"sans",10);
@@ -230,16 +263,55 @@ export function createPrintEngine(fontData) {
         return {profile:profile.id,width,height,printPreset:size.preset,fits:false,overflow:row.blocks[0].title,reason:error.message,commands,blockBounds};
       }
     }
+    const contentBottom=cursor-profile.rowGap;
+    const footerLines=document.footer
+      ? (compact?document.footer.split("\n").flatMap(value=>wrap(value,width-2*profile.margin,"sans",profile.footerSize)):document.footer.split("\n"))
+      : [];
+    const naturalHeight=compact
+      ? contentBottom+profile.margin+(document.footer?Math.max(profile.footerReserve,footerLines.length*profile.footerLineHeight+7):0)
+      : height;
     if (document.footer) {
-      const lines = document.footer.split("\n");
-      for (const [index, value] of lines.entries()) {
+      for (const [index, value] of footerLines.entries()) {
         if (widthOf(value,"sans",profile.footerSize)>width-2*profile.margin) {
           if(size.preset!=="full")return {profile:profile.id,width,height,printPreset:size.preset,fits:false,overflow:"Footer",reason:"Author footer is too wide for the selected print size.",commands,blockBounds};
           throw new Error("Author footer is too wide for the page.");
         }
-        const baseline = height-profile.margin+(size.preset==="full"?10:0)+(index-(lines.length-1))*profile.footerLineHeight;
+        const baseline = naturalHeight-profile.margin+(size.preset==="full"?10:0)+(index-(footerLines.length-1))*profile.footerLineHeight;
         text(value,width/2,baseline,"sans",profile.footerSize,MUTED,"middle");
       }
+    }
+    if(compact){
+      const usableWidth=size.width-2*profile.margin;
+      const usableHeight=size.height-2*profile.margin;
+      const composedWidth=width-2*profile.margin;
+      const composedHeight=naturalHeight-2*profile.margin;
+      const scale=Math.min(1,usableWidth/composedWidth,usableHeight/composedHeight);
+      if(!Number.isFinite(scale)||scale<=0)throw new Error("The compact design cannot be fitted to this size.");
+      const tx=x=>size.width/2+(x-width/2)*scale;
+      const ty=y=>profile.margin+(y-profile.margin)*scale;
+      const fittedCommands=commands.map(command=>{
+        const value={...command};
+        if(command.type==="line"){
+          value.x1=tx(command.x1);value.x2=tx(command.x2);
+          value.y1=ty(command.y1);value.y2=ty(command.y2);
+          value.thickness=command.thickness*scale;
+        }else if(command.type==="circle"){
+          value.x=tx(command.x);value.y=ty(command.y);value.r=command.r*scale;
+        }else{
+          value.x=tx(command.x);value.y=ty(command.y);
+          if(command.type==="rect"||command.type==="image"){
+            value.w=command.w*scale;value.h=command.h*scale;
+          }
+          if(command.type==="text")value.size=command.size*scale;
+        }
+        return value;
+      });
+      const fittedBounds=blockBounds.map(bound=>({
+        ...bound,x:tx(bound.x),y:ty(bound.y),width:bound.width*scale,height:bound.height*scale,
+      }));
+      return {profile:profile.id,width:size.width,height:size.height,printPreset:size.preset,
+        fits:true,commands:fittedCommands,blockBounds:fittedBounds,fitScale:scale,
+        effectiveBodySize:profile.bodySize*scale};
     }
     return {profile:profile.id,width,height,printPreset:size.preset,fits:true,commands,blockBounds};
   }
@@ -252,6 +324,31 @@ export function createPrintEngine(fontData) {
       else if(command.type==="circle")parts.push(`<circle cx="${numbers(command.x)}" cy="${numbers(command.y)}" r="${command.r}" fill="${command.color}"/>`);
       else if(command.type==="image") parts.push(`<image x="${numbers(command.x)}" y="${numbers(command.y)}" width="${numbers(command.w)}" height="${numbers(command.h)}" href="data:image/png;base64,${command.data}" ${command.decorative?'aria-hidden="true"':`role="img" aria-label="${escapeXml(command.alt)}"`}/>`);
       else parts.push(`<text x="${numbers(command.x)}" y="${numbers(command.y)}" text-anchor="${command.anchor}" fill="${command.color}" font-family="FGS ${command.font}" font-size="${command.size}">${escapeXml(command.value)}</text>`);
+    }
+    parts.push("</svg>");
+    return parts.join("");
+  }
+
+  function toPrintSheetSvg(result,options={},pageIndex=0) {
+    const plan=printSheetPlan(result,options);
+    if(!Number.isInteger(pageIndex)||pageIndex<0||pageIndex>=plan.pages.length)throw new Error("Choose an existing print-sheet page.");
+    const parts=[`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${plan.width} ${plan.height}" role="img" aria-label="Arranged print sheet" class="fgs-print-sheet-render"><rect width="100%" height="100%" fill="#ffffff"/>`];
+    const guide=(x1,y1,x2,y2)=>parts.push(`<path d="M${numbers(x1)} ${numbers(y1)}L${numbers(x2)} ${numbers(y2)}" stroke="${MUTED}" stroke-width="0.5" fill="none"/>`);
+    for(const placement of plan.pages[pageIndex]){
+      parts.push(toSvg(result).replace("<svg ",`<svg x="${numbers(placement.x)}" y="${numbers(placement.y)}" width="${result.width}" height="${result.height}" `));
+      if(plan.cutGuides&&!plan.borderless){
+        const {x,y}=placement,w=result.width,h=result.height;
+        for(const edgeY of [y,y+h]){
+          guide(x-8,edgeY,x-2,edgeY);guide(x+w+2,edgeY,x+w+8,edgeY);
+        }
+        for(const edgeX of [x,x+w]){
+          guide(edgeX,y-8,edgeX,y-2);guide(edgeX,y+h+2,edgeX,y+h+8);
+        }
+      }
+    }
+    if(plan.cutGuides&&plan.borderless){
+      if(Math.abs(plan.width-2*result.width)<.011)guide(result.width,0,result.width,plan.height);
+      else guide(0,result.height,plan.width,result.height);
     }
     parts.push("</svg>");
     return parts.join("");
@@ -313,5 +410,5 @@ export function createPrintEngine(fontData) {
     const plan=printSheetPlan(result,options);
     return makePdf(result,title,plan);
   }
-  return {layout,toSvg,toPdf,toPrintSheetPdf,printSheetPlan,widthOf};
+  return {layout,toSvg,toPrintSheetSvg,toPdf,toPrintSheetPdf,printSheetPlan,widthOf};
 }

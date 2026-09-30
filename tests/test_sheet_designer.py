@@ -361,10 +361,10 @@ def test_print_size_http_validation_and_compatibility(tmp_path: Path):
         assert "data-print-sheet-dialog" in designer.text
         assert "not saved in the .fgs file" in designer.text
         assert client.get("/sheet-designer/export.pdf").status_code == 200
-        assert (
-            client.get("/sheet-designer/export.pdf?print_size=poker").status_code
-            == 409
-        )
+        poker = client.get("/sheet-designer/export.pdf?print_size=poker")
+        assert poker.status_code == 200
+        with pymupdf.open(stream=poker.content, filetype="pdf") as pdf:
+            assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((180, 252))
         assert (
             client.get("/sheet-designer/export.pdf?print_size=poster").status_code
             == 422

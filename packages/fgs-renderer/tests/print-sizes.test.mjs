@@ -64,20 +64,22 @@ test("custom size validation never guesses units or accepts nonsensical measurem
   ])assert.throws(()=>finishedSize(document(),selection));
 });
 
-test("small formats report unusable content rather than shrinking it",async()=>{
+test("small formats compose crowded content and uniformly fit it without omission",async()=>{
   const crowded=document();
   crowded.rows.push({id:"row-2",blocks:[{id:"score-1",type:"score_table",title:"Scores",players:Array.from({length:8},(_,i)=>`Player ${i+1}`),score_rows:["Round 1"],show_total:false,total_label:"Total"}]});
   const layout=engine.layout(crowded,{preset:"poker"});
-  assert.equal(layout.fits,false);
-  assert.match(layout.reason,/Too many player columns/);
-  await assert.rejects(engine.toPdf(layout),/does not fit/);
+  assert.equal(layout.fits,true);
+  assert.ok(layout.fitScale>0&&layout.fitScale<1);
+  assert.ok(layout.commands.filter(command=>command.type==="text").length>16);
+  assert.ok(layout.commands.some(command=>command.type==="text"&&command.value==="8"));
+  assert.equal((await PDFDocument.load(await engine.toPdf(layout))).getPageCount(),1);
   const footed=document();footed.footer="A long credit line that cannot fit across a narrow poker card";
   const footerLayout=engine.layout(footed,{preset:"poker"});
-  assert.equal(footerLayout.fits,false);
-  assert.match(footerLayout.reason,/footer is too wide/);
+  assert.equal(footerLayout.fits,true);
+  assert.ok(footerLayout.commands.filter(command=>command.type==="text"&&command.value.includes("credit")).length>0);
 });
 
-test("small-format Header titles wrap at readable type size",async()=>{
+test("small-format Header and section headings wrap beyond two lines",async()=>{
   const card=document();card.rows[0].blocks[0].title="Phase 10 Player Card";
   const layout=engine.layout(card,{preset:"poker"});
   assert.equal(layout.fits,true);
@@ -85,7 +87,40 @@ test("small-format Header titles wrap at readable type size",async()=>{
   assert.equal(titleCommands.length,2);
   assert.ok(titleCommands.every(command=>command.size===14));
   const long=document();long.rows[0].blocks[0].title="A very long title that requires far more than two card lines";
-  assert.match(engine.layout(long,{preset:"poker"}).reason,/more than two lines/);
+  long.rows.push({id:"row-2",blocks:[{id:"reference-1",type:"reference",title:"Phase 10 Player Reference and Reminders",items:["Cards 1–9: 5 points each.","Cards 10–12: 10 points each."]}]});
+  const fitted=engine.layout(long,{preset:"poker"});
+  assert.equal(fitted.fits,true);
+  assert.ok(fitted.commands.filter(command=>command.type==="text"&&command.font==="serif").length>4);
+  assert.ok(fitted.commands.every(command=>command.type!=="text"||command.size>0));
+});
+
+test("a purpose-built Phase 10 reference card fits without clipped drawing commands",async()=>{
+  const card=document();
+  card.rows[0].blocks[0].title="Phase 10 Player Reference Card";
+  card.rows.push({id:"reference-row",blocks:[{
+    id:"reference",type:"reference",title:"Scoring reminders",
+    items:["Cards 1–9: 5 points each.","Cards 10–12: 10 points each.",
+      "Skip cards: 15 points each.","Wild cards: 25 points each.",
+      "Complete your phase to advance; otherwise repeat it.",
+      "First to complete Phase 10 wins; ties break on lowest score."],
+  }]});
+  const fitted=engine.layout(card,{preset:"poker"});
+  assert.equal(fitted.fits,true);
+  assert.deepEqual([fitted.width,fitted.height],[180,252]);
+  assert.ok(fitted.fitScale>0&&fitted.fitScale<=1);
+  for(const command of fitted.commands){
+    if(command.type==="text"){
+      const textWidth=engine.widthOf(command.value,command.font,command.size);
+      const left=command.anchor==="middle"?command.x-textWidth/2:command.x;
+      assert.ok(left>=-.01&&left+textWidth<=fitted.width+.01,`text outside card: ${command.value}`);
+      assert.ok(command.y>=0&&command.y<=fitted.height,`text baseline outside card: ${command.value}`);
+    }else if(command.type==="line"){
+      assert.ok(Math.min(command.x1,command.x2)>=0&&Math.max(command.x1,command.x2)<=fitted.width);
+      assert.ok(Math.min(command.y1,command.y2)>=0&&Math.max(command.y1,command.y2)<=fitted.height);
+    }
+  }
+  const pdf=await PDFDocument.load(await engine.toPdf(fitted));
+  assert.deepEqual(pdf.getPage(0).getSize(),{width:180,height:252});
 });
 
 test("print sheets place exact-size copies with guides and no scaling",async()=>{
@@ -96,11 +131,17 @@ test("print sheets place exact-size copies with guides and no scaling",async()=>
   assert.equal(plan.pages[1].length,3);
   assert.ok(plan.pages[0].every(({x,y})=>x>=44&&y>=44&&x+result.width<=plan.width-44&&y+result.height<=plan.height-44));
   const pair=printSheetPlan(result,{paper:"letter",copies:2,cutGuides:true});
-  assert.equal(pair.orientation,"portrait");
+  assert.equal(pair.orientation,"landscape");
+  assert.equal(pair.capacity,6);
   assert.equal(pair.pages.length,1);
   const pdf=await PDFDocument.load(await engine.toPrintSheetPdf(result,"Card Test",{paper:"letter",copies:9,cutGuides:true}));
   assert.equal(pdf.getPageCount(),2);
   assert.deepEqual(pdf.getPage(0).getSize(),{width:792,height:612});
+  const preview=engine.toPrintSheetSvg(result,{paper:"letter",copies:9,cutGuides:true});
+  assert.match(preview,/viewBox="0 0 792 612"/);
+  assert.equal((preview.match(/aria-label="GameSheet page"/g)||[]).length,6);
+  assert.match(preview,/stroke-width="0.5"/);
+  assert.equal((engine.toPrintSheetSvg(result,{paper:"letter",copies:9,cutGuides:true},1).match(/aria-label="GameSheet page"/g)||[]).length,3);
 });
 
 test("exact Half Page two-up requires explicit borderless mode",async()=>{

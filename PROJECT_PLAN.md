@@ -601,17 +601,18 @@ headings are implemented. Global external-resource navigation is provided by Lin
 These are not future-work items.
 
 The first small-format print increment is implemented locally for Forge Designer
-and Studio: Full Page, Half Page, Poker Card, Bridge Card, and Custom Size; one
-shared finished-size preview/PDF layout with overflow refusal; and a separate
-Letter/A4 copy-layout export with cut guides and explicit borderless two-up
-Half Page. Print size remains an export choice outside `.fgs`; Designer Notes
-may record a human recommendation, but reopening requires reselection. A
-portable optional preferred-print-size field, true multi-page pagination, and
-fit-to-box behavior remain separate future decisions.
-Review proportional reduction for half-page output with a minimum readable
-type-size threshold; treat card formats as constrained layouts/templates, not
-as scaled-down full pages. This is a follow-up design decision, not part of
-the current reflow increment.
+and Studio. A reversible local trial now keeps Full Page's existing single-page
+renderer unchanged while composing Half Page, Poker Card, Bridge Card, and Custom
+Size as intentionally designed, single-item sheets. Compact content wraps and
+uniformly fits when needed; fit percentage and effective body type size are
+reported for the designer to judge, with no hard readability threshold. A
+separate Letter/A4 copy-layout export includes an arranged-page preview, cut
+guides, capacity-based orientation, and explicit borderless two-up Half Page.
+Finished size remains a temporary export choice outside `.fgs`; Designer Notes
+may record a recommendation, but reopening requires reselection. The trial must
+be reviewed before adding a portable finished-size field to a future FGS version.
+Opt-in multi-page continuation for Full Page is a separate future milestone;
+compact sheets remain one finished item, never automatically another card.
 
 Remaining future components include richer section types beyond the supported
 headers, score tables, references, checklists and lined notes; multi-page output;

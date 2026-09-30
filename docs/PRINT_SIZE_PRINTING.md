@@ -1,23 +1,31 @@
 # Printing small FGS sheets
 
-**Print size** sets the finished size of one sheet. Poker Card is 2.5 × 3.5 in;
+**Finished size** sets the physical size of one designed sheet. Poker Card is 2.5 × 3.5 in;
 Bridge Card is 2.25 × 3.5 in. **Page** selects the Letter or A4 base for Full
 and Half Page. The **Orientation** control turns preset sizes, while Custom
-Width and Height determine custom orientation directly. Print size is not saved
-in `.fgs`; record a recommendation in Designer Notes and reselect it when the
-file is opened again. The current small-format mode reflows sections without
-reducing body type to miniature sizes. It does **not** proportionally shrink a
-full-page design; unsupported or crowded content produces a fit warning.
+Width and Height determine custom orientation directly. For this local trial,
+finished size is not saved in `.fgs`; record a recommendation in Designer Notes
+and reselect it when the file is opened again. Design a separate sheet for each
+purpose—for example, a full-page rules sheet, half-page score sheet, and poker
+reference card can all belong to the same game.
+
+Full Page still uses its original one-page layout and overflow warning. Other
+sizes compose content for the selected width, wrap headings and text, and then
+uniformly fit the whole composition to one finished item if necessary. The
+preview reports the fit percentage and approximate body-text size. It does not
+enforce a legibility threshold: review the result and shorten or remove content
+from that particular sheet if it is too small. Patterns and tracker marks also
+change physical size when a composition is reduced.
 
 ## For an ordinary Letter/A4 printer
 
-1. Choose the finished Print size and check that the preview fits. Long Header
-   titles can wrap to two lines on cards; reduce content or choose a larger size
-   if the preview warns that it cannot fit.
+1. Choose the Finished size before composing the sheet. Review the fit percentage
+   and apparent text size in the preview; headings may wrap across multiple lines.
 2. Open **Export → Arrange copies for printing**, choose printer paper and the
    number of copies, and leave **Cut guides** on if the sheets will be trimmed.
-3. Read the output summary before export. It gives the PDF's paper orientation,
-   copies per page, and page count. The layout may use landscape even when the
+3. Review the first arranged printer page and its output summary before export.
+   The summary gives the PDF's paper orientation, maximum copies per page, and
+   page count. The layout may use landscape even when the
    individual card is portrait. For example, eight Poker Cards on Letter make
    two pages, six plus two, to retain safer printer margins.
 4. In the PDF viewer's print dialog, select the stated paper **and orientation**,

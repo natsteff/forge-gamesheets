@@ -16,9 +16,9 @@
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
-  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=5")
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=6")
     .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
-  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=5");
+  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3&layout=6");
   let contentTools=null;
   logoTools.then(tools=>{contentTools=tools;}).catch(error=>message(error.message));
   let previewRevision = 0;
@@ -63,8 +63,9 @@
       const plan=engine.printSheetPlan(result,printSheetOptions());
       if(revision!==printPlanRevision)return;
       const counts=plan.pages.map(page=>page.length).join(" + ");
-      $("print-plan").textContent=`Output: ${plan.paper.toUpperCase()} ${plan.orientation} PDF; ${plan.capacity} ${plan.capacity===1?"copy":"copies"} per page. ${plan.pages.length} ${plan.pages.length===1?"page":"pages"} (${counts}). ${plan.borderless?"Edge-to-edge printing required.":"0.5-inch printable margin, including cut guides."}`;
-    } catch(error) {if(revision===printPlanRevision)$("print-plan").textContent=error.message;}
+      $("print-plan").textContent=`Output: ${plan.paper.toUpperCase()} ${plan.orientation} PDF; ${plan.capacity} ${plan.capacity===1?"copy":"copies"} per page. ${plan.pages.length} ${plan.pages.length===1?"page":"pages"} (${counts}). Preview shows page 1. ${plan.borderless?"Edge-to-edge printing required.":"0.5-inch printable margin, including cut guides."}`;
+      $("print-sheet-preview").innerHTML=engine.toPrintSheetSvg(result,printSheetOptions());
+    } catch(error) {if(revision===printPlanRevision){$("print-plan").textContent=error.message;$("print-sheet-preview").innerHTML="";}}
   }
 
   const calculationKind = (label) => {
@@ -189,10 +190,19 @@
       if (revision !== previewRevision) return;
       const result = engine.layout(model, printSizeSelection());
       page.innerHTML = engine.toSvg(result);
+      page.style.width=result.fitScale===undefined?"":`${Math.round(result.width*96/72)}px`;
+      const info=$('fit-info');
+      if(result.fits&&result.fitScale!==undefined){
+        const percent=Math.round(result.fitScale*100);
+        const measured=model.rows.some(row=>row.blocks.some(block=>block.type==="paper_pattern"||block.type==="tracker"));
+        info.textContent=`Compact design fitted at ${percent}%. Approximate body text: ${result.effectiveBodySize.toFixed(1)} pt. Review the preview at its finished size before printing.${measured&&result.fitScale<1?" Pattern spacing and tracker marks also shrink physically.":""}`;
+        info.hidden=false;
+      }else info.hidden=true;
       fitMessage.textContent = result.fits ? "" : (result.reason || `Section "${result.overflow}" does not fit at the selected print size.`);
       fitMessage.hidden = result.fits;
     }).catch((error) => {
       if (revision === previewRevision) {
+        $('fit-info').hidden=true;
         fitMessage.hidden = false;
         fitMessage.textContent = `Print size cannot be previewed: ${error.message}`;
       }

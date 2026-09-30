@@ -72,7 +72,9 @@ export function printSheetPlan(result, options={}) {
     const margin=36+(cutGuides?8:0),gap=12;
     const portrait=coordinates(short,long,result.width,result.height,margin,gap);
     const landscape=coordinates(long,short,result.width,result.height,margin,gap);
-    chosen=portrait.capacity>=copies?portrait:(landscape.capacity>portrait.capacity?landscape:portrait);
+    // A printer sheet is arranged for maximum capacity, regardless of the
+    // currently requested copy count, so later copies use the same layout.
+    chosen=landscape.capacity>portrait.capacity?landscape:portrait;
     if(!chosen.capacity)throw new Error("The finished sheet does not fit within the printer paper's 0.5-inch printable margins. Use larger paper or export the finished-size PDF for suitable card stock.");
   }
   const gap=borderless?0:12;
