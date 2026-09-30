@@ -13,7 +13,7 @@ export const PROFILE = Object.freeze({
   logoWidth: 48, logoHeight: 32, logoGap: 8,
   titleSize: 20, sectionSize: 11, bodySize: 8.5,
   tableTitleHeight: 22, tableRowHeight: 19,
-  tableLabelMinimum: 44, tableLabelMaximumFraction: .4, tablePlayerMinimum: 54,
+  tableColumnMinimum: 28, tableHeadingMaximumFraction: .4,
   tableLine: .5, accentLine: 1.2,
 });
 
@@ -98,7 +98,7 @@ export function createPrintEngine(fontData) {
       ...PROFILE,
       margin:Math.min(size.width,size.height)<300?12:24,
       columnGap:10,rowGap:9,logoWidth:32,logoHeight:24,logoGap:5,
-      titleSize:14,sectionSize:10,tableTitleHeight:20,tableLabelMinimum:40,
+      titleSize:14,sectionSize:10,tableTitleHeight:20,
       footerReserve:18,footerSize:7,footerLineHeight:9,
     };
     // A compact design is composed on a canvas tall enough to hold all content.
@@ -141,15 +141,22 @@ export function createPrintEngine(fontData) {
     const scoreGeometry = (block, width) => {
       const labels = labelsFor(block);
       const labelText = [block.first_column_heading ?? "Category", ...labels];
-      const labelPreferred = Math.max(...labelText.map(value=>widthOf(value,"bold",profile.bodySize)))+12;
-      const labelWidth = Math.min(width*profile.tableLabelMaximumFraction,Math.max(profile.tableLabelMinimum,labelPreferred));
-      const playerRoom = width-labelWidth;
-      if(playerRoom<=0)throw new Error("Score table has no room for player columns.");
-      const playerMinimum=Math.min(profile.tablePlayerMinimum,playerRoom/block.players.length);
-      const playerWeights=block.players.map((name,index)=>Math.max(12,Math.min(width*.4,widthOf(name||`Player ${index+1}`,"bold",8))));
-      const weightTotal=playerWeights.reduce((sum,value)=>sum+value,0);
-      const extra=playerRoom-playerMinimum*block.players.length;
-      const columnWidths=playerWeights.map(weight=>playerMinimum+extra*weight/weightTotal);
+      const preferred=[
+        Math.max(...labelText.map(value=>widthOf(value,"bold",profile.bodySize)))+10,
+        ...block.players.map((name,index)=>widthOf(name||`Player ${index+1}`,"bold",8)+10),
+      ].map(value=>Math.min(width*profile.tableHeadingMaximumFraction,value));
+      const minimum=Math.min(profile.tableColumnMinimum,width/preferred.length);
+      const widths=Array(preferred.length).fill(0);
+      let remaining=width;
+      let open=preferred.map((_,index)=>index);
+      while(open.length){
+        const total=open.reduce((sum,index)=>sum+preferred[index],0);
+        const narrow=open.filter(index=>remaining*preferred[index]/total<minimum);
+        if(!narrow.length){for(const index of open)widths[index]=remaining*preferred[index]/total;break;}
+        for(const index of narrow){widths[index]=minimum;remaining-=minimum;}
+        open=open.filter(index=>!narrow.includes(index));
+      }
+      const [labelWidth,...columnWidths]=widths;
       const playerLines = block.players.map((name, index) => wrap(name || `Player ${index + 1}`, columnWidths[index] - 8, "bold", 8));
       const firstHeadingLines = wrap(block.first_column_heading ?? "Category", labelWidth - 10, "bold", profile.bodySize);
       const headerHeight = Math.max(profile.tableRowHeight, firstHeadingLines.length * 10 + 6, ...playerLines.map((lines) => lines.length * 9.5 + 8));

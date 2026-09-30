@@ -107,6 +107,21 @@ test("score-table headings and row labels determine column widths",()=>{
   assert.ok(widths()[1]>initial[1],"a longer heading should widen its column");
   score.score_rows[0]="A much longer row label";
   assert.ok(widths()[0]>initial[0],"a longer row label should widen the first column");
+
+  const paired=sheet();
+  paired.format_version="1.2";
+  const narrow={id:"narrow-1",type:"score_table",title:"Biggest Win",first_column_heading:"Record",players:["Player Name (Date)","Margin","Score"],score_rows:["1","2","3","4","5","6"],show_total:false,total_label:"Total"};
+  paired.rows=[{id:"pair",blocks:[narrow,{...narrow,id:"narrow-2",title:"Most Structures"}]}];
+  const pairedLayout=engine.layout(paired);
+  assert.equal(pairedLayout.fits,true);
+  const bound=pairedLayout.blockBounds[0];
+  const top=bound.y+PROFILE.tableTitleHeight;
+  const edges=pairedLayout.commands.filter(command=>command.type==="line"&&command.x1===command.x2&&command.y1===top&&command.x1>=bound.x&&command.x1<=bound.x+bound.width+.001).map(command=>command.x1).sort((a,b)=>a-b);
+  const pairedWidths=edges.slice(1).map((edge,index)=>edge-edges[index]);
+  assert.equal(pairedWidths.length,4);
+  assert.ok(pairedWidths[1]>pairedWidths[3]*2,"Player Name (Date) should dominate Score");
+  assert.ok(pairedWidths[3]<54,"Score should not inherit the former 54-point minimum");
+  assert.ok(pairedWidths.every(value=>value>=28));
 });
 
 test("FGS 1.1 reserves footer space in preview and PDF without changing old sheets",async()=>{

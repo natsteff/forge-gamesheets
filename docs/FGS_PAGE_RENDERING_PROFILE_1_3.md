@@ -8,12 +8,13 @@ and accepts FGS 1.0–1.3. Fonts, 36-point margins,
 
 ## Score-table column widths (beta adjustment)
 
-The first column uses the measured width of its heading and row labels plus
-12 points of padding, with a 44-point minimum on a full page (40 points in
-compact composition) and a 40% table-width maximum. The other columns have a
-54-point minimum when space permits; remaining width is divided in proportion
-to each heading's font-measured width, with weights bounded between 12 points
-and 40% of the table width. Very narrow tables reduce the minimum evenly.
+Each column's preferred width is the font-measured heading plus 10 points of
+cell padding; the first column also considers its row labels. A long heading's
+preferred width is capped at 40% of the table to prevent it monopolizing the
+page. Table width is divided in proportion to these preferences, with a small
+28-point floor to avoid unusable slivers. When even that cannot fit, all
+columns share the available width evenly. Short numeric headings can therefore
+produce genuinely narrow columns, including in paired tables.
 Headings and labels wrap within their resulting cells, increasing row height
 where needed. The same geometry drives preview and PDF; overflowing tables
 produce a fit warning rather than clipped output.
