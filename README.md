@@ -38,6 +38,8 @@ sheets; it is not an editor for existing PDF files.
   scratch, with headers, score tables, references, checklists, notes, live page
   preview, automatically saved drafts, PDF or `.fgs` export, and optional
   association with an existing library game
+- Click-to-jump Designer preview: choose a heading, table label, or list item on
+  the rendered sheet to focus its editor field; row labels select the matching line
 - A versioned FGS Page Rendering Profile and pinned shared renderer used by the
   Designer preview and PDF export and by the browser-only FGS Studio
 - FGS 1.1 author footers and a single portable header logo, included in
@@ -451,6 +453,10 @@ duplicated, deleted, or paired into two columns. Score rows and checklist items
 are editable, and numbered rows such as Round 1 through Round 10 can be generated
 in one step. Letter and A4 output are available in portrait or landscape, with a
 live single-page preview and overflow warning.
+Click a heading, table label, or list item in the preview to select its section
+and focus the corresponding editor field. Clicking a score-row label, such as
+“1,” also selects that line in **Score rows**. This is navigation to the source
+field, not direct editing on the printed sheet.
 The separate **Finished size** control offers Full Page (the existing output),
 Half Page, Poker Card (2.5 × 3.5 in), Bridge Card (2.25 × 3.5 in), or an explicit
 custom size in inches/centimeters. Preview and PDF use the same finished-size
