@@ -12,6 +12,7 @@ from uuid import uuid4
 from app.sheet_designer.model import (
     FORMAT_NAME,
     FORMAT_VERSION,
+    FORMAT_VERSION_1_1,
     MAX_DOCUMENT_BYTES,
     migrate_document,
     normalize_document,
@@ -64,49 +65,55 @@ class FileDraftStore:
         return normalized
 
     def create(
-        self, title: str, page_size: str = "letter", orientation: str = "portrait"
+        self,
+        title: str,
+        page_size: str = "letter",
+        orientation: str = "portrait",
+        *,
+        footer: str | None = None,
     ) -> dict:
         if not isinstance(title, str) or not title.strip() or len(title.strip()) > 160:
             raise ValueError("Enter a sheet title between 1 and 160 characters.")
         title = title.strip()
         document_id = self._unique_id(title)
-        document = normalize_document(
-            {
-                "format": FORMAT_NAME,
-                "format_version": FORMAT_VERSION,
-                "id": document_id,
-                "title": title,
-                "page": {"size": page_size, "orientation": orientation},
-                "theme": {"accent": "#c84b24"},
-                "rows": [
-                    {
-                        "id": "row-header",
-                        "blocks": [
-                            {
-                                "id": "header-main",
-                                "type": "header",
-                                "title": title,
-                                "subtitle": "",
-                            }
-                        ],
-                    },
-                    {
-                        "id": "row-score",
-                        "blocks": [
-                            {
-                                "id": "score-main",
-                                "type": "score_table",
-                                "title": "Score table",
-                                "players": ["Player 1", "Player 2"],
-                                "score_rows": ["Round 1", "Total"],
-                                "show_total": False,
-                                "total_label": "Total",
-                            }
-                        ],
-                    },
-                ],
-            }
-        )
+        source = {
+            "format": FORMAT_NAME,
+            "format_version": FORMAT_VERSION_1_1 if footer else FORMAT_VERSION,
+            "id": document_id,
+            "title": title,
+            "page": {"size": page_size, "orientation": orientation},
+            "theme": {"accent": "#c84b24"},
+            "rows": [
+                {
+                    "id": "row-header",
+                    "blocks": [
+                        {
+                            "id": "header-main",
+                            "type": "header",
+                            "title": title,
+                            "subtitle": "",
+                        }
+                    ],
+                },
+                {
+                    "id": "row-score",
+                    "blocks": [
+                        {
+                            "id": "score-main",
+                            "type": "score_table",
+                            "title": "Score table",
+                            "players": ["Player 1", "Player 2"],
+                            "score_rows": ["Round 1", "Total"],
+                            "show_total": False,
+                            "total_label": "Total",
+                        }
+                    ],
+                },
+            ],
+        }
+        if footer:
+            source["footer"] = footer
+        document = normalize_document(source)
         self._write_document(document, workspace_id=document_id)
         self._write_pointer(document_id)
         return document

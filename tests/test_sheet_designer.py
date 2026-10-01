@@ -271,6 +271,58 @@ def test_workspace_creates_opens_duplicates_and_deletes_sheets(tmp_path: Path):
     assert not (store.drafts / f"{duplicate['id']}.fgs").exists()
 
 
+def test_new_forge_sheet_footer_uses_configured_public_url(tmp_path: Path):
+    library = tmp_path / "library"
+    data = tmp_path / "data"
+    library.mkdir()
+    data.mkdir()
+    app = create_app(
+        Settings(
+            library_path=library,
+            data_path=data,
+            base_url="https://forge.nate",
+            allowed_hosts=("testserver",),
+        )
+    )
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
+        existing = client.get("/sheet-designer/document").json()
+        created = client.post(
+            "/sheet-designer/documents", json={"title": "New scores"}
+        )
+        assert created.status_code == 201
+        assert created.json()["format_version"] == FORMAT_VERSION_1_1
+        assert created.json()["footer"] == (
+            "Customize this sheet (with source FGS file) at https://forge.nate"
+        )
+        exported = client.get("/sheet-designer/export.pdf")
+        assert exported.status_code == 200
+        with pymupdf.open(stream=exported.content, filetype="pdf") as pdf:
+            assert created.json()["footer"] in pdf[0].get_text()
+        assert "footer" not in existing
+        imported = client.post("/sheet-designer/documents/import", json=existing)
+        assert imported.status_code == 201
+        assert "footer" not in imported.json()
+
+
+def test_new_forge_sheet_footer_uses_https_browser_origin_without_base_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("FORGE_GAMESHEETS_ALLOWED_HOSTS", "forge.nate")
+    app = create_standalone_app(tmp_path / "designer")
+    with TestClient(
+        app,
+        base_url="https://forge.nate",
+        headers={"Origin": "https://forge.nate"},
+    ) as client:
+        created = client.post(
+            "/sheet-designer/documents", json={"title": "New scores"}
+        )
+        assert created.status_code == 201
+        assert created.json()["footer"] == (
+            "Customize this sheet (with source FGS file) at https://forge.nate"
+        )
+
+
 def test_workspace_migrates_the_original_single_draft(tmp_path: Path):
     root = tmp_path / "designer"
     root.mkdir()
@@ -688,6 +740,10 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
             "size": "a4",
             "orientation": "landscape",
         }
+        assert created_document["format_version"] == FORMAT_VERSION_1_1
+        assert created_document["footer"] == (
+            "Customize this sheet (with source FGS file) at http://localhost"
+        )
         workspace = client.get("/sheet-designer/documents").json()
         assert len(workspace["documents"]) == 2
         assert workspace["current_id"] == created_document["id"]

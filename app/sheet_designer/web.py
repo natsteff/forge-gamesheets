@@ -51,6 +51,14 @@ def _database(request: Request):
     return database
 
 
+def _new_sheet_footer(request: Request) -> str:
+    configured_url = getattr(request.app.state.settings, "base_url", None)
+    server_url = (
+        configured_url or request.headers.get("origin") or str(request.base_url)
+    )
+    return f"Customize this sheet (with source FGS file) at {server_url.rstrip('/')}"
+
+
 def _filename(title: str, suffix: str) -> str:
     stem = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
     return f"{stem or 'game-sheet'}{suffix}"
@@ -111,6 +119,7 @@ async def create_document(request: Request):
             payload.get("title", ""),
             payload.get("page_size", "letter"),
             payload.get("orientation", "portrait"),
+            footer=_new_sheet_footer(request),
         )
         return JSONResponse(document, status_code=201)
     except (AttributeError, DocumentValidationError, ValueError) as error:

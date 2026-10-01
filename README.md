@@ -515,6 +515,10 @@ pixel-perfect copies of existing documents. FGS 1.1 supports one header logo
 and a one- or two-line Footer. The logo is embedded in the portable `.fgs` file;
 the title remains centered independently of it. The Footer occupies a reserved
 strip at the bottom of the page and is separate from FORGE Reprint attribution.
+New sheets created in Forge start with an editable footer linking to that
+server: the configured public base URL, or the browser address used to create
+the sheet. Existing and imported sheets keep their own footer unchanged.
+
 GameSheets can be exported as printable PDFs,
 and compatible score sheets can also be used as temporary interactive
 LiveSheets. The Designer startup page and editor toolbar provide the same short
