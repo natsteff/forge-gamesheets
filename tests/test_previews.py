@@ -1,5 +1,6 @@
-"""Tests for safe, cached PDF first-page previews."""
+"""Tests for safe, cached PDF and image previews."""
 
+from dataclasses import replace
 from pathlib import Path
 
 import pymupdf
@@ -10,6 +11,7 @@ from app.library.filename_parser import ResourceCategory
 from app.library.previews import (
     PREVIEW_SIZE,
     PreviewUnavailable,
+    cached_image_preview,
     cached_resource_preview,
 )
 from app.library.repository import IndexedResource
@@ -102,3 +104,20 @@ def test_rejects_preview_whose_rendered_page_exceeds_pixel_budget(
     monkeypatch.setattr("app.library.previews.MAX_PREVIEW_RENDER_PIXELS", 1)
     with pytest.raises(PreviewUnavailable, match="dimensions"):
         cached_resource_preview(library, data, _resource())
+
+
+def test_image_preview_is_bounded_and_invalid_images_fail(tmp_path: Path) -> None:
+    library, data = tmp_path / "library", tmp_path / "data"
+    source = library / "Farkle" / "photo.png"
+    source.parent.mkdir(parents=True)
+    data.mkdir()
+    Image.new("RGB", (400, 200), "blue").save(source)
+    resource = replace(_resource(), relative_path="Farkle/photo.png", provider="image")
+
+    first = cached_image_preview(library, data, resource)
+    assert cached_image_preview(library, data, resource) == first
+    with Image.open(first) as image:
+        assert image.size == PREVIEW_SIZE
+    source.write_bytes(b"not an image")
+    with pytest.raises(PreviewUnavailable):
+        cached_image_preview(library, data, resource)

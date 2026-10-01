@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -50,6 +51,7 @@ from app.library.filename_parser import ResourceCategory
 from app.library.files import (
     ResourceFileMissing,
     UnsafeResourcePath,
+    resolve_resource_file,
     resolve_resource_pdf,
 )
 from app.library.game_categories import bulk_apply, folder_hint
@@ -58,7 +60,11 @@ from app.library.game_links import (
     list_game_resource_links,
     save_game_resource_links,
 )
-from app.library.previews import PreviewUnavailable, cached_resource_preview
+from app.library.previews import (
+    PreviewUnavailable,
+    cached_image_preview,
+    cached_resource_preview,
+)
 from app.library.qr_access import requires_sign_in, set_requires_sign_in
 from app.library.reconciliation import ReconciliationError, reconcile_scan
 from app.library.repository import (
@@ -99,6 +105,12 @@ from app.library.reprints import (
     existing_forge_reprint,
     generate_forge_reprint,
 )
+from app.library.resource_types import (
+    IMAGE_MIME_TYPES,
+    is_artwork_named_file,
+    is_reserved_game_artwork,
+    resource_type_label,
+)
 from app.library.scanner import LibraryScanError, ScanIssue, scan_library
 from app.preferences import (
     DEFAULT_FOOTER_TEXT,
@@ -108,6 +120,7 @@ from app.preferences import (
     get_preferences,
     save_preferences,
 )
+from app.sheet_designer.model import MAX_DOCUMENT_BYTES, DocumentValidationError
 from app.sheet_game_associations import list_associated_sheets
 
 router = APIRouter()
@@ -684,6 +697,8 @@ def resource_favorite(request: Request, resource_id: int) -> RedirectResponse:
     resource = get_resource(_database(request), resource_id)
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found")
+    if resource.provider == "other":
+        raise HTTPException(status_code=404, detail="Resource not found")
     set_resource_favorite(
         _database(request), resource_id, favorite=not resource.is_favorite
     )
@@ -713,6 +728,8 @@ async def resource_pin(request: Request, resource_id: int) -> RedirectResponse:
     """Toggle homepage pinning while enforcing the ten-resource limit."""
     resource = get_resource(_database(request), resource_id)
     if resource is None:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    if resource.provider == "other":
         raise HTTPException(status_code=404, detail="Resource not found")
     result = toggle_resource_pin(_database(request), resource_id)
     if result != "limit":
@@ -754,7 +771,7 @@ async def resource_pin(request: Request, resource_id: int) -> RedirectResponse:
 )
 def resource_edit(request: Request, resource_id: int) -> HTMLResponse:
     resource = get_resource(_database(request), resource_id)
-    if resource is None:
+    if resource is None or resource.provider == "other":
         raise HTTPException(status_code=404, detail="Resource not found")
     return templates.TemplateResponse(
         request=request,
@@ -775,7 +792,7 @@ def resource_edit(request: Request, resource_id: int) -> HTMLResponse:
 )
 async def resource_edit_save(request: Request, resource_id: int) -> RedirectResponse:
     resource = get_resource(_database(request), resource_id)
-    if resource is None:
+    if resource is None or resource.provider == "other":
         raise HTTPException(status_code=404, detail="Resource not found")
     form = await request.form()
     title = str(form.get("title", "")).strip()
@@ -815,7 +832,7 @@ async def resource_edit_save(request: Request, resource_id: int) -> RedirectResp
 )
 def resource_reset(request: Request, resource_id: int) -> RedirectResponse:
     resource = get_resource(_database(request), resource_id)
-    if resource is None:
+    if resource is None or resource.provider == "other":
         raise HTTPException(status_code=404, detail="Resource not found")
     reset_resource_override(_database(request), resource_id)
     record_activity(
@@ -839,7 +856,8 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
 
     grouped: defaultdict[ResourceCategory, list[IndexedResource]] = defaultdict(list)
     for resource in game.resources:
-        grouped[resource.category].append(resource)
+        if resource.provider != "other":
+            grouped[resource.category].append(resource)
     sections = tuple(
         (_CATEGORY_LABELS[category], grouped[category])
         for category in _CATEGORY_ORDER
@@ -847,9 +865,13 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
     )
     unavailable_resource_ids: set[int] = set()
     for resource in game.resources:
+        if resource.provider == "other":
+            continue
         try:
-            resolve_resource_pdf(
-                request.app.state.settings.library_path, resource.relative_path
+            resolve_resource_file(
+                request.app.state.settings.library_path,
+                resource.relative_path,
+                resource.provider,
             )
         except (ResourceFileMissing, UnsafeResourcePath):
             unavailable_resource_ids.add(resource.id)
@@ -860,6 +882,26 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
         context={
             "game": game,
             "sections": sections,
+            "other_files": tuple(
+                resource for resource in game.resources if resource.provider == "other"
+            ),
+            "reserved_artwork_paths": {
+                resource.relative_path
+                for resource in game.resources
+                if is_reserved_game_artwork(resource.relative_path)
+            },
+            "artwork_named_paths": {
+                resource.relative_path
+                for resource in game.resources
+                if is_artwork_named_file(resource.relative_path)
+            },
+            "resource_type_labels": {
+                resource.id: resource_type_label(
+                    resource.provider, resource.relative_path
+                )
+                for resource in game.resources
+                if resource.provider in {"fgs", "image", "document"}
+            },
             "bgg_association": get_bgg_association(_database(request), game.id),
             "bgg_edition": get_bgg_edition(_database(request), game.id),
             "game_resource_links": list_game_resource_links(
@@ -1674,10 +1716,26 @@ def resource_reprint_download(request: Request, resource_id: int) -> FileRespons
     name="resource_preview",
 )
 def resource_preview(request: Request, resource_id: int) -> FileResponse:
-    """Render and serve a cached first-page preview for an indexed PDF."""
+    """Serve a PDF thumbnail or a scanned image for a resource preview."""
     resource = get_resource(_database(request), resource_id)
     if resource is None:
         raise HTTPException(status_code=404, detail="Resource not found")
+    if resource.provider == "image":
+        try:
+            preview = cached_image_preview(
+                request.app.state.settings.library_path,
+                request.app.state.settings.data_path,
+                resource,
+            )
+        except (ResourceFileMissing, UnsafeResourcePath, PreviewUnavailable) as error:
+            raise HTTPException(404, "Preview unavailable") from error
+        return FileResponse(
+            preview,
+            media_type="image/webp",
+            headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+        )
+    if resource.provider != "pdf":
+        raise HTTPException(404, "Preview unavailable")
     try:
         preview = cached_resource_preview(
             request.app.state.settings.library_path,
@@ -1703,7 +1761,7 @@ def resource_preview(request: Request, resource_id: int) -> FileResponse:
     name="resource_view",
 )
 def resource_view(request: Request, resource_id: int) -> FileResponse:
-    """Serve an indexed PDF inline for browser viewing and printing."""
+    """Serve an indexed PDF or image inline for browser viewing."""
     return _resource_response(request, resource_id, disposition="inline", action="view")
 
 
@@ -1713,10 +1771,42 @@ def resource_view(request: Request, resource_id: int) -> FileResponse:
     name="resource_download",
 )
 def resource_download(request: Request, resource_id: int) -> FileResponse:
-    """Serve an indexed PDF as an explicit download."""
+    """Serve a supported indexed file as an explicit download."""
     return _resource_response(
         request, resource_id, disposition="attachment", action="download"
     )
+
+
+@router.post(
+    "/resources/{resource_id}/open-in-designer", name="resource_open_in_designer"
+)
+def resource_open_in_designer(request: Request, resource_id: int) -> RedirectResponse:
+    """Import an editable copy without modifying the library FGS source."""
+    resource = get_resource(_database(request), resource_id)
+    if resource is None or resource.provider != "fgs":
+        raise HTTPException(404, "FGS file not found")
+    try:
+        path = resolve_resource_file(
+            request.app.state.settings.library_path, resource.relative_path, "fgs"
+        )
+        with path.open("rb") as source:
+            payload = source.read(MAX_DOCUMENT_BYTES + 1)
+        if len(payload) > MAX_DOCUMENT_BYTES:
+            raise HTTPException(422, "FGS file exceeds the import limit")
+        request.app.state.sheet_designer_store.import_document(
+            json.loads(payload.decode("utf-8"))
+        )
+    except (ResourceFileMissing, UnsafeResourcePath) as error:
+        raise HTTPException(410, "FGS file is unavailable") from error
+    except (
+        UnicodeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        DocumentValidationError,
+    ) as error:
+        raise HTTPException(422, "FGS file could not be imported") from error
+    return RedirectResponse("/sheet-designer?resume=1", status_code=303)
 
 
 def _database(request: Request) -> Database:
@@ -1964,26 +2054,39 @@ def _resource_response(
     if game is None:
         raise HTTPException(status_code=404, detail="Game not found")
 
+    if resource.provider == "other" or (
+        disposition == "inline" and resource.provider not in {"pdf", "image"}
+    ):
+        raise HTTPException(404, "Resource cannot be opened this way")
     try:
-        path = resolve_resource_pdf(
+        path = resolve_resource_file(
             request.app.state.settings.library_path,
             resource.relative_path,
+            resource.provider,
         )
     except ResourceFileMissing as error:
         raise HTTPException(
             status_code=410,
-            detail="This PDF was removed after the last library scan.",
+            detail="This file was removed after the last library scan.",
         ) from error
     except UnsafeResourcePath as error:
         raise HTTPException(status_code=404, detail="Resource not found") from error
 
     record_resource_use(_database(request), resource_id, action=action)
+    media_type = "application/octet-stream"
+    if resource.provider == "pdf":
+        media_type = "application/pdf"
+    elif resource.provider == "image":
+        media_type = IMAGE_MIME_TYPES[path.suffix.casefold()]
+    filename = (
+        _pdf_filename(game, resource) if resource.provider == "pdf" else path.name
+    )
     return FileResponse(
         path,
-        media_type="application/pdf",
-        filename=_pdf_filename(game, resource),
+        media_type=media_type,
+        filename=filename,
         content_disposition_type=disposition,
-        headers={"Cache-Control": "no-store"},
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
     )
 
 

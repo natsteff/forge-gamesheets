@@ -19,6 +19,7 @@ class ActivityEvent:
     resource_id: int | None
     occurred_at: str
     target_exists: bool
+    resource_provider: str | None = None
 
 
 def record_activity(
@@ -81,7 +82,7 @@ def list_activity(
     parameters = (before, limit + 1) if before is not None else (limit + 1,)
     with database.connect() as connection:
         rows = connection.execute(
-            f"""SELECT e.*,
+            f"""SELECT e.*, r.provider AS resource_provider,
                        CASE
                          WHEN e.resource_id IS NOT NULL THEN r.id IS NOT NULL
                          WHEN e.game_id IS NOT NULL THEN g.id IS NOT NULL

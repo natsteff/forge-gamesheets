@@ -7,6 +7,7 @@ import pytest
 from app.library.files import (
     ResourceFileMissing,
     UnsafeResourcePath,
+    resolve_resource_file,
     resolve_resource_pdf,
 )
 
@@ -63,3 +64,14 @@ def test_rejects_non_pdf_file(tmp_path: Path) -> None:
 
     with pytest.raises(ResourceFileMissing):
         resolve_resource_pdf(library, "Game/notes.txt")
+
+
+def test_resolves_only_expected_supported_file_type(tmp_path: Path) -> None:
+    library = tmp_path / "library"
+    image = library / "Game" / "photo.png"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(b"image")
+
+    assert resolve_resource_file(library, "Game/photo.png", "image") == image.resolve()
+    with pytest.raises(ResourceFileMissing):
+        resolve_resource_file(library, "Game/photo.png", "document")

@@ -52,6 +52,7 @@ CONTRIBUTOR_ROUTES = {
     "sheet_designer_documents",
     "sheet_designer_create",
     "sheet_designer_import",
+    "resource_open_in_designer",
     "sheet_designer_edit_document",
     "sheet_designer_livesheet_setup",
     "sheet_designer_preview",

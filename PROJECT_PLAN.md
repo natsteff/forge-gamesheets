@@ -237,8 +237,12 @@ library/
 
 ## 5. Resource model
 
-A game owns resources. In Phase 1, the only provider is a discovered PDF. Later
-providers may include generated PDFs, HTML references, images, or links.
+A game owns resources. Phase 1 began with discovered PDFs. The later approved
+library extension indexes FGS sources, common images and downloadable documents
+as categorized resources. Unhandled file types are listed without actions at
+the bottom of each game page. PDF-specific previews and Reprints remain PDF-only;
+image files have their own browser preview, and importing an FGS creates an
+independent Designer copy. Future providers may include HTML references or links.
 
 Minimum Phase 1 concepts:
 

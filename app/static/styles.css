@@ -503,6 +503,20 @@ input[type="checkbox"] {
 .resource-sections { display: grid; gap: 2rem; }
 .gamesheet-resources { margin-bottom: 2rem; }
 .resource-section h2 { margin-bottom: 0.75rem; }
+.other-files-detected { margin-top: 2rem; }
+.other-files-detected p { color: var(--muted); }
+.other-files-detected ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+.other-files-detected li { padding: 0.85rem 1.15rem; overflow-wrap: anywhere; }
+.other-files-detected li small { display: block; margin-top: 0.2rem; color: var(--muted); }
+.other-files-detected li + li { border-top: 1px solid var(--line); }
 .resource-list { overflow: hidden; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
 .resource-row { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.15rem; }
 .resource-row + .resource-row { border-top: 1px solid var(--line); }

@@ -23,7 +23,7 @@
     <div class="favorite-grid">
       {% for resource in pinned %}
         <article class="favorite-card managed-card">
-          <a class="managed-card-link" href="{{ url_for('resource_reprint', resource_id=resource.id) }}">
+          <a class="managed-card-link" href="{% if resource.provider == 'pdf' %}{{ url_for('resource_reprint', resource_id=resource.id) }}{% elif resource.provider == 'image' %}{{ url_for('resource_view', resource_id=resource.id) }}{% else %}{{ url_for('game_detail', game_id=resource.game_id) }}#resource-{{ resource.id }}{% endif %}">
             <span aria-hidden="true">⌖</span>
             <span>
               <strong>{{ resource.title }}</strong>

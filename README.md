@@ -34,9 +34,10 @@ but it is not part of FORGE GameSheets.
 
 - **Collect and find:** Think of it as a Plex/Jellyfin-style library for game
   documents. Point it at existing folders—one first-level folder per game—and
-  scan to discover PDFs recursively. Browse by game or category, search game
-  and resource titles, preview, view, download, and print the original files
-  without changing them. Rescan after adding, moving, or removing files.
+  scan to discover PDFs, FGS sources, images, and common documents recursively.
+  Browse by game or category, search titles, preview PDFs and images, and
+  download originals without changing them. Reprints remain PDF-only. Rescan
+  after adding, moving, or removing files.
 - **Create and print:** Build portable FGS GameSheets with a live preview, then
   export a PDF or `.fgs` source. Design full sheets, half sheets, or cards and
   arrange smaller copies on printer paper with cut guides.

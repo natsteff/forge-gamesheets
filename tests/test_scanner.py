@@ -4,7 +4,42 @@ from pathlib import Path
 
 import pytest
 
+from app.library.resource_types import (
+    is_artwork_named_file,
+    is_reserved_game_artwork,
+    resource_type,
+    resource_type_label,
+)
 from app.library.scanner import LibraryScanError, scan_library
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected"),
+    [
+        ("sheet.fgs", "fgs"),
+        ("photo.JPG", "image"),
+        ("workbook.xlsx", "document"),
+        ("notes.txt", "document"),
+        ("table.csv", "document"),
+        ("drawing.svg", "other"),
+    ],
+)
+def test_resource_type_allowlist(filename: str, expected: str) -> None:
+    assert resource_type(filename) == expected
+
+
+def test_resource_labels_show_file_formats() -> None:
+    assert resource_type_label("image", "Game/photo.PNG") == "Image (png)"
+    assert resource_type_label("document", "Game/rules.DOCX") == "Document (docx)"
+    assert resource_type_label("fgs", "Game/sheet.fgs") == "FGS source"
+
+
+def test_only_top_level_supported_game_artwork_names_are_reserved() -> None:
+    assert is_reserved_game_artwork("Game/ICON.PNG")
+    assert is_reserved_game_artwork("Game/cover.webp")
+    assert not is_reserved_game_artwork("Game/Nested/icon.png")
+    assert not is_reserved_game_artwork("Game/cover")
+    assert is_artwork_named_file("Game/cover")
 
 
 @pytest.fixture
@@ -45,7 +80,13 @@ def test_scan_discovers_first_level_games_and_recursive_pdfs(
     ]
     assert farkle_resources == [
         "Farkle/Farkle - Rules.pdf",
+        "Farkle/References/notes.txt",
         "Farkle/References/Scoring.PDF",
+    ]
+    assert [item.provider for item in result.games[1].resources] == [
+        "pdf",
+        "document",
+        "pdf",
     ]
     assert result.games[1].resources[0].size_bytes == len(b"rules")
     assert result.games[1].resources[0].modified_ns > 0
@@ -175,3 +216,7 @@ def test_scan_detects_preferred_top_level_game_artwork(tmp_path: Path) -> None:
     assert artwork is not None
     assert artwork.relative_path == Path("Game/ICON.PNG")
     assert artwork.size_bytes == len(b"icon")
+    assert {
+        resource.relative_path.name: resource.provider
+        for resource in result.games[0].resources
+    } == {"ICON.PNG": "other", "Cover.JPG": "other"}

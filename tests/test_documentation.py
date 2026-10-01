@@ -53,8 +53,8 @@ def test_readme_current_capability_contract():
         "docs/DOCUMENTATION_REVIEW.md",
         "individual workstation or trusted",
         "Plex/Jellyfin-style library",
-        "scan to discover PDFs recursively",
-        "Rescan after adding, moving, or removing files",
+        "scan to discover PDFs, FGS sources, images, and common documents recursively",
+        "after adding, moving, or removing files",
     ):
         assert term in text
     assert "## Quick start" not in text

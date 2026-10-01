@@ -1,10 +1,15 @@
-"""Read-only discovery of PDF resources in the configured library."""
+"""Read-only discovery of files in the configured library."""
 
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
 from pathlib import Path
+
+from app.library.resource_types import (
+    is_reserved_game_artwork,
+    resource_type,
+)
 
 _IGNORED_DIRECTORY_NAMES = {"@eadir"}
 
@@ -15,11 +20,12 @@ class LibraryScanError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class DiscoveredResource:
-    """A PDF found beneath a first-level game directory."""
+    """A regular file found beneath a first-level game directory."""
 
     relative_path: Path
     size_bytes: int
     modified_ns: int
+    provider: str = "pdf"
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,7 +39,7 @@ class DiscoveredArtwork:
 
 @dataclass(frozen=True, slots=True)
 class DiscoveredGame:
-    """A first-level library directory and its discovered PDFs."""
+    """A first-level library directory and its discovered files."""
 
     name: str
     relative_path: Path
@@ -58,7 +64,7 @@ class ScanResult:
 
 
 def scan_library(library_path: Path) -> ScanResult:
-    """Discover game directories and PDFs without following symbolic links."""
+    """Discover game directories and files without following symbolic links."""
     root = _resolve_library_root(library_path)
     issues: list[ScanIssue] = []
 
@@ -71,7 +77,8 @@ def scan_library(library_path: Path) -> ScanResult:
         (
             entry
             for entry in entries
-            if not entry.is_symlink()
+            if not entry.name.startswith(".")
+            and not entry.is_symlink()
             and entry.name.casefold() not in _IGNORED_DIRECTORY_NAMES
             and _is_directory(entry)
         ),
@@ -99,6 +106,7 @@ def _scan_game(
     root: Path, game_directory: Path, issues: list[ScanIssue]
 ) -> DiscoveredGame:
     resources: list[DiscoveredResource] = []
+    artwork = _discover_artwork(root, game_directory, issues)
 
     def record_error(error: OSError) -> None:
         problem_path = Path(error.filename) if error.filename else game_directory
@@ -117,7 +125,8 @@ def _scan_game(
             (
                 name
                 for name in directory_names
-                if name.casefold() not in _IGNORED_DIRECTORY_NAMES
+                if not name.startswith(".")
+                and name.casefold() not in _IGNORED_DIRECTORY_NAMES
                 and not (current_path / name).is_symlink()
             ),
             key=_sort_key,
@@ -125,7 +134,7 @@ def _scan_game(
 
         for file_name in sorted(file_names, key=_sort_key):
             candidate = current_path / file_name
-            if candidate.is_symlink() or candidate.suffix.casefold() != ".pdf":
+            if candidate.is_symlink() or file_name.startswith("."):
                 continue
 
             try:
@@ -136,7 +145,6 @@ def _scan_game(
 
             if not resolved.is_file() or not resolved.is_relative_to(game_directory):
                 continue
-
             try:
                 metadata = resolved.stat()
             except OSError as error:
@@ -148,6 +156,11 @@ def _scan_game(
                     relative_path=resolved.relative_to(root),
                     size_bytes=metadata.st_size,
                     modified_ns=metadata.st_mtime_ns,
+                    provider=(
+                        "other"
+                        if is_reserved_game_artwork(resolved.relative_to(root))
+                        else resource_type(resolved)
+                    ),
                 )
             )
 
@@ -156,7 +169,7 @@ def _scan_game(
         name=game_directory.name,
         relative_path=game_directory.relative_to(root),
         resources=tuple(resources),
-        artwork=_discover_artwork(root, game_directory, issues),
+        artwork=artwork,
     )
 
 

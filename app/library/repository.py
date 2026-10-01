@@ -39,6 +39,7 @@ class IndexedResource:
     detected_title: str
     detected_variant: str | None
     has_override: bool
+    provider: str = "pdf"
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +50,7 @@ class FavoriteResource:
     title: str
     variant: str | None
     is_pinned: bool
+    provider: str = "pdf"
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,6 +60,7 @@ class RecentResource:
     game_title: str
     title: str
     variant: str | None
+    provider: str = "pdf"
 
 
 @dataclass(frozen=True, slots=True)
@@ -278,7 +281,7 @@ def get_game(database: Database, game_id: int) -> GameDetail | None:
                    CASE WHEN resource_overrides.resource_id IS NULL THEN
                         resources.variant ELSE resource_overrides.variant
                    END AS variant,
-                   resources.relative_path, resources.is_favorite,
+                   resources.relative_path, resources.provider, resources.is_favorite,
                    resources.is_pinned,
                    resources.category AS detected_category,
                    resources.title AS detected_title,
@@ -316,6 +319,7 @@ def get_game(database: Database, game_id: int) -> GameDetail | None:
                 title=row["title"],
                 variant=row["variant"],
                 relative_path=row["relative_path"],
+                provider=row["provider"],
                 is_favorite=bool(row["is_favorite"]),
                 is_pinned=bool(row["is_pinned"]),
                 detected_category=ResourceCategory(row["detected_category"]),
@@ -341,7 +345,7 @@ def get_resource(database: Database, resource_id: int) -> IndexedResource | None
                    CASE WHEN resource_overrides.resource_id IS NULL THEN
                         resources.variant ELSE resource_overrides.variant
                    END AS variant,
-                   resources.relative_path, resources.is_favorite,
+                   resources.relative_path, resources.provider, resources.is_favorite,
                    resources.is_pinned,
                    resources.category AS detected_category,
                    resources.title AS detected_title,
@@ -363,6 +367,7 @@ def get_resource(database: Database, resource_id: int) -> IndexedResource | None
         title=row["title"],
         variant=row["variant"],
         relative_path=row["relative_path"],
+        provider=row["provider"],
         is_favorite=bool(row["is_favorite"]),
         is_pinned=bool(row["is_pinned"]),
         detected_category=ResourceCategory(row["detected_category"]),
@@ -383,13 +388,13 @@ def list_favorite_resources(database: Database) -> tuple[FavoriteResource, ...]:
                    CASE WHEN resource_overrides.resource_id IS NULL THEN
                         resources.variant ELSE resource_overrides.variant
                    END AS variant,
-                   resources.is_pinned
+                   resources.is_pinned, resources.provider
             FROM resources
             JOIN games ON games.id = resources.game_id
             LEFT JOIN game_overrides ON game_overrides.game_id = games.id
             LEFT JOIN resource_overrides
               ON resource_overrides.resource_id = resources.id
-            WHERE resources.is_favorite = 1
+            WHERE resources.is_favorite = 1 AND resources.provider != 'other'
             ORDER BY games.title COLLATE NOCASE, resources.title COLLATE NOCASE,
                      resources.id
             """
@@ -402,6 +407,7 @@ def list_favorite_resources(database: Database) -> tuple[FavoriteResource, ...]:
             title=row["title"],
             variant=row["variant"],
             is_pinned=bool(row["is_pinned"]),
+            provider=row["provider"],
         )
         for row in rows
     )
@@ -418,13 +424,13 @@ def list_pinned_resources(database: Database) -> tuple[FavoriteResource, ...]:
                    CASE WHEN resource_overrides.resource_id IS NULL THEN
                         resources.variant ELSE resource_overrides.variant
                    END AS variant,
-                   resources.is_pinned
+                   resources.is_pinned, resources.provider
             FROM resources
             JOIN games ON games.id = resources.game_id
             LEFT JOIN game_overrides ON game_overrides.game_id = games.id
             LEFT JOIN resource_overrides
               ON resource_overrides.resource_id = resources.id
-            WHERE resources.is_pinned = 1
+            WHERE resources.is_pinned = 1 AND resources.provider != 'other'
             ORDER BY game_title COLLATE NOCASE, game_title,
                      title COLLATE NOCASE, title,
                      variant COLLATE NOCASE, variant, resources.id
@@ -438,6 +444,7 @@ def list_pinned_resources(database: Database) -> tuple[FavoriteResource, ...]:
             title=row["title"],
             variant=row["variant"],
             is_pinned=bool(row["is_pinned"]),
+            provider=row["provider"],
         )
         for row in rows
     )
@@ -455,7 +462,8 @@ def list_recent_resources(
                    COALESCE(resource_overrides.title, resources.title) AS title,
                    CASE WHEN resource_overrides.resource_id IS NULL THEN
                         resources.variant ELSE resource_overrides.variant
-                   END AS variant
+                   END AS variant,
+                   resources.provider
             FROM resources
             JOIN games ON games.id = resources.game_id
             LEFT JOIN game_overrides ON game_overrides.game_id = games.id
@@ -474,6 +482,7 @@ def list_recent_resources(
             game_title=row["game_title"],
             title=row["title"],
             variant=row["variant"],
+            provider=row["provider"],
         )
         for row in rows
     )

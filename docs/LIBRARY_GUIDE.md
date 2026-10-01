@@ -1,19 +1,32 @@
-# Using the PDF library
+# Using the resource library
 
-FORGE GameSheets indexes PDFs under one first-level folder per game. The
+FORGE GameSheets indexes files under one first-level folder per game. The
 filesystem is authoritative: scans discover files but do not alter the source
-PDFs. Library files and the separate writable `data/` directory both need
+files. Library files and the separate writable `data/` directory both need
 backups. See [deployment](deployment.md) for setup and
 [backup and recovery](BACKUP_AND_RECOVERY.md) for safe copies and restore.
 
 ## Organize games and resources
 
-Place each game in its own folder beneath `library/`; PDFs may be nested inside
+Place each game in its own folder beneath `library/`; files may be nested inside
 that folder. A descriptive filename such as `Farkle - Score Sheet.pdf` helps
 recognition, but imperfect filenames remain accessible under Other. PDFs
 directly in the library root are ignored. Use an ordinary `Unsorted/` game
 folder for documents awaiting organization. After adding, moving, or removing
 files, select **Rescan library**. Scans do not rename or modify source files.
+
+PDFs retain their browser viewing, printing, preview, and Reprint actions.
+FGS files appear in the usual resource categories and can be downloaded or
+opened as a separate editable copy in Sheet Designer; the library source is
+not changed. PNG, JPEG, WebP, and GIF files have browser image previews and
+view/download actions. Word, Excel, PowerPoint, OpenDocument, RTF, plain-text,
+Markdown, and CSV/TSV files are listed by category but download only.
+Unsupported files are named, without action links, in **Other Files Detected**
+at the bottom of the game page. Hidden files and folders are skipped. Top-level
+`icon.*` and `cover.*` PNG, JPEG, and WebP files are reserved for game artwork;
+they are listed there with an explanation, rather than as ordinary images. The
+preferred artwork file is still displayed on the game entry. Files named
+`icon` or `cover` without a supported extension are listed as unsupported.
 
 Put optional `icon.webp` or `cover.webp` (PNG and JPEG also work) at the top of
 a game folder, or upload permitted artwork through **Edit game entry**. Web

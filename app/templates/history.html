@@ -6,13 +6,13 @@
   <section class="history-header">
     <p class="eyebrow">Local activity</p>
     <h1>Activity history</h1>
-    <p>Recent library scans, content changes, and successful PDF use recorded by this FORGE GameSheets server.</p>
+    <p>Recent library scans, content changes, and successful resource use recorded by this FORGE GameSheets server.</p>
   </section>
 
   {% if activity %}
     <div class="history-list">
       {% for event, local_time in activity %}
-        {% if event.target_exists and event.resource_id %}<a class="history-row" href="{{ url_for('resource_reprint', resource_id=event.resource_id) }}">{% elif event.target_exists and event.game_id %}<a class="history-row" href="{{ url_for('game_detail', game_id=event.game_id) }}">{% else %}<div class="history-row">{% endif %}
+        {% if event.target_exists and event.resource_id %}<a class="history-row" href="{% if event.resource_provider == 'pdf' %}{{ url_for('resource_reprint', resource_id=event.resource_id) }}{% else %}{{ url_for('game_detail', game_id=event.game_id) }}#resource-{{ event.resource_id }}{% endif %}">{% elif event.target_exists and event.game_id %}<a class="history-row" href="{{ url_for('game_detail', game_id=event.game_id) }}">{% else %}<div class="history-row">{% endif %}
           <span class="history-action history-action-{{ event.action }}">
             {% if event.action == 'view' %}Viewed{% elif event.action == 'download' %}Downloaded{% else %}{{ event.action.replace('_', ' ') | title }}{% endif %}
           </span>
@@ -28,7 +28,7 @@
   {% else %}
     <section class="empty-state compact">
       <h2>No activity yet</h2>
-      <p>Library scans, content changes, and PDF use will appear here.</p>
+      <p>Library scans, content changes, and resource use will appear here.</p>
     </section>
   {% endif %}
   <nav class="history-pagination" aria-label="Activity history pages">

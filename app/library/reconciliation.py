@@ -130,7 +130,7 @@ def _reconcile(
             parsed = parse_resource_filename(game.name, resource.relative_path.name)
             values = (
                 game_id,
-                "pdf",
+                resource.provider,
                 parsed.category.value,
                 parsed.display_title,
                 parsed.variant,

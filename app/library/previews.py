@@ -1,4 +1,4 @@
-"""On-demand, cached first-page previews for indexed PDF resources."""
+"""On-demand, bounded previews for indexed PDFs and images."""
 
 from __future__ import annotations
 
@@ -7,22 +7,78 @@ from pathlib import Path
 from uuid import uuid4
 
 import pymupdf
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.library import processing_budget
-from app.library.files import resolve_resource_pdf
+from app.library.files import resolve_resource_file, resolve_resource_pdf
 from app.library.processing_limits import (
     MAX_PREVIEW_RENDER_PIXELS,
+    validate_image_pixels,
     validate_pdf_document,
     validate_pdf_file_size,
 )
 from app.library.repository import IndexedResource
 
 PREVIEW_SIZE = (240, 300)
+MAX_IMAGE_PREVIEW_SOURCE_BYTES = 25 * 1024 * 1024
 
 
 class PreviewUnavailable(Exception):
-    """Raised when a PDF does not contain a renderable first page."""
+    """Raised when a resource does not have a safe renderable preview."""
+
+
+def cached_image_preview(
+    library_path: Path, data_path: Path, resource: IndexedResource
+) -> Path:
+    """Return a bounded, validated thumbnail of a scanned image."""
+    source = resolve_resource_file(library_path, resource.relative_path, "image")
+    metadata = source.stat()
+    if metadata.st_size > MAX_IMAGE_PREVIEW_SOURCE_BYTES:
+        raise PreviewUnavailable("Image exceeds the preview size limit")
+    preview_directory = data_path / "previews"
+    preview_directory.mkdir(parents=True, exist_ok=True)
+    destination = preview_directory / (
+        f"image-{resource.id}-{metadata.st_size}-{metadata.st_mtime_ns}.webp"
+    )
+    if destination.is_file():
+        return destination
+    temporary = destination.with_name(f".{destination.name}.{uuid4().hex}.tmp")
+    try:
+        with processing_budget.rendering_slot(data_path):
+            processing_budget.check_storage_budget(
+                data_path, processing_budget.MAX_PREVIEW_BYTES
+            )
+            with Image.open(source) as image:
+                if image.format not in {"PNG", "JPEG", "WEBP", "GIF"}:
+                    raise PreviewUnavailable("Unsupported image format")
+                validate_image_pixels(*image.size)
+                image.seek(0)
+                contained = ImageOps.contain(image.convert("RGBA"), PREVIEW_SIZE)
+                preview = Image.new("RGB", PREVIEW_SIZE, "white")
+                offset = (
+                    (PREVIEW_SIZE[0] - contained.width) // 2,
+                    (PREVIEW_SIZE[1] - contained.height) // 2,
+                )
+                preview.paste(contained, offset, contained)
+                with processing_budget.bounded_output(
+                    temporary, processing_budget.MAX_PREVIEW_BYTES
+                ) as stream:
+                    preview.save(stream, format="WEBP", quality=82, method=6)
+            processing_budget.check_storage_budget(data_path, 0)
+            temporary.replace(destination)
+    except (
+        UnidentifiedImageError,
+        Image.DecompressionBombError,
+        ValueError,
+        OSError,
+    ) as error:
+        raise PreviewUnavailable("Image preview could not be generated") from error
+    finally:
+        temporary.unlink(missing_ok=True)
+    for stale in preview_directory.glob(f"image-{resource.id}-*.webp"):
+        if stale != destination:
+            stale.unlink(missing_ok=True)
+    return destination
 
 
 def cached_resource_preview(
