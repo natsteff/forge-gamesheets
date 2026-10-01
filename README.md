@@ -198,8 +198,8 @@ this through file sharing.
 4. Stop the application when needed with `docker compose down`.
 
 The health endpoint is available at <http://localhost:8000/health>. No local
-image build is required. The default `main` image tracks development; it is not
-a stable-release designation.
+image build is required. The default `main` image is a moving beta build, not
+a stable or fixed-version release.
 
 ## Self-hosted beta configuration
 
@@ -231,7 +231,7 @@ visible in Settings and `/health`; users do not need to configure these values.
 ### Published image deployment
 
 Normal Docker-host installations use the image published from GitHub. Keep
-`FORGE_GAMESHEETS_IMAGE_TAG=main` in `.env` for current development builds, or
+`FORGE_GAMESHEETS_IMAGE_TAG=main` in `.env` for the moving beta build, or
 select a version tag for a fixed release when one is available. Update with:
 
 ```sh

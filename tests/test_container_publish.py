@@ -43,6 +43,9 @@ def test_publish_workflow_embeds_build_identity() -> None:
     assert "packages: write" in workflow
     assert "docker/build-push-action@v6" in workflow
     assert "type=raw,value=main" in workflow
+    assert '"${GITHUB_REF}" == "refs/heads/main"' in workflow
+    assert "version=beta" in workflow
+    assert 'version="${GITHUB_REF_NAME#v}"' in workflow
     assert "FORGE_GAMESHEETS_VERSION=" in workflow
     assert "FORGE_GAMESHEETS_REVISION=" in workflow
     assert "FORGE_GAMESHEETS_BUILD_DATE=" in workflow

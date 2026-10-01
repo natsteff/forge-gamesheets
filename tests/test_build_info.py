@@ -40,3 +40,9 @@ def test_build_info_labels_local_development_build() -> None:
     build = BuildInfo(version="local-development", revision="abc1234-dirty")
 
     assert build.display_version == "Local development build"
+
+
+def test_build_info_labels_moving_beta_channel_without_claiming_a_version() -> None:
+    build = BuildInfo(version="beta", revision="abc1234")
+
+    assert build.display_version == "Beta build"

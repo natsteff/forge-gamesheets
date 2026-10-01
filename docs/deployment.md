@@ -259,7 +259,7 @@ curl --retry 10 \
 The health response and the bottom of Settings show the image's release,
 revision, and build date.
 
-Set `FORGE_GAMESHEETS_IMAGE_TAG=main` for the current development image. Use a
+Set `FORGE_GAMESHEETS_IMAGE_TAG=main` for the moving beta image. Use a
 version tag for a fixed release when one is available. Published builds also
 receive an immutable `sha-<revision>` tag, which can be used to recover a known
 build without relying on the moving `main` tag.

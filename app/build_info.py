@@ -30,6 +30,8 @@ class BuildInfo:
             return "Local development build"
         if self.version.casefold() == "development":
             return "Development build"
+        if self.version.casefold() == "beta":
+            return "Beta build"
         return f"Version {self.version}"
 
 

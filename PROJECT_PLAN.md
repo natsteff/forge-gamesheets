@@ -157,6 +157,9 @@ does not claim a vulnerability-free release.
 
 Remaining release work is distinct from completed feature work:
 
+The moving GitHub `main` image is identified as a beta build. This label does
+not create a fixed, versioned prerelease or waive the wider-release checks.
+
 - **Deferred by owner:** Refresh documentation screenshots for recent features.
 - **Future testing:** No-internet resilience, including graceful BGG failure.
 - **Outstanding verification:** An actual browser-driven Studio PDF download
