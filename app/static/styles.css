@@ -943,7 +943,8 @@ input[type="checkbox"] {
 .designer-startup-actions strong { font-family: Georgia, serif; font-size: 1.3rem; }
 .designer-startup-actions span { font-weight: 400; line-height: 1.45; }
 .designer-startup-note { margin-top: 1.25rem; color: var(--muted); font-size: 0.88rem; }
-.designer-text-button { display: inline; width: auto; min-height: 0; padding: 0; border: 0; color: var(--forge-dark); background: transparent; font: inherit; font-weight: 750; text-decoration: underline; }
+.designer-startup-about { margin: 0.75rem 0 0; }
+.designer-app button.designer-text-button { display: inline; width: auto; min-height: 0; padding: 0; border: 0; border-radius: 0; color: var(--forge-dark); background: transparent; font: inherit; font-weight: 650; text-decoration: underline; }
 .designer-startup .designer-message { margin: 1.25rem 0 0; }
 .designer-bar {
   display: grid; grid-template-columns: auto minmax(14rem, 1fr) auto auto;

@@ -845,9 +845,19 @@ def test_section_picker_lists_supported_blocks_without_a_text_prompt():
 def test_designer_explains_its_scope_from_startup_and_editor():
     root = Path(__file__).parents[1]
     template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
+    styles = (root / "app/static/styles.css").read_text()
     script = (root / "app/static/sheet-designer.js").read_text()
     assert template.count("data-about-designer") == 2
     assert "About Sheet Designer" in template
+    assert (
+        '<p class="designer-startup-note">Sheets are saved automatically '
+        "in this shared Forge workspace.</p>"
+    ) in template
+    assert (
+        '<p class="designer-startup-about"><button class="designer-text-button" '
+        'data-about-designer type="button">About Sheet Designer</button></p>'
+    ) in template
+    assert ".designer-app button.designer-text-button" in styles
     assert "structured, single-page layouts" in template
     assert "not a general page-layout or spreadsheet tool" in template
     assert "temporary interactive LiveSheets" in template
