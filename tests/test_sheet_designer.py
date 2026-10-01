@@ -853,7 +853,9 @@ def test_designer_explains_its_scope_from_startup_and_editor():
     assert "temporary interactive LiveSheets" in template
     assert "An LLM can draft an FGS file" in template
     assert "only share source documents you are permitted to upload" in template
-    assert "FGS_V1_2_SPECIFICATION.md" in template
+    assert "Read the FGS 1.3 specification" in template
+    assert "FGS_V1_3_SPECIFICATION.md" in template
+    assert "FGS_V1_2_SPECIFICATION.md" not in template
     assert "<h2>Footer</h2>" in template
     assert "data-logo-trigger" in script
     assert 'data-logo-upload type="file" accept="image/png,image/jpeg" hidden' in script
