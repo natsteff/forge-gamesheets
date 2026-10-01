@@ -1,8 +1,8 @@
-# README screenshot maintenance
+# Screenshot gallery maintenance
 
 ## Current set
 
-Core feature screenshots were last captured September 15, 2026. The demo uses invented games
+Most core feature screenshots were captured September 15, 2026. The demo uses invented games
 (Lantern Vale, Pebble Parade,
 Pocket Orchard, Starship Signals), original sample PDFs and simple cover art,
 example-only resource URLs, and disposable demo accounts. No token was captured.
@@ -11,12 +11,15 @@ to demonstrate verified controls; it contains no private library data. The build
 panel correctly says Local development build: this was a local source run, not
 a published-container verification.
 
-The library-overview and reprint-maintenance captures predate the full
+The [screenshot gallery](SCREENSHOT_GALLERY.md) keeps every image from the
+former README gallery, plus a new active LiveSheet capture. The README displays
+the new LiveSheet image and links the complete gallery. The
+library-overview and reprint-maintenance captures predate the full
 **FORGE GameSheets** headings; the home description has also changed. Refresh
 them from a disposable library before
 presenting the gallery as current; do not edit words into the old screenshot.
-The gallery does not yet include dedicated current captures for LiveSheets,
-GameSheet-to-game association and rendered previews, the Sheet Designer About
+The gallery does not yet include dedicated current captures for the LiveSheets
+list or setup, GameSheet-to-game association and rendered previews, the Sheet Designer About
 dialog, or FGS 1.1 logo and Footer controls. Existing Designer and game-page
 captures remain useful for their core layouts but predate those added controls.
 The startup capture also predates the separate About link below the save note
@@ -26,9 +29,10 @@ Do not describe the gallery as complete coverage until the replacement captures
 below have been created and inspected. Use only a disposable fictional sheet for
 the logo/Footer capture; do not publish a personal game logo or author credit.
 
-The README gallery contains library-overview, game-resources, assign-categories,
+The gallery contains library-overview, game-resources, assign-categories,
 reprint-maintenance, users, activity-history, settings-build, sheet-designer,
-sheet-designer-startup, sheet-designer-open, and bgg-integration PNGs in
+sheet-designer-startup, sheet-designer-open, bgg-integration, and
+livesheet-active PNGs in
 `docs/images/`. The Sheet Designer
 captures were supplied from the integrated local FORGE GameSheets build and show only the
 invented default sheet content. The older desktop-navigation and mobile-navigation
@@ -100,9 +104,21 @@ hides the import or folder-based discovery workflow.
 The next complete refresh should add or replace captures for: the current
 Designer toolbar, FGS 1.1 logo and Footer controls, and About dialog;
 title-assisted game association; a game page
-with an associated GameSheet preview; the LiveSheets list; session setup; and an
-active single-scorer or individual-scoring sheet. It should also recapture desktop
+with an associated GameSheet preview; the LiveSheets list and session setup;
+the active single-scorer example now exists. It should also recapture desktop
 and mobile navigation because the conditional LiveSheets link is new.
+
+## LiveSheet capture — October 1, 2026
+
+`livesheet-active.png` was captured from the current application in a
+disposable loopback-only demo with an invented `Lantern Vale Scores` sheet.
+For that capture process alone, a temporary local demo module returned a plain
+image reading **qr code here** at the QR endpoint; the invitation field showed
+**Demo invitation link (not active)**. The screenshot is otherwise a browser
+capture of the real LiveSheet screen. The temporary module and template
+override were removed after capture. The saved PNG was inspected and contains
+no scannable QR, working invitation URL, host token, credentials, or personal
+library data. No production application behavior changed.
 
 ## Browser tooling and sandbox limitations
 

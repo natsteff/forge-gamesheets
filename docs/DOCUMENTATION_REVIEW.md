@@ -7,7 +7,8 @@ They do not validate external services, screenshot appearance, or every statemen
 
 For every major update (including significant beta milestones), review:
 
-- README feature list, navigation labels, screenshots, limitations, and setup.
+- README overview, current limits, documentation links, and setup entry point;
+  the separate screenshot gallery and workflow guides.
 - Fresh image pull/start, first library scan, optional folder hints, and rescan.
 - Bulk categories: permissions, filters, confirmation/cancel, and source preservation.
 - Account bootstrap on an existing installation, role restrictions, recovery,
@@ -18,7 +19,7 @@ For every major update (including significant beta milestones), review:
 - Screenshots at desktop and mobile sizes using invented content only. Never
   capture real accounts, library PDFs, credentials, or private installation data.
   Follow [the screenshot maintenance checklist](SCREENSHOTS.md), inspect the saved
-  files, and refresh affected images together with their README captions.
+  files, and refresh affected images together with their gallery captions.
 - Consistency among README, deployment/accounts/category/BGG guides, current
   release notes, and the project plan. Historical release documents should be
   explicitly identified as historical instead of silently rewritten as current.

@@ -20,32 +20,73 @@ def test_readme_local_links_and_images_exist():
         assert (ROOT / target).is_file(), f"Missing README reference: {target}"
 
 
+def test_topic_guide_local_links_and_images_exist():
+    for name in (
+        "FGS_FORMAT.md",
+        "LIBRARY_GUIDE.md",
+        "SCREENSHOT_GALLERY.md",
+        "SHEET_DESIGNER.md",
+    ):
+        source = ROOT / "docs" / name
+        for link in re.findall(r"\]\(([^)]+)\)", source.read_text()):
+            if urlsplit(link).scheme or link.startswith("#"):
+                continue
+            target = unquote(link.split("#", 1)[0])
+            assert (source.parent / target).is_file(), (
+                f"Missing {name} reference: {target}"
+            )
+
+
 def test_readme_current_capability_contract():
     text = (ROOT / "README.md").read_text()
     for term in (
-        "Admin",
-        "Contributor",
-        "Reader",
-        "Assign game categories",
-        "Library scanning",
-        "BGG Files",
-        "trusted-operator mode",
-        "Argon2id",
-        "DOCUMENTATION_REVIEW.md",
-        "docker compose exec app python -m app.accounts create-admin",
-        "immediately requires sign-in",
-        "public by default",
-        "Create or refresh all reprints",
-        "FORGE_GAMESHEETS_BGG_API_TOKEN",
-        "Temporary LiveSheet sessions",
-        "LLM can draft an `.fgs` file",
+        "FORGE GameSheets",
+        "FGS Studio",
+        "FORGE TTRPG",
+        "AI assistance under human maintainer direction",
+        "docs/deployment.md",
+        "docs/LIBRARY_GUIDE.md",
+        "docs/SHEET_DESIGNER.md",
+        "docs/FGS_FORMAT.md",
+        "docs/SCREENSHOT_GALLERY.md",
+        "docs/ACCOUNTS.md",
+        "docs/DOCUMENTATION_REVIEW.md",
+        "individual workstation or trusted",
     ):
         assert term in text
+    assert "## Quick start" not in text
+    assert "## Development and security" in text
     for obsolete in (
         "Without a token, BGG game controls are hidden",
         "does not include authentication or user accounts",
     ):
         assert obsolete not in text
+
+
+def test_topic_guides_preserve_detailed_capability_contract():
+    paths = (
+        "docs/LIBRARY_GUIDE.md",
+        "docs/SHEET_DESIGNER.md",
+        "docs/FGS_FORMAT.md",
+        "docs/GAME_CATEGORIES.md",
+        "docs/ACCOUNTS.md",
+        "docs/BGG_API.md",
+        "docs/BGG_MANUAL_LINKS.md",
+        "docs/deployment.md",
+    )
+    details = "\n".join((ROOT / path).read_text() for path in paths)
+    for term in (
+        "Admin",
+        "Contributor",
+        "Reader",
+        "Assign game categories",
+        "BGG Files",
+        "Argon2id",
+        "FORGE_GAMESHEETS_BGG_API_TOKEN",
+        "LiveSheet",
+        "FGS 1.3",
+    ):
+        assert term in details
 
 
 def test_documentation_review_is_release_requirement():
@@ -90,23 +131,25 @@ def test_livesheet_decision_records_approved_v1_boundaries():
 
 
 def test_quick_start_explains_optional_category_import():
-    quick_start = (ROOT / "README.md").read_text().split("## Quick start", 1)[1]
-    quick_start = quick_start.split("## Self-hosted beta configuration", 1)[0]
+    readme = (ROOT / "README.md").read_text()
+    assert "docs/deployment.md" in readme
+    assert "docs/LIBRARY_GUIDE.md" in readme
+    assert "GAME_CATEGORIES.md" in (ROOT / "docs/LIBRARY_GUIDE.md").read_text()
+    category_guide = (ROOT / "docs/GAME_CATEGORIES.md").read_text()
     for term in (
         "Yahtzee [Dice, Children]",
-        "off by default",
+        "defaults off",
         "Library scanning",
-        "first startup",
         "Preview categories from folder names",
     ):
-        assert term in quick_start
+        assert term in category_guide
 
 
 def test_readme_gallery_images_are_valid_and_cover_current_workflows():
     text = (ROOT / "README.md").read_text()
-    gallery = text.split("## Screenshots", 1)[1].split("## Requirements", 1)[0]
-    images = set(re.findall(r"docs/images/[\w-]+\.png", gallery))
-    assert len(images) == 11
+    gallery = (ROOT / "docs/SCREENSHOT_GALLERY.md").read_text()
+    images = set(re.findall(r"images/[\w-]+\.png", gallery))
+    assert len(images) == 12
     for name in (
         "users",
         "assign-categories",
@@ -116,20 +159,25 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
         "sheet-designer-startup",
         "sheet-designer-open",
         "bgg-integration",
+        "livesheet-active",
     ):
-        assert f"docs/images/{name}.png" in images
+        assert f"images/{name}.png" in images
     for path in images:
-        with Image.open(ROOT / path) as image:
+        with Image.open(ROOT / "docs" / path) as image:
             assert image.format == "PNG"
             assert image.width >= 320 and image.height >= 300
             image.verify()
     assert "Screenshot refresh pending" not in gallery
-    assert "docs/images/settings.png" not in images
-    assert "docs/images/forge-reprint.png" not in images
-    assert "docs/images/desktop-navigation.png" not in images
-    assert "docs/images/bgg-manual.png" not in images
-    assert "docs/images/mobile-navigation.png" not in images
+    assert "images/settings.png" not in images
+    assert "images/forge-reprint.png" not in images
+    assert "images/desktop-navigation.png" not in images
+    assert "images/bgg-manual.png" not in images
+    assert "images/mobile-navigation.png" not in images
     assert "SCREENSHOTS.md" in gallery
+    assert "qr code here" in gallery
+    assert "Demo invitation link (not active)" in gallery
+    assert "docs/SCREENSHOT_GALLERY.md" in text
+    assert "docs/images/livesheet-active.png" in text
 
 
 def test_settings_explains_how_account_activation_works():
