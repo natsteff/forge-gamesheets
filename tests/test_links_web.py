@@ -53,15 +53,19 @@ def values(**overrides):
     }
 
 
-def test_trusted_mode_empty_favorites_and_no_personal_controls(client):
+def test_trusted_mode_default_favorites_and_no_personal_controls(client):
     response = client.get("/links")
     assert response.status_code == 200
-    assert "No FGS Favorites selected yet." in response.text
+    favorites = response.text.split("<h2>FGS Favorites</h2>", 1)[1].split(
+        "<h2>All Links</h2>", 1
+    )[0]
+    assert favorites.index("FGS Studio") < favorites.index("FORGE TTRPG (web)")
     assert "Personal Favorites" not in response.text
     assert "Add personal favorite" not in response.text
     assert 'target="_blank" rel="noopener noreferrer"' in response.text
     assert 'href="https://www.printablepaper.net/"' in response.text
     assert 'href="https://forge-ttrpg.vercel.app/app/templates"' in response.text
+    assert 'href="https://natsteff.github.io/FGS-Studio/"' in response.text
     assert "Separate from FORGE GameSheets (FGS)" in response.text
     assert client.post("/links/1/favorite", data={"selected": "1"}).status_code == 403
     assert "Manage links" in client.get("/settings").text
@@ -193,7 +197,7 @@ def test_user_text_escaped_and_ordered_shortcuts(client):
     assert "&lt;script&gt;" in page
     assert page.index("First shortcut") < page.index("&lt;script&gt;")
     assert "&lt;script&gt;" in client.get("/settings/links").text
-    assert len(links.links(db)) == 15
+    assert len(links.links(db)) == 16
 
 
 def test_category_management_and_explicit_restore(client):
@@ -206,19 +210,21 @@ def test_category_management_and_explicit_restore(client):
     client.post(
         "/settings/links/categories/1/delete", data={"confirm": "1", "move_to": "2"}
     )
-    assert len(links.links(client.app.state.database)) == 15
+    assert len(links.links(client.app.state.database)) == 16
     client.post("/settings/links/1/delete", data={"confirm": "1"})
     client.post("/settings/links/starters", data={"confirm": "1"})
-    assert len(links.links(client.app.state.database)) == 15
-    assert not any(
-        link["forge_favorite"] for link in links.links(client.app.state.database)
-    )
+    assert len(links.links(client.app.state.database)) == 16
+    assert {
+        link["default_key"]
+        for link in links.links(client.app.state.database)
+        if link["forge_favorite"]
+    } == {"fgs_studio", "forge_ttrpg_web"}
 
 
 def test_compact_rows_and_role_controls(client):
     sign_in(client, "reader")
     page = client.get("/links").text
-    assert page.count('class="resource-row links-row') == 15
+    assert page.count('class="resource-row links-row') == 16
     assert 'class="links-grid"' not in page
     assert 'aria-label="Add personal favorite: Printable Paper"' in page
     assert "/settings/links/1/pin" not in page
@@ -227,7 +233,7 @@ def test_compact_rows_and_role_controls(client):
     sign_in(client, "admin")
     for path in ("/links", "/settings/links"):
         page = client.get(path).text
-        assert page.count('class="resource-row links-row') == 15
+        assert page.count('class="resource-row links-row') == 16
         assert "/settings/links/1/pin" in page
         assert "/settings/links/1/edit" in page
         assert "/settings/links/1/delete" in page

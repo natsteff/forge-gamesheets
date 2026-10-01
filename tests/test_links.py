@@ -39,13 +39,19 @@ def test_new_and_upgraded_install_seed_once(tmp_path):
         for migration in MIGRATIONS[:-1]:
             _apply_migration(connection, migration)
     db.initialize()
-    assert len(links.links(db)) == 15
+    assert len(links.links(db)) == 16
     assert [c["name"] for c in links.categories(db)] == [
         "Gamesheet Sources",
         "Live Scoring",
         "Other",
     ]
-    assert not any(link["forge_favorite"] for link in links.links(db))
+    favorites = [
+        link["default_key"] for link in links.links(db) if link["forge_favorite"]
+    ]
+    assert favorites == [
+        "fgs_studio",
+        "forge_ttrpg_web",
+    ]
     item = links.links(db)[0]
     links.save_link(
         db,
@@ -57,7 +63,7 @@ def test_new_and_upgraded_install_seed_once(tmp_path):
     other = next(link for link in links.links(db) if link["id"] != item["id"])
     links.delete_link(db, other["id"])
     db.initialize()
-    assert len(links.links(db)) == 14
+    assert len(links.links(db)) == 15
     assert links.get_link(db, item["id"])["name"] == "Changed starter"
     assert not links.get_link(db, item["id"])["enabled"]
     assert links.add_missing_defaults(db) == 1
@@ -75,7 +81,7 @@ def test_category_moves_preserve_links_and_default_identity(database):
     with pytest.raises(links.LinkError):
         links.delete_category(database, first["id"], first["id"])
     links.delete_category(database, first["id"], second["id"])
-    assert len(links.links(database)) == 15
+    assert len(links.links(database)) == 16
     assert links.add_missing_defaults(database) == 0
     assert len(links.categories(database)) == 3
     assert all(
@@ -117,14 +123,23 @@ def test_bingo_defaults_and_existing_install_add_missing(database):
     )
     # Upgrading/reinitializing an existing directory does not insert new defaults.
     database.initialize()
-    assert len(links.links(database)) == 12
+    assert len(links.links(database)) == 13
     assert links.add_missing_defaults(database) == 3
     assert links.add_missing_defaults(database) == 0
     preserved = links.get_link(database, original["id"])
     assert preserved["name"] == "My customized source" and not preserved["enabled"]
 
 
-def test_ttrpg_starter_is_distinct_and_restored_only_on_request(database):
+def test_default_favorites_and_explicit_restore(database):
+    studio = next(
+        link for link in links.links(database) if link["default_key"] == "fgs_studio"
+    )
+    assert studio["name"] == "FGS Studio"
+    assert studio["url"] == "https://natsteff.github.io/FGS-Studio/"
+    assert studio["category_name"] == "Gamesheet Sources"
+    assert studio["source_type"] == "official"
+    assert studio["enabled"] and studio["forge_favorite"]
+    assert studio["favorite_position"] == 1
     starter = next(
         link
         for link in links.links(database)
@@ -135,14 +150,40 @@ def test_ttrpg_starter_is_distinct_and_restored_only_on_request(database):
     assert "Separate from FORGE GameSheets (FGS)" in starter["description"]
     assert starter["category_name"] == "Other"
     assert starter["source_type"] == "third_party"
-    assert starter["enabled"] and not starter["forge_favorite"]
+    assert starter["enabled"] and starter["forge_favorite"]
+    assert starter["favorite_position"] == 2
+    links.delete_link(database, studio["id"])
     links.delete_link(database, starter["id"])
     database.initialize()
     assert not any(
         link["default_key"] == "forge_ttrpg_web" for link in links.links(database)
     )
-    assert links.add_missing_defaults(database) == 1
+    assert links.add_missing_defaults(database) == 2
     assert links.add_missing_defaults(database) == 0
+    assert all(
+        link["forge_favorite"]
+        for link in links.links(database)
+        if link["default_key"] in {"fgs_studio", "forge_ttrpg_web"}
+    )
+
+
+def test_existing_starter_pin_choice_is_not_overwritten(database):
+    starter = next(
+        link
+        for link in links.links(database)
+        if link["default_key"] == "forge_ttrpg_web"
+    )
+    studio = next(
+        link for link in links.links(database) if link["default_key"] == "fgs_studio"
+    )
+    links.pin_link(database, starter["id"], False)
+    links.delete_link(database, studio["id"])
+    assert links.add_missing_defaults(database) == 1
+    assert not links.get_link(database, starter["id"])["forge_favorite"]
+    restored_studio = next(
+        link for link in links.links(database) if link["default_key"] == "fgs_studio"
+    )
+    assert restored_studio["forge_favorite"]
 
 
 @pytest.mark.parametrize(
@@ -165,7 +206,7 @@ def test_ttrpg_starter_is_distinct_and_restored_only_on_request(database):
 def test_unsafe_urls_rejected(database, url):
     with pytest.raises(links.LinkError):
         links.save_link(database, form(1, url=url))
-    assert len(links.links(database)) == 15
+    assert len(links.links(database)) == 16
 
 
 def test_category_unique_order_validation_and_missing_records(database):
@@ -196,7 +237,7 @@ def test_seed_file_updates_do_not_override_database(database, monkeypatch, tmp_p
     path.write_text(json.dumps(contents))
     monkeypatch.setattr(links, "DEFAULTS_PATH", path)
     database.initialize()
-    assert len(links.links(database)) == 15
+    assert len(links.links(database)) == 16
     assert links.add_missing_defaults(database) == 1
     assert (
         next(
@@ -209,11 +250,11 @@ def test_seed_file_updates_do_not_override_database(database, monkeypatch, tmp_p
 
 
 def test_seeding_is_atomic_and_limits_apply(database, monkeypatch):
-    monkeypatch.setattr(links, "MAX_LINKS", 15)
+    monkeypatch.setattr(links, "MAX_LINKS", 16)
     with pytest.raises(links.LinkError):
         links.save_link(database, form(1))
     links.delete_link(database, 1)
     links.save_link(database, form(1))
     with pytest.raises(links.LinkError):
         links.add_missing_defaults(database)
-    assert len(links.links(database)) == 15
+    assert len(links.links(database)) == 16

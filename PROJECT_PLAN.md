@@ -121,13 +121,15 @@ personal stars and Admin-only pins (shared FGS Favorites), edit and confirmed
 delete controls; favorite shortcut sections remain unchanged. Deletion uses a
 focused confirmation page with Cancel. New categories default to the next order
 after the existing maximum, within the supported limit.
-Seed three categories and fourteen starter links from `app/defaults/links.json`
-once, with FGS Favorites initially
-empty. Upgrades preserve edits and deletions; explicit Add missing starter links
-restores missing defaults without overwriting records.
+The original Links release seeded three categories and fourteen starter links,
+with FGS Favorites initially empty. Upgrades preserve edits and deletions;
+explicit Add missing starter links restores missing defaults without
+overwriting records.
 The current bundled file adds a fifteenth, separately identified FORGE TTRPG
-web link. Existing installations add it only through the explicit starter-link
-action; the original seed history is unchanged.
+web link and a sixteenth FGS Studio link. Both are shared Favorites by default
+for new or explicitly restored entries. Existing installations add missing
+links only through the explicit starter-link action; the original seed history
+is unchanged.
 Local follow-up: the starter-links toolbar action opens a focused
 confirmation page with Add and Cancel, rather than jumping to a collapsed
 section; no redundant checkbox is required. Preserve existing game

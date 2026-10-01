@@ -20,10 +20,23 @@ PDF. Compatible GameSheets can also become temporary LiveSheets with automatic
 totals and live updates across devices. One person can score while everyone
 else follows along, or each player can enter and track their own scores.
 
+Want to create and export GameSheets without installing the full application?
+[FGS Studio](https://natsteff.github.io/FGS-Studio/) provides the browser-only
+Sheet Designer.
+
 FORGE GameSheets is currently in beta. Your source PDFs and saved GameSheets
 remain under your control: the application works locally, does not require a
 cloud service, and does not modify source PDFs. Sheet Designer creates new
 sheets; it is not an editor for existing PDF files.
+
+FORGE GameSheets is developed with careful and responsible AI assistance under
+human maintainer direction, supported by automated testing and security checks.
+See [Development and security](#development-and-security) for details.
+
+Looking for a TTRPG character-sheet builder? [FORGE TTRPG](https://forge-ttrpg.vercel.app/app/templates)
+is a separate, similarly named tool offering character-sheet templates and
+features outside the scope of FORGE GameSheets. It may be useful to FGS users,
+but it is not part of FORGE GameSheets.
 
 ## Available features
 
@@ -418,7 +431,7 @@ Without accounts, trusted operators manage the shared directory and Personal
 Favorites are unavailable. Resource-scoped QR guests do not gain directory
 access when accounts are enabled.
 
-FORGE GameSheets includes an editable starter directory of fifteen links in three categories:
+FORGE GameSheets includes an editable starter directory of sixteen links in three categories:
 Gamesheet Sources, Live Scoring and Other. The records are populated from
 [`app/defaults/links.json`](app/defaults/links.json) when the feature is first
 initialized—on a new installation or the first upgrade that adds Links. Admins
@@ -436,7 +449,11 @@ Generator shortcut, and Bingo Card Creator under Gamesheet Sources. All three
 start enabled and unpinned. Existing installations can add these through **Links
 → Add missing starter links** after updating FORGE GameSheets. The **Other** category
 also includes **FORGE TTRPG (web) — Character Sheet Templates**, a separate
-third-party browser tool, enabled and unpinned. It does not produce FGS files.
+third-party browser tool. **FGS Studio** is included under Gamesheet Sources.
+Both start enabled and pinned to shared FGS Favorites on new installations or
+when added as missing starters. Existing entries retain their current pin state;
+an Admin can pin the existing FORGE TTRPG entry manually. The TTRPG tool does
+not produce FGS files.
 
 Links open the external website in a new tab. Provenance labels are not security
 ratings or endorsements. FORGE GameSheets does not scrape sites, proxy downloads, mirror
@@ -857,6 +874,12 @@ includes automated testing and incremental changes. Maintainer-led,
 AI-assisted OWASP ASVS self-assessments are planned for major releases; these
 are not independent audits or certifications.
 The source is openly available for inspection and contributions.
+
+Docker-based installations are intended for an individual workstation or a
+trusted private LAN. Direct exposure to the public Internet is not recommended;
+do not forward the container's port from a router or make it available to untrusted
+networks. For access beyond the LAN, use an appropriately protected proxy or
+VPN and follow the [deployment guide](docs/deployment.md).
 
 Before publishing Docker images, [GitHub Actions](.github/workflows/publish-container.yml)
 runs automated tests, code-quality checks, and dependency vulnerability audits.

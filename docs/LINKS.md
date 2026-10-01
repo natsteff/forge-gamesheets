@@ -57,16 +57,22 @@ limited to 120 characters, descriptions to 400, category names to 80, URLs to
 `app/defaults/links.json` is the version-controlled starter source, with file
 schema version 1. It contains categories (`key`, `name`, `position`) and links
 (`key`, `name`, `url`, `description`, `category_key`, `source_type`, `enabled`,
-`position`, `forge_favorite`, `favorite_position`). Initial favorites are all
-false. Source type is `official`, `third_party` or `community` and represents
+`position`, `forge_favorite`, `favorite_position`). FGS Studio and FORGE TTRPG
+start as shared FGS Favorites; other starters are unpinned. Source type is
+`official`, `third_party` or `community` and represents
 provenance only.
+
+**FGS Studio** at `https://natsteff.github.io/FGS-Studio/` is the official
+browser-only companion Sheet Designer. Its stable key is `fgs_studio`.
 
 The **Other** category includes **FORGE TTRPG (web) — Character Sheet
 Templates** at `https://forge-ttrpg.vercel.app/app/templates`. It is a separate
 third-party browser-based TTRPG character-sheet builder, not part of
-FORGE GameSheets, and its sheets are not FGS files. The starter is enabled and
-unpinned. Its stable key is `forge_ttrpg_web`; existing installations can add it
-with **Add missing starter links** without changing their current entries.
+FORGE GameSheets, and its sheets are not FGS files. Both new links are enabled
+and pinned by default, with FGS Studio first. The TTRPG stable key is
+`forge_ttrpg_web`; existing installations can add missing links with **Add
+missing starter links**. Already present entries, including their pin state,
+are never changed by that action.
 
 Migration 29 creates the tables and seeds the current bundled file atomically.
 It runs once for both new installs and upgrades. Subsequent startup/migrations
