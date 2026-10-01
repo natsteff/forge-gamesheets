@@ -550,7 +550,7 @@ async def settings_preferences_save(request: Request) -> RedirectResponse:
 
 @router.post("/settings/footer/reset", response_class=RedirectResponse)
 def settings_footer_reset(request: Request) -> RedirectResponse:
-    """Restore the Forge GameSheets footer while preserving other settings."""
+    """Restore the FORGE GameSheets footer while preserving other settings."""
     preferences = get_preferences(_database(request))
     save_preferences(
         _database(request),
@@ -1574,13 +1574,15 @@ def _qr_file(request: Request, resource_id: int, *, generated: bool):
     resource, source = result
     path = _existing_reprint(request, source, resource_id) if generated else source
     if path is None:
-        raise HTTPException(status_code=409, detail="FORGE Reprint unavailable")
+        raise HTTPException(
+            status_code=409, detail="FORGE GameSheets Reprint unavailable"
+        )
     game = get_game(_database(request), resource.game_id)
     return FileResponse(
         path,
         media_type="application/pdf",
         filename=_pdf_filename(
-            game, resource, prefix="FORGE Reprint" if generated else None
+            game, resource, prefix="FORGE GameSheets Reprint" if generated else None
         ),
         content_disposition_type="inline",
         headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
@@ -1624,7 +1626,7 @@ async def resource_qr_policy_save(request: Request, resource_id: int):
     name="resource_reprint_generate",
 )
 def resource_reprint_generate(request: Request, resource_id: int) -> RedirectResponse:
-    """Generate a derived Forge-marked copy without changing its source PDF."""
+    """Generate a FORGE GameSheets-marked copy without changing the source PDF."""
     try:
         _generated_reprint(request, resource_id)
     except ReprintGenerationError:
@@ -1652,7 +1654,7 @@ def resource_reprint_regenerate(request: Request, resource_id: int) -> RedirectR
     name="resource_reprint_view",
 )
 def resource_reprint_view(request: Request, resource_id: int) -> FileResponse:
-    """Open the current Forge-marked derived copy for deliberate printing."""
+    """Open the current FORGE GameSheets-marked copy for deliberate printing."""
     return _generated_reprint_response(request, resource_id, disposition="inline")
 
 
@@ -1662,7 +1664,7 @@ def resource_reprint_view(request: Request, resource_id: int) -> FileResponse:
     name="resource_reprint_download",
 )
 def resource_reprint_download(request: Request, resource_id: int) -> FileResponse:
-    """Download the current Forge-marked derived copy."""
+    """Download the current FORGE GameSheets-marked copy."""
     return _generated_reprint_response(request, resource_id, disposition="attachment")
 
 
@@ -1785,17 +1787,20 @@ def _generated_reprint_response(
         raise HTTPException(status_code=404, detail="Resource not found")
     except ReprintGenerationError as error:
         raise HTTPException(
-            status_code=422, detail="FORGE Reprint unavailable."
+            status_code=422, detail="FORGE GameSheets Reprint unavailable."
         ) from error
     if path is None:
         raise HTTPException(
             status_code=409,
-            detail="Generate the FORGE Reprint before opening or downloading it.",
+            detail=(
+                "Generate the FORGE GameSheets Reprint before opening "
+                "or downloading it."
+            ),
         )
     return FileResponse(
         path,
         media_type="application/pdf",
-        filename=_pdf_filename(game, resource, prefix="FORGE Reprint"),
+        filename=_pdf_filename(game, resource, prefix="FORGE GameSheets Reprint"),
         content_disposition_type=disposition,
         headers={"Cache-Control": "no-store"},
     )
@@ -1990,4 +1995,4 @@ def _pdf_filename(
     readable = " - ".join(part for part in parts if part)
     portable = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]+', " ", readable)
     portable = " ".join(portable.split()).strip(" .-")[:180].rstrip(" .-")
-    return f"{portable or 'Forge GameSheets resource'}.pdf"
+    return f"{portable or 'FORGE GameSheets resource'}.pdf"

@@ -16,7 +16,7 @@
   {% if request.state.can_admin %}<form action="{{ url_for('link_pin', link_id=link.id) }}" method="post">
     <input type="hidden" name="selected" value="{{ '0' if link.forge_favorite else '1' }}">
     <input type="hidden" name="return_to" value="{{ 'manage' if managing else 'links' }}">
-    <button class="favorite-button{% if link.forge_favorite %} active{% endif %}" type="submit" aria-pressed="{{ 'true' if link.forge_favorite else 'false' }}" title="{{ 'Unpin from' if link.forge_favorite else 'Pin to' }} Forge Favorites" aria-label="{{ 'Unpin from' if link.forge_favorite else 'Pin to' }} Forge Favorites: {{ link.name }}">⌖</button>
+    <button class="favorite-button{% if link.forge_favorite %} active{% endif %}" type="submit" aria-pressed="{{ 'true' if link.forge_favorite else 'false' }}" title="{{ 'Unpin from' if link.forge_favorite else 'Pin to' }} FGS Favorites" aria-label="{{ 'Unpin from' if link.forge_favorite else 'Pin to' }} FGS Favorites: {{ link.name }}">⌖</button>
   </form>{% endif %}
   <a class="resource-action primary" href="{{ link.url }}" target="_blank" rel="noopener noreferrer" aria-label="Open {{ link.name }} (external, opens in a new tab)" title="{{ link.url }}">Open <span aria-hidden="true">↗</span></a>
   {% if request.state.can_admin %}

@@ -1,16 +1,16 @@
 # FGS Renderer
 
 The canonical, browser-and-Node page renderer for FGS GameSheets, maintained as
-a source package in Forge GameSheets. It is not a replacement for the FGS
+a source package in FORGE GameSheets. It is not a replacement for the FGS
 document specification or the
-local-review Page Rendering Profile in Forge GameSheets at
+local-review Page Rendering Profile in FORGE GameSheets at
 `docs/FGS_PAGE_RENDERING_PROFILE_1_3.md` (`fgs-page-1.3.1`).
 
 FGS 1.3 adds bounded resource trackers and generated reusable paper/music
 patterns. Shared controls/defaults also live in this package, so both editors
 use the same content options, validation and physical-unit conversions.
 
-Both Forge GameSheets and FGS Studio must consume a pinned build from this
+Both FORGE GameSheets and FGS Studio must consume a pinned build from this
 source; neither should maintain its own independent print layout rules.
 
 Print jobs may select Full Page, Half Page, Poker Card, Bridge Card, or a bounded
@@ -38,12 +38,12 @@ pnpm test
 ```
 
 Then run `node scripts/sync-renderer.mjs` from FGS Studio and
-`python3 scripts/sync_fgs_renderer.py` from Forge GameSheets to pin the
+`python3 scripts/sync_fgs_renderer.py` from FORGE GameSheets to pin the
 generated artifacts in each consumer. Both scripts verify the build manifest
 before copying. Do not edit the copied bundles directly. The build manifest
 records the profile ID and SHA-256 of each relevant source and distributed artifact; consumers
 commit their pinned copies so they can build without rebuilding this package.
-Studio must identify the exact Forge source revision that produced its pinned
+Studio must identify the exact FORGE GameSheets source revision that produced its pinned
 bundle, so recipients can obtain the corresponding source.
 
 The current font set does not cover every Unicode script. Missing glyphs fail

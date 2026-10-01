@@ -58,7 +58,7 @@ def test_project_plan_retains_bulk_reprint_maintenance_design():
     decision = (
         ROOT / "docs/decisions/005-bulk-forge-reprint-maintenance.md"
     ).read_text()
-    assert "Milestone D — Bulk FORGE Reprint maintenance" in plan
+    assert "Milestone D — Bulk FORGE GameSheets Reprint maintenance" in plan
     assert "docs/decisions/005-bulk-forge-reprint-maintenance.md" in plan
     for term in (
         "Create missing reprints",
@@ -151,7 +151,7 @@ def test_deployment_covers_proxy_and_upgrade_contract():
         "An image pull does **not** update `compose.yml`",
         "Confirm that the downloaded image reports the intended revision",
         "sha-<revision>",
-        "HTTPS is working at Nginx but Forge reports HTTP",
+        "HTTPS is working at Nginx but FORGE GameSheets reports HTTP",
     ):
         assert term in deployment
     accounts = (ROOT / "docs/ACCOUNTS.md").read_text()

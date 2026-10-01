@@ -159,7 +159,7 @@ def test_action_buttons_use_shared_theme_tokens_and_components(web_client):
     settings = web_client.get("/settings").text
     assert 'class="primary-button"' in settings
     assert settings.count('class="checkbox-option"') >= 1
-    assert "Manage FORGE Reprints" not in settings
+    assert "Manage FORGE GameSheets Reprints" not in settings
     assert "Manage accounts and QR access" not in settings
     maintenance = web_client.get("/settings/reprints").text
     assert '<button class="primary-button"' in maintenance
@@ -296,7 +296,15 @@ def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
     assert "/static/brand/forge-wordmark.png" in response.text
     assert "/static/brand/favicon-32.png" in response.text
     assert "Collect. Create. Print. Play. Or Go Live with LiveSheets." in response.text
-    assert "The <span>FORGE</span> is fired up!" in response.text
+    assert "<span>FORGE GameSheets</span> is fired up!" in response.text
+    assert "FORGE GameSheets helps you design printable sheets" in response.text
+    assert (
+        "Design printable GameSheets, use LiveSheets, and organize your PDF library"
+        in response.text
+    )
+    assert "styles.css?v=65" in response.text
+    hero_rule = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
+    assert ".hero h1 { max-width: 18ch;" in hero_rule
     assert '<p class="eyebrow">Game library</p>' not in response.text
 
 
@@ -328,16 +336,16 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "Rules" in response.text
     assert "Score Sheets" in response.text
     assert "Large Print" in response.text
-    assert ">FORGE Reprint</a>" in response.text
+    assert ">FORGE GameSheets Reprint</a>" in response.text
     assert ">View original</a>" in response.text
     assert ">Download</a>" not in response.text
-    assert response.text.index(">FORGE Reprint</a>") < response.text.index(
+    assert response.text.index(">FORGE GameSheets Reprint</a>") < response.text.index(
         ">View original</a>"
     )
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=10" in response.text
-    assert "/static/styles.css?v=64" in response.text
+    assert "/static/styles.css?v=65" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text
@@ -923,7 +931,7 @@ def test_display_preferences_customize_footer_and_recent(
     )
     home = web_client.get("/")
     assert "Nate&#39;s Game Vault" not in home.text
-    assert "Forge GameSheets on GitHub" in home.text
+    assert "FORGE GameSheets on GitHub" in home.text
     assert ">Recently used</a>" not in home.text
     assert "Recent is disabled" in web_client.get("/recent").text
 
@@ -1052,7 +1060,7 @@ def test_reprint_landing_page_requires_a_deliberate_resource_action(
     landing = web_client.get(f"/r/{resource_id}")
 
     assert landing.status_code == 200
-    assert "FORGE Reprint" in landing.text
+    assert "FORGE GameSheets Reprint" in landing.text
     assert "Farkle" in landing.text
     assert "Your original PDF is never changed" in landing.text
     assert "FORGE_GAMESHEETS_BASE_URL" in landing.text
@@ -1097,12 +1105,12 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
 
         landing = client.get(f"/r/{resource_id}")
         normalized_landing = " ".join(landing.text.split())
-        assert "Generate FORGE Reprint" in landing.text
+        assert "Generate FORGE GameSheets Reprint" in landing.text
         assert "Content responsibility" in landing.text
         assert "does not claim ownership or affiliation" in normalized_landing
         assert "library operator is responsible" in normalized_landing
         assert f"/resources/{resource_id}/forge-reprint" in landing.text
-        assert "View FORGE Reprint" not in landing.text
+        assert "View FORGE GameSheets Reprint" not in landing.text
         missing_open = client.get(f"/resources/{resource_id}/forge-reprint/open")
         missing_download = client.get(
             f"/resources/{resource_id}/forge-reprint/download"
@@ -1124,20 +1132,20 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
         assert registry["target_url"] == (f"https://forge.example.test/r/{resource_id}")
 
         ready = client.get(generated.headers["location"])
-        assert "Your FORGE Reprint is ready" in ready.text
+        assert "Your FORGE GameSheets Reprint is ready" in ready.text
         assert "Fit to printable area" in ready.text
         assert "complete URL and QR code" in ready.text
-        assert "View FORGE Reprint" in ready.text
-        assert "Download FORGE Reprint" in ready.text
-        assert "Generate FORGE Reprint" not in ready.text
-        assert "Regenerate FORGE Reprint" in ready.text
+        assert "View FORGE GameSheets Reprint" in ready.text
+        assert "Download FORGE GameSheets Reprint" in ready.text
+        assert "Generate FORGE GameSheets Reprint" not in ready.text
+        assert "Regenerate FORGE GameSheets Reprint" in ready.text
         assert "reprint-document-icon" not in ready.text
 
         refreshed = client.get(f"/r/{resource_id}")
-        assert "Your FORGE Reprint is ready" in refreshed.text
-        assert "View FORGE Reprint" in refreshed.text
-        assert "Regenerate FORGE Reprint" in refreshed.text
-        assert "Generate FORGE Reprint" not in refreshed.text
+        assert "Your FORGE GameSheets Reprint is ready" in refreshed.text
+        assert "View FORGE GameSheets Reprint" in refreshed.text
+        assert "Regenerate FORGE GameSheets Reprint" in refreshed.text
+        assert "Generate FORGE GameSheets Reprint" not in refreshed.text
 
         regenerated = client.post(
             f"/resources/{resource_id}/forge-reprint/regenerate",
@@ -1149,7 +1157,7 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
         )
         regeneration_confirmation = client.get(regenerated.headers["location"])
         assert (
-            "Your FORGE Reprint was regenerated successfully"
+            "Your FORGE GameSheets Reprint was regenerated successfully"
             in regeneration_confirmation.text
         )
 
@@ -1161,7 +1169,7 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
     assert opened.headers["content-disposition"].startswith("inline;")
     assert downloaded.headers["content-disposition"].startswith("attachment;")
     assert (
-        "FORGE%20Reprint%20-%20Farkle%20-%20Score%20Sheet.pdf"
+        "FORGE%20GameSheets%20Reprint%20-%20Farkle%20-%20Score%20Sheet.pdf"
         in (opened.headers["content-disposition"])
     )
     with fitz.open(stream=opened.content, filetype="pdf") as output:
@@ -1172,6 +1180,7 @@ def test_forge_reprint_is_generated_and_served_without_changing_source(
         assert output.metadata["subject"] == (
             f"https://forge.example.test/r/{resource_id}"
         )
+        assert output.metadata["producer"] == "FORGE GameSheets"
     assert len(tuple((data / "generated").glob("*.pdf"))) == 1
 
 

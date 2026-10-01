@@ -15,8 +15,8 @@ single optional line feed. A 4,000-character ceiling protects importers but is
 not a visual layout limit; editors must not truncate text at that ceiling.
 The selected page layout determines whether each line can actually print.
 Other control characters are invalid. The footer is presentation
-content, not a URL, an executable link, a rights claim supplied by Forge, or a
-FORGE Reprint footer. On a LiveSheet it follows the sheet content.
+content, not a URL, an executable link, a rights claim supplied by FORGE GameSheets, or a
+FORGE GameSheets Reprint footer. On a LiveSheet it follows the sheet content.
 
 ## Header logo
 

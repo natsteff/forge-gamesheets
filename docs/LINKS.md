@@ -1,21 +1,21 @@
 # Global Links directory
 
-Forge's global directory is a server-rendered application feature, not an FGS
+FORGE GameSheets’ global directory is a server-rendered application feature, not an FGS
 format extension. Existing per-game primary/alternate links are unchanged, and
 FGS Studio and standalone Designer mode do not initialize these records.
 
 ## Browsing and favorites
 
 Navigation → Links opens a single page. Personal Favorites appear first only
-when the signed-in account has selections; Forge Favorites follow, then All
-Links grouped by category. Forge Favorites are initially empty. All Links keeps
+when the signed-in account has selections; FGS Favorites follow, then All
+Links grouped by category. FGS Favorites are initially empty. All Links keeps
 favorite entries in their categories. The same link can appear in both favorite
 sections without creating duplicate records.
 
 All Links uses compact rows matching the Score Sheets listing, alphabetically
 by name within each category (case-insensitive, ties use record ID).
 The star toggles a signed-in user's personal favorite. The pin (⌖) adds/removes
-a shared Forge Favorite and is Admin-only, as are Edit and confirmed Delete.
+a shared FGS Favorite and is Admin-only, as are Edit and confirmed Delete.
 Open is available to everyone who can view the directory and opens the external
 site in a new tab. Admins have Add link, Manage categories and Add missing starter
 links at the top. Disabled entries are grouped and alphabetical in a collapsed
@@ -24,7 +24,7 @@ to Links, as does the Settings shortcut. Category editing is a separate Admin to
 
 All signed-in roles can add/remove only their own personal favorites. The
 user identity comes from the session, never a submitted account ID. Without
-accounts, only the shared Forge Favorites are available. With accounts enabled,
+accounts, only the shared FGS Favorites are available. With accounts enabled,
 anonymous or resource-scoped QR visitors cannot access the directory. Readers
 and Contributors cannot manage links or categories; Admins can. Without accounts,
 the existing trusted-operator access model applies.
@@ -32,7 +32,7 @@ the existing trusted-operator access model applies.
 ## Admin management
 
 Links provides add/edit/delete, enabled status, provenance, category assignment
-and Forge Favorite selection. Category order and Forge Favorites order remain
+and FGS Favorite selection. Category order and FGS Favorites order remain
 configurable (lower numbers first). Per-link directory order is no longer an
 editor field or sorting input; legacy values remain stored for compatibility.
 Names, descriptions and categories are escaped plain text, not HTML. Disabling
@@ -61,6 +61,13 @@ schema version 1. It contains categories (`key`, `name`, `position`) and links
 false. Source type is `official`, `third_party` or `community` and represents
 provenance only.
 
+The **Other** category includes **FORGE TTRPG (web) — Character Sheet
+Templates** at `https://forge-ttrpg.vercel.app/app/templates`. It is a separate
+third-party browser-based TTRPG character-sheet builder, not part of
+FORGE GameSheets, and its sheets are not FGS files. The starter is enabled and
+unpinned. Its stable key is `forge_ttrpg_web`; existing installations can add it
+with **Add missing starter links** without changing their current entries.
+
 Migration 29 creates the tables and seeds the current bundled file atomically.
 It runs once for both new installs and upgrades. Subsequent startup/migrations
 do not resynchronize the file. Admin edits, disabling, moves and deletions survive
@@ -75,7 +82,7 @@ are independent records; matching URLs do not collapse them into starters. A
 starter key is provenance, not an edit/delete restriction. Database IDs and
 timestamps are generated locally and do not belong in the file.
 
-Back up and restore the main Forge database using the normal application-data
+Back up and restore the main FORGE GameSheets database using the normal application-data
 backup procedure; it stores categories, links, starter identities, timestamps,
 shared favorites and personal favorites. The metadata-portability export is not
 a replacement for a complete database backup and does not export this directory.
@@ -93,4 +100,6 @@ content remains subject to the destination's access and copyright terms.
 The starter destinations are supplied by the owner. During implementation, most
 pages were accessible through a read-only web check; GameScore's scoresheets
 page, the Apple App Store entry and BoardGameGeek could not be confirmed by that
-check. They remain editable supplied links, not guaranteed available resources.
+check. The FORGE TTRPG home page was visible, but the exact templates route was
+not independently fetchable. They remain editable supplied links, not guaranteed
+available resources.

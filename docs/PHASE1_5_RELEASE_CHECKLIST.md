@@ -1,7 +1,7 @@
 # Phase 1.5 external beta release checklist
 
-This checklist is the release gate for the FORGE Reprint external beta. It does
-not authorize direct public-network exposure. Forge GameSheets has optional local
+This checklist is the release gate for the FORGE GameSheets Reprint external beta. It does
+not authorize direct public-network exposure. FORGE GameSheets has optional local
 accounts and remains limited to localhost, a trusted private LAN, or an
 appropriately protected proxy or VPN.
 
@@ -92,13 +92,13 @@ the normal development `data/` directory.
 - [ ] Confirm the checkout starts at the intended candidate commit.
 - [ ] Copy `.env.example` to `.env` without modifying the safe bind address.
 - [ ] Create separate empty `library/` and `data/` directories.
-- [ ] Build and start Forge using the deployment guide.
+- [ ] Build and start FORGE GameSheets using the deployment guide.
 - [ ] Confirm the host port listens only on `127.0.0.1`.
 - [ ] Confirm the empty-library guidance appears.
 - [ ] Add at least two invented or authorized game folders and rescan.
 - [ ] Confirm games, PDFs, previews, search, and categories work.
-- [ ] Restart Forge and confirm application state persists.
-- [ ] Stop Forge and confirm source PDFs are byte-for-byte unchanged.
+- [ ] Restart FORGE GameSheets and confirm application state persists.
+- [ ] Stop FORGE GameSheets and confirm source PDFs are byte-for-byte unchanged.
 
 Remove the disposable checkout only after recording the result and confirming
 that it contains no needed test evidence.
@@ -114,8 +114,8 @@ Perform this section only on an isolated or trusted private network.
   device.
 - [ ] Confirm the host firewall exposes only the intended LAN port.
 - [ ] Confirm the application is not forwarded directly from the internet.
-- [ ] Open Forge from a second LAN device.
-- [ ] Generate a FORGE Reprint and scan its QR code from the test device.
+- [ ] Open FORGE GameSheets from a second LAN device.
+- [ ] Generate a FORGE GameSheets Reprint and scan its QR code from the test device.
 - [ ] Confirm the QR opens the intended resource page and never initiates
   printing automatically.
 - [ ] Confirm the original and generated downloads both work.
@@ -142,17 +142,17 @@ Use copies of PDFs and follow the detailed steps in
 Begin from a working older checkout with populated test data.
 
 - [ ] Record the current build identity and verify normal startup.
-- [ ] Stop Forge before copying the complete data directory.
+- [ ] Stop FORGE GameSheets before copying the complete data directory.
 - [ ] Preserve any existing `.env` outside the tracked source files.
 - [ ] Run `git pull --ff-only origin main` successfully.
 - [ ] Rebuild with the new revision and build date.
-- [ ] Start Forge and allow database migrations to finish.
+- [ ] Start FORGE GameSheets and allow database migrations to finish.
 - [ ] Confirm Settings, categories, metadata, favorites, pins, history, uploaded
   artwork, and generated-copy state remain available.
 - [ ] Rescan and confirm the PDF library remains available.
 - [ ] Confirm `compose.yml` has no server-specific local edits.
 - [ ] Restore the stopped data backup to a disposable test location and confirm
-  that Forge can start from it.
+  that FORGE GameSheets can start from it.
 
 ## 7. Documentation and presentation gate
 
@@ -171,7 +171,7 @@ Begin from a working older checkout with populated test data.
 
 - [ ] Release notes summarize Phase 1.5 without exposing the private development
   timeline.
-- [ ] The testing guide includes FORGE Reprint and build-identification checks.
+- [ ] The testing guide includes FORGE GameSheets Reprint and build-identification checks.
 - [ ] Testers receive the security warning and supported access models.
 - [ ] Testers receive an obvious GitHub issue or other approved reporting path.
 - [ ] Known limitations distinguish defects from intentionally deferred BGG and

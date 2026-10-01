@@ -18,7 +18,7 @@ not a movable content block and not the existing rendered `notes` block.
 Editors show it as **Designer Notes**, for the author or future editors.
 It must not appear in the rendered page, SVG preview, PDF text or metadata,
 printed output, or LiveSheet presentation. It consumes no page space and has
-no effect on fit. Forge omits it from newly created LiveSheet snapshots.
+no effect on fit. FORGE GameSheets omits it from newly created LiveSheet snapshots.
 Readers preserve it when importing, saving, duplicating, or exporting FGS.
 It remains readable in the shared FGS JSON: it is editorial metadata, not a
 private or encrypted field. Users must not put credentials or secrets here.

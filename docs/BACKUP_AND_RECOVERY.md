@@ -1,6 +1,6 @@
 # Backup and recovery
 
-Forge GameSheets separates source content, application state, and source code.
+FORGE GameSheets separates source content, application state, and source code.
 All three should be protected before upgrades or public-release preparation.
 
 ## What to back up
@@ -8,7 +8,7 @@ All three should be protected before upgrades or public-release preparation.
 ### PDF library
 
 The configured `library/` directory contains authoritative source PDFs and any
-detected artwork. Forge GameSheets does not store copies of these PDFs in SQLite.
+detected artwork. FORGE GameSheets does not store copies of these PDFs in SQLite.
 
 ### Application data
 
@@ -19,11 +19,11 @@ The configured `data/` directory contains:
 - Uploaded game artwork
 - Sheet Designer `.fgs` drafts and the active-sheet pointer
 - Generated preview and artwork caches
-- Generated FORGE Reprints and durable bulk-maintenance job history
+- Generated FORGE GameSheets Reprints and durable bulk-maintenance job history
 
 The generated files and caches can be regenerated, but the database, uploaded
 artwork, and Sheet Designer drafts cannot. The database also records bulk-job
-progress; stop Forge before a filesystem copy so the database, drafts, and
+progress; stop FORGE GameSheets before a filesystem copy so the database, drafts, and
 generated outputs represent one consistent point in time. Back up the entire
 directory together.
 
@@ -51,7 +51,7 @@ tag, and verified Git bundle outside the repository.
 
 ## Safe filesystem backup
 
-Stop Forge using the method appropriate to the deployment so nothing is writing
+Stop FORGE GameSheets using the method appropriate to the deployment so nothing is writing
 to application data. Back up both configured persistent locations: the source
 library and the complete application data directory. The backup process must be
 able to read container-owned files; treat permission errors or omitted paths as

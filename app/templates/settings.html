@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Settings · Forge GameSheets{% endblock %}
+{% block title %}Settings · FORGE GameSheets{% endblock %}
 
 {% block content %}
   <section class="page-intro compact-intro">
@@ -10,7 +10,7 @@
   </section>
 <section class="settings-section">
   <h2>Links directory</h2>
-  <p>Manage the external websites, categories and Forge Favorites shown on the Links page. Personal Favorites belong to each signed-in user.</p>
+  <p>Manage the external websites, categories and FGS Favorites shown on the Links page. Personal Favorites belong to each signed-in user.</p>
   <a class="secondary-button" href="{{ url_for('links_home') }}">Manage links</a>
 </section>
 <section class="settings-section">
@@ -28,13 +28,13 @@
   {% if status == "bgg-connected" %}
     <p class="status-banner success" role="status">BoardGameGeek API connection verified. The configured token was accepted.</p>
   {% elif error == "bgg-authentication" %}
-    <p class="status-banner warning" role="alert">BoardGameGeek rejected the configured token. Generate or copy the token again, update the private environment file, and restart Forge.</p>
+    <p class="status-banner warning" role="alert">BoardGameGeek rejected the configured token. Generate or copy the token again, update the private environment file, and restart FORGE GameSheets.</p>
   {% elif error == "bgg-rate-limited" %}
     <p class="status-banner warning" role="alert">BoardGameGeek temporarily limited the test request. The token may still be valid; wait before testing again.</p>
   {% elif error == "bgg-unavailable" %}
-    <p class="status-banner warning" role="alert">BoardGameGeek could not be reached. Local Forge features remain available.</p>
+    <p class="status-banner warning" role="alert">BoardGameGeek could not be reached. Local FORGE GameSheets features remain available.</p>
   {% elif error in ("bgg-not-configured", "bgg-request", "bgg-response") %}
-    <p class="status-banner warning" role="alert">The BoardGameGeek connection could not be verified. Local Forge features remain available.</p>
+    <p class="status-banner warning" role="alert">The BoardGameGeek connection could not be verified. Local FORGE GameSheets features remain available.</p>
   {% elif status == "qr-access-saved" %}
     <p class="status-banner success" role="status">QR access setting saved successfully.</p>
   {% elif status == "session-policy-saved" %}
@@ -52,7 +52,7 @@
   {% if request.state.auth_enabled %}
   <section class="settings-section">
     <h2>Sign-in duration</h2>
-    <p>Set library-wide limits. Shortening a limit takes effect for existing sessions the next time they access Forge.</p>
+    <p>Set library-wide limits. Shortening a limit takes effect for existing sessions the next time they access FORGE GameSheets.</p>
     <form class="metadata-form settings-form" action="{{ url_for('session_policy_save') }}" method="post">
       {% for field, label, selected in (
         ('standard_idle', 'Standard session inactivity limit', session_policy.standard_idle),

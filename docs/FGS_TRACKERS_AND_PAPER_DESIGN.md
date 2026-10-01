@@ -6,12 +6,12 @@ See [FGS 1.3](FGS_V1_3_SPECIFICATION.md) for the actual supported local contract
 Both local editors implement the new content. Docker Test and hosted Studio
 remain unchanged until publication is approved. Personal health logs are deferred.
 
-## Editor experience shared by Forge and Studio
+## Editor experience shared by FORGE GameSheets and Studio
 
 Add **Tracker** and **Paper pattern** to the existing Add section selector.
 Use existing button, input, label, focus, validation and undo/redo conventions.
 Do not introduce native unstyled controls, another editor or another renderer.
-Both products share field definitions/defaults and rendering rules; Forge retains
+Both products share field definitions/defaults and rendering rules; FORGE GameSheets retains
 its autosave/workspace behavior and Studio retains browser-local export behavior.
 
 ### Paper-pattern controls
@@ -63,7 +63,7 @@ Piano manuscript and Tablature. Each creates an ordinary document with one
 full-width fill pattern, no mandatory rendered heading, and an editable document
 title. Adding a heading is optional. No logo/footer defaults containing private data.
 
-Do not replace the default New behavior without reviewing the existing Forge
+Do not replace the default New behavior without reviewing the existing FORGE GameSheets
 workspace chooser and Studio confirmation flow. A template picker can extend those
 flows while preserving unsaved-work protection. Choosing templates must not
 require a game association or BGG lookup.

@@ -1,12 +1,12 @@
 # Self-hosted beta deployment
 
-This guide installs Forge GameSheets from GitHub on a Docker host. The example
+This guide installs FORGE GameSheets from GitHub on a Docker host. The example
 location, `/opt/forge-gamesheets`, is a recommendation rather than a
 requirement. Use any location that the Docker operator can manage safely.
 
-Forge GameSheets is beta software. Back up both the PDF library and application
+FORGE GameSheets is beta software. Back up both the PDF library and application
 data before upgrades. Local accounts are optional and remain off until explicit
-operator setup. Forge must not be exposed directly to the public internet or an
+operator setup. FORGE GameSheets must not be exposed directly to the public internet or an
 untrusted network. See [Accounts and QR access](ACCOUNTS.md).
 
 ## Requirements
@@ -14,8 +14,8 @@ untrusted network. See [Accounts and QR access](ACCOUNTS.md).
 - A Linux, macOS, or Windows host with Docker and Docker Compose v2
 - Git for installation and updates
 - A readable directory containing the source PDF library
-- A separate writable directory for Forge application data
-- Enough free space for previews and generated FORGE Reprints
+- A separate writable directory for FORGE GameSheets application data
+- Enough free space for previews and generated FORGE GameSheets Reprints
 - A current browser with PDF viewing and printing support
 
 Check the required commands:
@@ -43,21 +43,21 @@ merely by a successful local build.
 
 ## Choose storage locations
 
-Forge uses two persistent host directories:
+FORGE GameSheets uses two persistent host directories:
 
 - **Library:** authoritative PDFs and detected game artwork. It is mounted
   read-only inside the container.
 - **Data:** the SQLite database, uploaded artwork, previews, and generated
-  FORGE Reprints. It is mounted read-write.
+  FORGE GameSheets Reprints. It is mounted read-write.
 
 The default locations are `library/` and `data/` inside the checkout. External
 locations are supported and are preferable when an existing library or backup
 policy already exists.
 
 A library on NFS, SMB, or a NAS is supported only when the host operating system
-has already mounted it as a normal directory. Forge and its Compose file do not
+has already mounted it as a normal directory. FORGE GameSheets and its Compose file do not
 mount or authenticate to network storage themselves. Confirm that the mount is
-available before starting Forge and after every host reboot.
+available before starting FORGE GameSheets and after every host reboot.
 
 Never use the same directory for both library and data.
 
@@ -88,7 +88,7 @@ The fixed `10001:10001` identity is the non-root account used inside the
 container. Do not give that account ownership of the source library. The source
 library only needs to be readable and searchable by the container.
 
-## Configure Forge
+## Configure FORGE GameSheets
 
 Edit `.env`; do not edit `compose.yml` for host-specific settings. A future Git
 update may need to replace the tracked Compose file, while `.env` is ignored by
@@ -121,7 +121,7 @@ FORGE_GAMESHEETS_LIBRARY_PATH=/mnt/tabletop/game-sheets
 ```
 
 Create the configured data directory and make it writable by `10001:10001`
-before starting Forge. Preserve the existing ownership of the library.
+before starting FORGE GameSheets. Preserve the existing ownership of the library.
 
 ### Run only Sheet Designer
 
@@ -134,7 +134,7 @@ FORGE_GAMESHEETS_MODE=designer
 
 Designer-only mode opens directly to Sheet Designer and stores shared drafts in
 the configured data directory under `sheet-designer/`. It does not initialize
-the PDF library, scanner, primary database, accounts, history, or FORGE Reprint
+the PDF library, scanner, primary database, accounts, history, or FORGE GameSheets Reprint
 features. The library mount remains configured but is ignored. An omitted value
 or `full` starts the complete application, so existing installations retain
 their current behavior.
@@ -153,7 +153,7 @@ modes.
 | Trusted private LAN | `0.0.0.0` | Trusted household or isolated test network |
 | HTTPS reverse proxy | Usually `127.0.0.1` | Non-local account sign-in through a protected frontend |
 
-Forge supports opt-in accounts, roles, and login throttling, but has no built-in
+FORGE GameSheets supports opt-in accounts, roles, and login throttling, but has no built-in
 TLS or general per-client traffic limit. Non-local sign-in requires HTTPS through
 a correctly configured proxy. Binding to `0.0.0.0` exposes the port on every
 host interface allowed by the firewall. Use it only on a trusted private LAN.
@@ -161,9 +161,9 @@ Do not forward that port from an internet router.
 
 ### HTTPS with Nginx Proxy Manager
 
-Forge serves plain HTTP on its container port; do not open that port with an
+FORGE GameSheets serves plain HTTP on its container port; do not open that port with an
 `https://` URL. Nginx Proxy Manager (NPM) terminates HTTPS and forwards ordinary
-HTTP to Forge. A private-CA or self-signed certificate is sufficient for a local
+HTTP to FORGE GameSheets. A private-CA or self-signed certificate is sufficient for a local
 network, but each browser must trust its issuing CA to avoid a certificate warning.
 A publicly trusted certificate is not required for a local-only installation.
 
@@ -171,18 +171,18 @@ Create a Proxy Host in NPM with:
 
 | NPM field | Value |
 | --- | --- |
-| Domain Names | The Forge name, for example `forge.home.arpa` |
+| Domain Names | The FORGE GameSheets name, for example `forge.home.arpa` |
 | Scheme | `http` |
 | Forward Hostname / IP | The Docker host address |
-| Forward Port | The configured Forge port, normally `8000` |
+| Forward Port | The configured FORGE GameSheets port, normally `8000` |
 | Access List | Restrict to the intended network/users; do not publish the host to the Internet |
 | Cache Assets | Off |
-| Websockets Support | Off; Forge does not currently use WebSockets |
-| SSL Certificate | A certificate valid for the Forge hostname |
+| Websockets Support | Off; FORGE GameSheets does not currently use WebSockets |
+| SSL Certificate | A certificate valid for the FORGE GameSheets hostname |
 | Force SSL | On |
 | HSTS | Leave off until HTTPS and certificate trust are verified |
 
-Use the HTTPS hostname in Forge. If NPM is on another host, Forge must listen on
+Use the HTTPS hostname in FORGE GameSheets. If NPM is on another host, FORGE GameSheets must listen on
 the LAN interface so NPM can reach it; restrict port 8000 with the host firewall
 to the NPM address when practical:
 
@@ -195,11 +195,11 @@ FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS=192.0.2.10
 ```
 
 Replace the example hostname and IP. `FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS`
-must be the NPM source address **as Forge sees it**, never `*`. When NPM runs on
+must be the NPM source address **as FORGE GameSheets sees it**, never `*`. When NPM runs on
 the Docker host and reaches `127.0.0.1:8000`, keep the localhost bind and default
 trusted-proxy address instead.
 
-After changing `.env`, recreate Forge, then confirm that Compose passed all three
+After changing `.env`, recreate FORGE GameSheets, then confirm that Compose passed all three
 runtime values:
 
 ```sh
@@ -208,10 +208,10 @@ docker compose exec app env | grep -E 'FORWARDED|BASE_URL|ALLOWED_HOSTS'
 ```
 
 Open only the public HTTPS hostname, without `:8000`. Verify the sign-in page from
-another device before activating accounts. If Forge says `Use HTTPS to sign in`,
-see [HTTPS is working at Nginx but Forge reports HTTP](#https-is-working-at-nginx-but-forge-reports-http).
+another device before activating accounts. If FORGE GameSheets says `Use HTTPS to sign in`,
+see [HTTPS is working at Nginx but FORGE GameSheets reports HTTP](#https-is-working-at-nginx-but-forge-gamesheets-reports-http).
 
-### Configure FORGE Reprint links
+### Configure FORGE GameSheets Reprint links
 
 `FORGE_GAMESHEETS_BASE_URL` is the address encoded in generated QR codes. It
 must be reachable by the phone, tablet, or computer that scans them. Examples:
@@ -229,7 +229,7 @@ address makes existing generated copies stale; generate them again so their QR
 codes use the new destination.
 
 After changing the public address or installing a release with a new reprint
-generator, open **Admin → FORGE Reprints**. Use **Refresh existing
+generator, open **Admin → FORGE GameSheets Reprints**. Use **Refresh existing
 reprints** to update only stored copies or **Create or refresh all reprints** to
 cover every eligible PDF. The operation continues independently of the browser
 request and reports skipped or failed resources individually. Only one bulk job
@@ -290,17 +290,17 @@ game-sheets/
 
 PDFs directly at the library root are ignored. For a collection that has not
 yet been organized by game, create a normal first-level staging folder such as
-`Unsorted/` and place the PDFs there. Forge treats **Unsorted** as an ordinary
+`Unsorted/` and place the PDFs there. FORGE GameSheets treats **Unsorted** as an ordinary
 game folder; it has no reserved or special behavior. Move each PDF to its proper
 game folder and rescan as the collection is organized.
 
-Start Forge after copying files, or select **Rescan library**. Files with
+Start FORGE GameSheets after copying files, or select **Rescan library**. Files with
 unrecognized names remain accessible and can receive display-title and document
-type overrides in the interface. Forge does not rename or modify source PDFs.
+type overrides in the interface. FORGE GameSheets does not rename or modify source PDFs.
 
 Normal operation consists of adding or removing library files, rescanning,
 editing display metadata, organizing categories, and optionally generating
-FORGE Reprints. Keep the host-mounted library available whenever Forge runs.
+FORGE GameSheets Reprints. Keep the host-mounted library available whenever FORGE GameSheets runs.
 
 ## Stop and restart
 
@@ -324,7 +324,7 @@ history, uploaded artwork, and generated output.
 
 For a consistent filesystem backup:
 
-Stop Forge using the method appropriate to the deployment, then back up both
+Stop FORGE GameSheets using the method appropriate to the deployment, then back up both
 configured persistent locations: the source library and the complete
 application data directory. Ensure the backup process can read container-owned
 files, treat any permission error or omitted path as a failed backup, and verify
@@ -348,7 +348,7 @@ git status --short --branch
 
 Resolve any tracked-file changes deliberately before continuing. Do not discard
 unknown changes. Update the deployment files first, review `.env.example` for new
-settings, then stop Forge and back up its complete data directory. Pull and
+settings, then stop FORGE GameSheets and back up its complete data directory. Pull and
 recreate from the updated Compose definition:
 
 ```sh
@@ -373,7 +373,7 @@ Confirm that the downloaded image reports the intended revision before
 recreating the container. This prevents an accidentally republished older
 development image from being started against newer application data. Then
 verify the same revision in `/health` or Settings, inspect one game, view one
-original PDF, and open one FORGE Reprint after every update. Database migrations
+original PDF, and open one FORGE GameSheets Reprint after every update. Database migrations
 run automatically; the stopped data backup is the recovery point if an update
 must be abandoned.
 
@@ -383,11 +383,11 @@ input to Compose; an older `compose.yml` may not pass it into the container.
 
 ## Troubleshooting
 
-### HTTPS is working at Nginx but Forge reports HTTP
+### HTTPS is working at Nginx but FORGE GameSheets reports HTTP
 
 If the browser reaches `https://` but the sign-in page returns `Use HTTPS to sign
-in`, Nginx is probably forwarding correctly while Forge does not trust its
-forwarded scheme. Confirm the source address in Forge's logs and the running
+in`, Nginx is probably forwarding correctly while FORGE GameSheets does not trust its
+forwarded scheme. Confirm the source address in FORGE GameSheets’ logs and the running
 environment:
 
 ```sh
@@ -400,12 +400,12 @@ If that variable is absent even though it exists in `.env`, update `compose.yml`
 through the normal Git upgrade before recreating the container. Do not compensate
 by trusting `*`. NPM's upstream Scheme remains `http`; Force SSL applies to the
 browser-facing connection. A browser `Not Secure` warning is a separate certificate
-trust problem and does not mean Forge should trust unverified proxy headers.
+trust problem and does not mean FORGE GameSheets should trust unverified proxy headers.
 
 ### Data directory is not writable
 
 Symptoms include permission errors in `docker compose logs app` or a container
-that exits during startup. Stop Forge, then apply the container identity to the
+that exits during startup. Stop FORGE GameSheets, then apply the container identity to the
 configured data directory only:
 
 ```sh
@@ -427,7 +427,7 @@ sudo ss -ltnp | grep ':8000'
 Choose an unused `FORGE_GAMESHEETS_PORT` in `.env`, rebuild only when other
 build settings changed, and recreate the container.
 
-### Forge works locally but not from another device
+### FORGE GameSheets works locally but not from another device
 
 Confirm `FORGE_GAMESHEETS_BIND_ADDRESS=0.0.0.0` is intentional for this trusted
 LAN, the host firewall allows the configured port, and the client uses the
@@ -439,7 +439,7 @@ on the client or use the LAN IP address.
 1. Run `docker compose config` and inspect the host source mounted at `/library`.
 2. Confirm that source exists, is mounted, and is readable by Docker.
 3. Confirm every game is a first-level directory beneath the library root.
-4. Select **Rescan library** and review any scan warning shown by Forge.
+4. Select **Rescan library** and review any scan warning shown by FORGE GameSheets.
 5. Check `docker compose logs app` for permission and parsing errors.
 
 An unavailable NAS mount may look like an empty directory. Restore the host
@@ -479,7 +479,7 @@ retry the fast-forward pull.
 
 ## Security and content responsibility
 
-- Keep Forge on localhost or a trusted private network unless an authenticated
+- Keep FORGE GameSheets on localhost or a trusted private network unless an authenticated
   proxy or VPN protects it.
 - Keep the source library read-only inside the container.
 - Do not place credentials in the repository or `compose.yml`.
@@ -492,27 +492,27 @@ For beta workflow testing, continue with [the beta testing guide](BETA_TESTING.m
 
 ## Browser submission protection
 
-FORGE rejects state-changing requests unless their Origin matches the requested
+FORGE GameSheets rejects state-changing requests unless their Origin matches the requested
 scheme, hostname, and port. If Origin is absent, a matching Referer is required;
 missing or invalid values receive 403. This protects browser submissions, not
 access by untrusted clients, and does not replace authentication.
 
 Reverse proxies must preserve the public Host and convey the external scheme
 through the server's trusted-proxy configuration. Do not trust forwarded headers
-from arbitrary clients. FORGE does not use raw X-Forwarded-Host as an allowlist.
+from arbitrary clients. FORGE GameSheets does not use raw X-Forwarded-Host as an allowlist.
 The QR base URL is not an alternate allowed origin. Use the same address to open
 the form and submit it. Scripted mutations must supply their intended Origin.
 Referrer information is retained for same-origin requests only and is not sent
 to other origins. GET-based viewing and QR navigation remain available without
 Origin headers; protections for expensive GET operations are a separate review.
 
-Viewing and downloading an existing FORGE Reprint never creates a missing
-generated file. Generate or regenerate it from its FORGE Reprint page first.
+Viewing and downloading an existing FORGE GameSheets Reprint never creates a missing
+generated file. Generate or regenerate it from its FORGE GameSheets Reprint page first.
 Original PDF view/download intentionally records Recent and History activity.
 Preview requests may populate their bounded cache; both are expected product
 behavior rather than administrative changes.
 
-FORGE accepts `localhost`, `127.0.0.1`, `::1`, and the hostname from
+FORGE GameSheets accepts `localhost`, `127.0.0.1`, `::1`, and the hostname from
 `FORGE_GAMESHEETS_BASE_URL` automatically. Add other exact LAN or proxy names as
 a comma-separated `FORGE_GAMESHEETS_ALLOWED_HOSTS` value in `.env`, without
 schemes, ports, paths, or wildcard characters. For example:
@@ -541,7 +541,7 @@ as seen by the container. The default `127.0.0.1` does not trust arbitrary LAN
 clients. Do not set `*` for normal LAN deployment. The proxy must replace client
 forwarded headers, preserve the public Host, and prevent direct access around
 its authentication. This controls trusted scheme/client forwarding separately
-from FORGE's allowed Host list. See [Uvicorn proxy settings](https://www.uvicorn.org/settings/).
+from FORGE GameSheets’ allowed Host list. See [Uvicorn proxy settings](https://www.uvicorn.org/settings/).
 End-to-end HTTPS/proxy verification remains deployment-specific.
 
 Uvicorn access/error logs remain available through Docker. Compose uses rotating
@@ -558,12 +558,12 @@ One preview/reprint render runs at a time per process, with an additional
 advisory file lock preventing concurrent renders by workers sharing the data
 directory. Admission waits at most five seconds in-process; a busy worker lock
 rejects immediately. `.pdf-processing.lock` is a persistent coordination file,
-not a generated PDF; do not delete it while FORGE is running. The supported
+not a generated PDF; do not delete it while FORGE GameSheets is running. The supported
 Mac/Linux filesystem must provide reliable advisory file locking.
 
 New output writes are capped at 250 MiB per reprint and 1 MiB per preview. The
 combined `generated/` and `previews/` budget is 5 GiB, including temporary and
-older files. Before rendering, FORGE conservatively requires room for the full
+older files. Before rendering, FORGE GameSheets conservatively requires room for the full
 per-file maximum plus 100 MiB free disk headroom; old output stays in place
 until a replacement passes validation. This means even a small reprint requires
 350 MiB free disk and 250 MiB remaining cache budget to begin. Space is checked

@@ -1,4 +1,4 @@
-# Forge GameSheets Project Plan
+# FORGE GameSheets Project Plan
 
 Status labels used below:
 
@@ -8,18 +8,19 @@ Status labels used below:
 
 ## 1. Project identity
 
-- **Confirmed:** Product name: **Forge GameSheets**
+- **Confirmed:** Product name: **FORGE GameSheets**
 - **Confirmed:** Tagline: **Collect. Create. Print. Play. Or Go Live with LiveSheets.**
 - **Confirmed:** Repository and container naming: `forge-gamesheets`
-- **Confirmed:** The product is a self-hosted printable-game-resource library
-  and, in later phases, a print-on-demand document forge.
+- **Confirmed:** The product combines a self-hosted GameSheet designer,
+  temporary LiveSheet scoring, and a printable-game-resource library with PDF
+  management.
 - **Confirmed:** Brand artwork exists outside this repository and will be added
   to `app/static/brand/` when an approved source asset is available.
 
 ## 2. Problem and hosting model
 
 Board-game rules, score sheets, quick references, player aids, and other
-printables tend to be scattered across folders and websites. Forge GameSheets
+printables tend to be scattered across folders and websites. FORGE GameSheets
 will provide one browsable, searchable place to organize and print them.
 
 - **Confirmed:** The application will be self-hosted.
@@ -48,14 +49,14 @@ will provide one browsable, searchable place to organize and print them.
 9. **Confirmed:** External enrichment services are outside the MVP. The first
    approved enrichment workstream is the Phase 2 BoardGameGeek integration.
 10. **Confirmed:** Work should proceed in small, tested Git commits.
-11. **Confirmed:** Forge GameSheets remains useful from locally cached state
+11. **Confirmed:** FORGE GameSheets remains useful from locally cached state
     when optional external services are unavailable.
 12. **Confirmed:** Security is a primary release requirement. Perform an
     evidence-based OWASP ASVS self-assessment as a future action and before
     every major release. Automated checks and maintainer-led, AI-assisted review
     are the planned release controls; do not claim independent certification.
     See [security planning](docs/SECURITY_PLAN.md).
-13. **Confirmed:** New Forge GameSheets releases use `AGPL-3.0-only` to keep
+13. **Confirmed:** New FORGE GameSheets releases use `AGPL-3.0-only` to keep
     distributed forks and modified network deployments source-available.
     Versions through commit `91ba590` were offered under MIT and retain those
     historical terms. The software license does not apply to user-managed PDFs,
@@ -64,7 +65,7 @@ will provide one browsable, searchable place to organize and print them.
 
 ### Current execution sequence
 
-Owner-approved separate increment — manual BGG edition reference on Forge game
+Owner-approved separate increment — manual BGG edition reference on FORGE GameSheets game
 entries: optional version URL or ID and readable label in the existing BGG editor
 section, token-free Versions shortcut and View your edition action. Implemented
 and owner-reviewed. Migration 32 adds empty optional edition storage; rescans
@@ -79,7 +80,7 @@ require the slug; otherwise show main-page fallbacks. Edition main-page URLs sta
 ID-only, relying on BGG's version-page redirect. No automatic page-view/scanning
 requests, scraping, game-ID replacement or measurement changes are introduced.
 
-Owner-approved separate increment — optional physical box dimensions on Forge
+Owner-approved separate increment — optional physical box dimensions on FORGE GameSheets
 game entries only: manual Length/Width/Depth plus explicit in/cm unit, existing
 edit/detail UI, application-data persistence and metadata export/import.
 Implemented and owner-reviewed. Legacy records remain unknown; migration 31
@@ -87,7 +88,7 @@ adds empty optional storage. The associated game's dimensions are shown as a
 reference in the Designer header. No BGG retrieval, FGS specification,
 renderer, PDF or fit-to-box changes are part of this increment.
 
-Owner-approved implementation — trackers and music / reusable paper in Forge
+Owner-approved implementation — trackers and music / reusable paper in FORGE GameSheets
 and FGS Studio, including basic host-controlled shared LiveSheet trackers.
 FGS 1.3 and Page Rendering Profile 1.3 are implemented and owner-reviewed. See the
 [1.3 specification](docs/FGS_V1_3_SPECIFICATION.md) and
@@ -106,24 +107,27 @@ Personal health measurement logs, multipage output, MusicXML import, general
 tables/fields and advanced freeform layouts remain separate future work.
 
 Completed and published — global Links (owner accepted the installed update):
-Forge only, with
+FORGE GameSheets only, with
 one Links page showing Personal Favorites for signed-in users above Admin-curated
-Forge Favorites, followed by enabled links grouped by editable categories.
-Admin manages links and Forge Favorites on the same Links page; personal
+FGS Favorites, followed by enabled links grouped by editable categories.
+Admin manages links and FGS Favorites on the same Links page; personal
 favorites reference existing enabled links only.
 The unified directory uses compact resource-style rows, alphabetical within
 each category, with an Admin toolbar and collapsed grouped disabled entries.
 Category editing remains a separate Admin tool; category and shared-favorite
 order stay configurable, but per-link directory order is no longer editable.
 Rows have
-personal stars and Admin-only pins (shared Forge Favorites), edit and confirmed
+personal stars and Admin-only pins (shared FGS Favorites), edit and confirmed
 delete controls; favorite shortcut sections remain unchanged. Deletion uses a
 focused confirmation page with Cancel. New categories default to the next order
 after the existing maximum, within the supported limit.
 Seed three categories and fourteen starter links from `app/defaults/links.json`
-once, with Forge Favorites initially
+once, with FGS Favorites initially
 empty. Upgrades preserve edits and deletions; explicit Add missing starter links
 restores missing defaults without overwriting records.
+The current bundled file adds a fifteenth, separately identified FORGE TTRPG
+web link. Existing installations add it only through the explicit starter-link
+action; the original seed history is unchanged.
 Local follow-up: the starter-links toolbar action opens a focused
 confirmation page with Add and Cancel, rather than jumping to a collapsed
 section; no redundant checkbox is required. Preserve existing game
@@ -136,7 +140,7 @@ Build each runtime variant once, smoke-test and scan both before registry login,
 and assemble the release manifest from those exact verified images. Keep Compose
 architecture-neutral so Docker selects the native variant automatically. Local
 ARM64 builds or emulation alone are not evidence of published ARM64 support.
-Publishing CI passed and both registry manifest digests were verified for Forge
+Publishing CI passed and both registry manifest digests were verified for FORGE GameSheets
 revision `e9dde6d`. The owner accepted the installed update. This does not claim
 an exhaustive native-ARM64 test matrix or authorize production deployment.
 
@@ -148,9 +152,9 @@ label to Score table title. Preserve 1.0/1.1 compatibility, keep both products
 pinned to the same Page Rendering Profile 1.2 build, and do not include unrelated
 Designer improvements in this increment.
 
-Publication evidence: Forge source/container revision `e9dde6d`; FGS Studio
+Publication evidence: FORGE GameSheets source/container revision `e9dde6d`; FGS Studio
 revision `0b2ac6f`, automatically deployed to GitHub Pages and verified live.
-The release passed Forge's automated regression/lint, Studio and shared-renderer
+The release passed FORGE GameSheets’ automated regression/lint, Studio and shared-renderer
 tests, dependency audits, and both architecture smoke/scan gates. Existing
 accepted Debian High findings remain documented in the security plan; publication
 does not claim a vulnerability-free release.
@@ -172,7 +176,7 @@ This is the authoritative near-term order. Detailed owner testing may identify
 focused corrections, but completed milestones are not repeated merely as gates
 for the next approved feature.
 
-1. **Completed:** Phase 1 library, Phase 1.5 individual FORGE Reprints, bulk
+1. **Completed:** Phase 1 library, Phase 1.5 individual FORGE GameSheets Reprints, bulk
    game categorization and optional folder-category import, token-free manual
    BGG links, local accounts/resource-scoped QR access, and the initial container
    deployment.
@@ -183,7 +187,7 @@ for the next approved feature.
 3. **Completed:** Keep account activation, Nginx Proxy
    Manager, upgrade, category-hint, screenshot, and security guidance aligned
    with the shipped behavior.
-4. **Completed and published:** The Admin-only bulk FORGE
+4. **Completed and published:** The Admin-only bulk FORGE GameSheets
    Reprint maintenance utility defined in Milestone D and
    [decision 005](docs/decisions/005-bulk-forge-reprint-maintenance.md).
 5. **Completed:** Validate regeneration after application generator changes and
@@ -303,7 +307,7 @@ rather than delaying feature progress beforehand.
   configurable without requiring users to edit tracked Compose configuration.
 - **Confirmed:** Clearly distinguish localhost-only, trusted-LAN, and
   reverse-proxy access models.
-- **Confirmed:** Warn that authentication is off until local setup and Forge must not be
+- **Confirmed:** Warn that authentication is off until local setup and FORGE GameSheets must not be
   exposed directly to the public Internet.
 - **Confirmed:** Retain the application health check and verify that container
   health represents a functioning application rather than merely an existing
@@ -321,7 +325,7 @@ rather than delaying feature progress beforehand.
 
 - **Confirmed:** Introduce generated printable copies as derived resources
   without modifying or replacing the authoritative source PDFs.
-- **Confirmed:** Add a small configurable Forge Mark, brief reprint guidance,
+- **Confirmed:** Add a small configurable FORGE GameSheets Mark, brief reprint guidance,
   and a QR code to generated copies.
 - **Confirmed:** Use stable application resource URLs that survive display-title
   changes.
@@ -339,7 +343,7 @@ rather than delaying feature progress beforehand.
 - **Proposed:** Start with one constrained generated-copy workflow rather than
   a general template designer or game-specific document generator.
 - **Proposed:** Let a user choose an existing PDF resource, preview the derived
-  copy, and intentionally generate or download it with the Forge Mark and QR
+  copy, and intentionally generate or download it with the FORGE GameSheets Mark and QR
   reprint information.
 - **Confirmed:** Make generated and static resources understandable within the
   existing game/resource interface.
@@ -376,7 +380,7 @@ rather than delaying feature progress beforehand.
   metadata with explicit fill-empty or replace policies, and offers a secondary
   read-only shortcut scan.
 
-#### Milestone D — Bulk FORGE Reprint maintenance
+#### Milestone D — Bulk FORGE GameSheets Reprint maintenance
 
 **Implemented, published, and owner-validated.**
 
@@ -417,7 +421,7 @@ rather than delaying feature progress beforehand.
   common failures.
 - **Confirmed:** Explain that host bind-mount paths may point to local disks or
   storage already mounted by the host operating system, including NAS-backed
-  paths; Forge does not mount NFS, SMB, or NAS storage itself.
+  paths; FORGE GameSheets does not mount NFS, SMB, or NAS storage itself.
 - **Confirmed:** Include exact troubleshooting guidance for an unwritable data
   directory, an occupied port, localhost-only access, missing library content,
   and a container that exits immediately after creation.
@@ -462,9 +466,9 @@ rather than delaying feature progress beforehand.
   needed before declaring the Phase 1.5 release stable and beginning the BGG
   integration.
 
-## 7. Phase 1.5 — Forge Mark and QR reprints
+## 7. Phase 1.5 — FORGE GameSheets Mark and QR reprints
 
-- **Completed:** Offer optional printable copies with a small Forge Mark,
+- **Completed:** Offer optional printable copies with a small FORGE GameSheets Mark,
   brief reprint instructions, and a QR code.
 - **Completed:** QR destinations open a resource page with view/print actions;
   scanning must not trigger printing automatically.
@@ -475,7 +479,7 @@ rather than delaying feature progress beforehand.
 
 ## 8. Phase 2 — BoardGameGeek integration
 
-**Completed — owner accepted live integration validation:** BGG approved Forge GameSheets as a
+**Completed — owner accepted live integration validation:** BGG approved FORGE GameSheets as a
 non-commercial public-facing XML API application on 2026-09-14. Each independent
 self-hosted operator supplies a separately approved token; no token is bundled
 with the source or container image. Preserve token-free operation as the default
@@ -489,14 +493,14 @@ configuration status without claiming approval or verified working access.
 FGS documents do not require a BGG ID.
 
 **Future resilience testing — not a current completion blocker:** The owner has
-not manually verified Forge with BGG unavailable. Test the existing installation
+not manually verified FORGE GameSheets with BGG unavailable. Test the existing installation
 with outbound internet access disconnected (while retaining local access) and
 confirm local library browsing, existing PDFs, Designer/PDF export and cached
 metadata remain usable. BGG-dependent actions should fail gracefully. Record
 this as future testing, not as an already verified offline guarantee.
 
 BoardGameGeek (BGG) is the primary approved external reference and enrichment
-source. A local Forge game remains the primary object, and normal library use
+source. A local FORGE GameSheets game remains the primary object, and normal library use
 must not depend on BGG availability after enrichment data has been cached.
 
 - **Confirmed:** Use the official BGG XML API2 where possible. Do not scrape
@@ -528,7 +532,7 @@ must not depend on BGG availability after enrichment data has been cached.
   registration and a private token. Ordinary users of that server do not supply
   tokens. Never distribute the project owner's token in source or images.
 - **Confirmed:** The BGG ID is an optional stable external identifier available
-  to future FGS files and workflows. It is not required for every Forge game or
+  to future FGS files and workflows. It is not required for every FORGE GameSheets game or
   every FGS file.
 
 For future BGG changes, preserve the established database, scanner, artwork,
@@ -540,7 +544,7 @@ The complete approved boundary is recorded in
 
 ## 9. Phase 3 — FGS Structured GameSheet System
 
-Forge GameSheets is the application. **FGS** is its portable structured
+FORGE GameSheets is the application. **FGS** is its portable structured
 GameSheet format, and `.fgs` is the native extension. An FGS file is editable
 source; a **GameSheet** is a rendered result.
 
@@ -572,7 +576,7 @@ source; a **GameSheet** is a rendered result.
 - **Confirmed:** BGG association is optional metadata. An FGS without a BGG ID
   is valid.
 - **Confirmed:** Future sharing may include both a rendered GameSheet and its
-  editable `.fgs` source. Forge distributes tooling, not third-party game
+  editable `.fgs` source. FORGE GameSheets distributes tooling, not third-party game
   content, and will not operate a public FGS repository.
 - **Completed:** Opening Sheet Designer leads to a lightweight shared-workspace
   choice rather than automatically reopening the last active draft. It offers
@@ -603,7 +607,7 @@ renderer, header logos/footer, FGS 1.2 editorial notes and configurable table
 headings are implemented. Global external-resource navigation is provided by Links.
 These are not future-work items.
 
-The first small-format print increment is implemented in Forge Designer
+The first small-format print increment is implemented in FORGE GameSheets’ Sheet Designer
 and Studio. The reviewed beta keeps Full Page's existing single-page
 renderer unchanged while composing Half Page, Poker Card, Bridge Card, and Custom
 Size as intentionally designed, single-item sheets. Compact content wraps and
@@ -705,11 +709,11 @@ Suggested early commits after this scaffold:
 - Do not let future generation needs distort the Phase 1 scope, but keep the
   resource abstraction compatible with them.
 - Do not make normal local library use dependent on BGG availability.
-- Do not require a BGG ID for a Forge game or FGS file.
+- Do not require a BGG ID for a FORGE GameSheets game or FGS file.
 - Do not make FGS executable, PDF-only, tied to internal database IDs, or
   limited to one document per game.
 - Do not ship copyrighted third-party game files or community-created FGS
-  content with Forge.
+  content with FORGE GameSheets.
 - Do not expose arbitrary filesystem paths through the web application.
 - Do not begin production deployment until the local milestones are tested and
   production host, port, storage, permissions, backups, and access are reviewed.

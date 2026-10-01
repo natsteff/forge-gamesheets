@@ -24,7 +24,7 @@ from app.sheet_designer.web import router
 
 def create_standalone_app(data_root: Path | None = None) -> FastAPI:
     package_root = Path(__file__).resolve().parents[1]
-    application = FastAPI(title="Forge GameSheets Sheet Designer")
+    application = FastAPI(title="FORGE GameSheets Sheet Designer")
     application.add_middleware(LimitedRequestBodies)
     application.add_middleware(SameOriginMutations)
     application.add_middleware(AllowedHosts)

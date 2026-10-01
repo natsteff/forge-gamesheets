@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Edit {{ game.title }} entry · Forge GameSheets{% endblock %}
+{% block title %}Edit {{ game.title }} entry · FORGE GameSheets{% endblock %}
 
 {% block content %}
   <a class="back-link" href="{{ url_for('game_detail', game_id=game.id) }}">← Back to game</a>
@@ -179,7 +179,7 @@
     <details class="bgg-manual-fallback"{% if bgg_error in ['invalid-reference', 'manual-lookup-failed', 'manual-not-found'] or not bgg_configured %} open{% endif %}>
       <summary>{% if bgg_configured %}Can’t find the right game? Enter a BGG URL manually{% else %}Enter a BGG URL manually{% endif %}</summary>
       {% if bgg_configured %}
-        <p>Enter the authoritative BGG game URL to {% if bgg_association and bgg_association.bgg_id %}replace the current association{% else %}create the association{% endif %}. Forge verifies that exact BGG ID without running a title search. If verification fails, the current association is not changed.</p>
+        <p>Enter the authoritative BGG game URL to {% if bgg_association and bgg_association.bgg_id %}replace the current association{% else %}create the association{% endif %}. FORGE GameSheets verifies that exact BGG ID without running a title search. If verification fails, the current association is not changed.</p>
       {% else %}
         <p>This fallback {% if bgg_association and bgg_association.bgg_id %}replaces the current association{% else %}stores the association{% endif %} without contacting or verifying it through the BGG API.</p>
       {% endif %}
@@ -193,7 +193,7 @@
     </details>
 
     <h3>Your edition</h3>
-    <p>Optional manual reference, available without an API token. Forge does not fetch this page, verify that the edition belongs to this game, or change your box dimensions.</p>
+    <p>Optional manual reference, available without an API token. FORGE GameSheets does not fetch this page, verify that the edition belongs to this game, or change your box dimensions.</p>
     {% if bgg_status == "edition-saved" %}<p class="status-banner" role="status">Your edition was saved.</p>{% elif bgg_status == "edition-removed" %}<p class="status-banner" role="status">Your edition reference was removed. Box dimensions are unchanged.</p>{% endif %}
     {% if bgg_edition %}
       <p><strong>{{ bgg_edition.label or 'BGG version ' ~ bgg_edition.version_id }}</strong> · Manually selected; not API-verified.</p>
@@ -226,9 +226,9 @@
     <h2>Choose a custom image</h2>
     <div class="artwork-guidance">
       <h3>Recommended: keep artwork with the game</h3>
-      <p>For the best balance of quality and storage, use a square <strong>1024 × 1024 WebP</strong> named <code>icon.webp</code> at the top level of the game’s library folder, then rescan. PNG and JPEG are also supported, and <code>cover</code> may be used instead of <code>icon</code>. Forge creates an optimized WebP display cache without changing the source image.</p>
+      <p>For the best balance of quality and storage, use a square <strong>1024 × 1024 WebP</strong> named <code>icon.webp</code> at the top level of the game’s library folder, then rescan. PNG and JPEG are also supported, and <code>cover</code> may be used instead of <code>icon</code>. FORGE GameSheets creates an optimized WebP display cache without changing the source image.</p>
     </div>
-    <p><strong>Web upload alternative:</strong> Uploading here stores an app-managed copy in Forge’s writable data folder, not in the read-only library. It overrides detected folder artwork and must be included with application-data backups. Use this when you cannot add an image to the source library.</p>
+    <p><strong>Web upload alternative:</strong> Uploading here stores an app-managed copy in FORGE GameSheets’ writable data folder, not in the read-only library. It overrides detected folder artwork and must be included with application-data backups. Use this when you cannot add an image to the source library.</p>
     <p>PNG, JPEG, or WebP up to 25 MB and 40 megapixels. All artwork is center-cropped when it is not already square. Uploaded images are saved as 1024 × 1024 WebP; detected library artwork is cached at 512 × 512 for display.</p>
     {% if game.has_artwork %}
       <img class="artwork-preview" src="{{ url_for('game_artwork', game_id=game.id) }}" alt="Current artwork for {{ game.title }}">

@@ -1,7 +1,7 @@
 # Account and QR security review — pre-commit
 
 > Historical note: this review covers the retired opaque `/s/` sharing-link
-> design. Current FORGE Reprints use stable `/r/{resource_id}` addresses with
+> design. Current FORGE GameSheets Reprints use stable `/r/{resource_id}` addresses with
 > public-by-default, per-resource sign-in restrictions.
 
 Date: 2026-09-04. Baseline: `2d610a98ae82d61145b0950e0719c9f8d49bc14b`

@@ -60,7 +60,7 @@ def create_app(
 
     identity = build_info or BuildInfo.from_environment()
     application = FastAPI(
-        title="Forge GameSheets",
+        title="FORGE GameSheets",
         description="Collect. Create. Print. Play. Or Go Live with LiveSheets.",
         version=identity.version,
         lifespan=lifespan,

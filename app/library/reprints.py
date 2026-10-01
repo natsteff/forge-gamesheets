@@ -1,4 +1,4 @@
-"""Generate immutable Forge-marked copies of indexed PDF resources."""
+"""Generate immutable FORGE GameSheets-marked copies of indexed PDF resources."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def generate_forge_reprint(
     target_url: str,
     force: bool = False,
 ) -> Path:
-    """Create or reuse a source-specific Forge-marked PDF copy atomically."""
+    """Create or reuse a source-specific FORGE GameSheets-marked PDF copy atomically."""
     try:
         source_stat = source_path.stat()
         validate_pdf_file_size(source_stat.st_size)
@@ -109,7 +109,9 @@ def generate_forge_reprint(
         raise
     except (OSError, RuntimeError, ValueError) as error:
         temporary.unlink(missing_ok=True)
-        raise ReprintGenerationError("Forge reprint generation failed.") from error
+        raise ReprintGenerationError(
+            "FORGE GameSheets reprint generation failed."
+        ) from error
 
     return destination
 
@@ -164,7 +166,8 @@ def _write_reprint(source_path: Path, output_path: Path, target_url: str) -> Non
             height = source_page.rect.height
             if width < MINIMUM_PAGE_WIDTH_POINTS or height < MINIMUM_PAGE_HEIGHT_POINTS:
                 raise ReprintGenerationError(
-                    f"Page {page_number + 1} is too small for the Forge reprint mark."
+                    f"Page {page_number + 1} is too small for the "
+                    "FORGE GameSheets reprint mark."
                 )
 
             footer_height = _footer_height(width)
@@ -184,7 +187,7 @@ def _write_reprint(source_path: Path, output_path: Path, target_url: str) -> Non
 
         output.set_metadata(
             {
-                "producer": "Forge GameSheets",
+                "producer": "FORGE GameSheets",
                 "subject": target_url,
                 "keywords": f"forge-reprint-v{GENERATOR_VERSION}",
             }
@@ -228,7 +231,9 @@ def _footer_logo_png() -> bytes:
     try:
         return _FOOTER_LOGO_PATH.read_bytes()
     except OSError as error:
-        raise ReprintGenerationError("FORGE footer logo is unavailable.") from error
+        raise ReprintGenerationError(
+            "FORGE GameSheets footer logo is unavailable."
+        ) from error
 
 
 def _draw_footer(
@@ -376,7 +381,7 @@ def _draw_center_lines(
         )
     if instruction_size is None:
         raise ReprintGenerationError(
-            "Configured base URL is too long for the FORGE Reprint footer."
+            "Configured base URL is too long for the FORGE GameSheets Reprint footer."
         )
 
     _insert_centered_text(

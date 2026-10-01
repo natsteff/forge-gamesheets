@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved for controlled testing. BGG approved Forge GameSheets as a
+Approved for controlled testing. BGG approved FORGE GameSheets as a
 non-commercial public-facing XML API application on 2026-09-14. Each independent
 self-hosted operator supplies a separately approved token. No project token is
 distributed in source or container images, and API enrichment remains disabled
@@ -16,11 +16,11 @@ fallback remain deferred.
 
 ## Decision
 
-BoardGameGeek (BGG) is Forge GameSheets' primary external source for game
+BoardGameGeek (BGG) is FORGE GameSheets' primary external source for game
 identification, reference metadata, representative artwork, and navigation to
 game-specific community Files.
 
-A local Forge game remains the primary object. Its library content remains
+A local FORGE GameSheets game remains the primary object. Its library content remains
 filesystem-authoritative. BGG enrichment must not become a requirement for
 normal library discovery or use.
 
@@ -56,7 +56,7 @@ No credentials or personal secrets may be embedded in source code. Required
 configuration belongs in the established environment/configuration system and
 must be documented for deployments.
 
-The administrator of each independently hosted Forge server registers that use
+The administrator of each independently hosted FORGE GameSheets server registers that use
 with BGG and privately configures the resulting token. Ordinary users of that
 server do not obtain tokens. Operators controlled by the same owner should use
 separate tokens where available so usage and revocation remain isolated.
@@ -91,7 +91,7 @@ The model must cleanly represent behavior equivalent to:
 - manually matched.
 
 The implemented association model represents matched, unmatched, ambiguous,
-manual, pending, and failed states. Forge must never silently choose a materially
+manual, pending, and failed states. FORGE GameSheets must never silently choose a materially
 uncertain match.
 
 An unsuccessful lookup never blocks import. If BGG is unavailable, rate
@@ -144,7 +144,7 @@ Local artwork has priority:
 - If local artwork exists, keep it and still perform/store BGG matching.
 - Do not automatically replace local artwork with a BGG image.
 - Make the associated BGG image available as an explicit replacement action.
-- If local artwork is absent and the match is reliable, Forge may use the BGG
+- If local artwork is absent and the match is reliable, FORGE GameSheets may use the BGG
   image as initial fallback artwork.
 - Preserve image provenance if the artwork model tracks it.
 
@@ -172,9 +172,9 @@ when supplied manually but is not required for either destination.
 
 The BGG ID is an optional common external identifier that may connect a local
 game, local resources, future FGS files, rendered GameSheets, and BGG pages.
-Neither a Forge game nor an FGS file requires a BGG association.
+Neither a FORGE GameSheets game nor an FGS file requires a BGG association.
 
-Forge will not become a public content host. A future workflow may help users
+FORGE GameSheets will not become a public content host. A future workflow may help users
 navigate to BGG Files and independently share both rendered GameSheets and
 editable `.fgs` sources. Investigate `forgegamesheets` as the canonical naming
 or tagging convention and `fgs` only as secondary shorthand.

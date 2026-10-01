@@ -16,7 +16,7 @@ class ConfigurationError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class Settings:
-    """Filesystem locations required by Forge GameSheets."""
+    """Filesystem locations required by FORGE GameSheets."""
 
     library_path: Path
     data_path: Path

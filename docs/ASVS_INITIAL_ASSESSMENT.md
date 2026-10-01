@@ -46,7 +46,7 @@ recording remain a separate open item; the complete A1 scope is not closed.
   `/settings/preferences` with `Origin: https://untrusted.example` and
   `Sec-Fetch-Site: cross-site` returned 303 and persisted the supplied footer
   and recent limit without credentials or a token.
-- Impact: a browser able to reach FORGE may be induced to change settings or
+- Impact: a browser able to reach FORGE GameSheets may be induced to change settings or
   invoke other state-changing operations. Browser private-network policies and
   proxy configuration affect exploitability; an actual browser exploit was not
   tested. Lack of permissive CORS does not itself reject ordinary form posts.

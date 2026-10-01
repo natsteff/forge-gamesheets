@@ -56,11 +56,13 @@ def values(**overrides):
 def test_trusted_mode_empty_favorites_and_no_personal_controls(client):
     response = client.get("/links")
     assert response.status_code == 200
-    assert "No Forge Favorites selected yet." in response.text
+    assert "No FGS Favorites selected yet." in response.text
     assert "Personal Favorites" not in response.text
     assert "Add personal favorite" not in response.text
     assert 'target="_blank" rel="noopener noreferrer"' in response.text
     assert 'href="https://www.printablepaper.net/"' in response.text
+    assert 'href="https://forge-ttrpg.vercel.app/app/templates"' in response.text
+    assert "Separate from FORGE GameSheets (FGS)" in response.text
     assert client.post("/links/1/favorite", data={"selected": "1"}).status_code == 403
     assert "Manage links" in client.get("/settings").text
     assert client.get("/settings/links").status_code == 200
@@ -115,7 +117,7 @@ def test_non_admin_cannot_manage_but_can_personally_favorite(client, role):
     assert "Personal Favorites" in response.text
     assert (
         response.text.index("Personal Favorites")
-        < response.text.index("Forge Favorites")
+        < response.text.index("FGS Favorites")
         < response.text.index("All Links")
     )
     with client.app.state.database.connect() as connection:
@@ -254,7 +256,7 @@ def test_pin_changes_only_shared_state_and_returns_to_listing(client):
         assert after[field] == before[field]
     page = client.get("/links").text
     assert page.count('href="https://www.printablepaper.net/"') == 2
-    assert 'aria-label="Unpin from Forge Favorites: Printable Paper"' in page
+    assert 'aria-label="Unpin from FGS Favorites: Printable Paper"' in page
     result = client.post(
         "/settings/links/1/pin",
         data={"selected": "0", "return_to": "https://evil.example"},
@@ -298,7 +300,7 @@ def test_unified_directory_alphabetical_and_disabled_admin_only(client):
     assert redirect.status_code == 303
     assert redirect.headers["location"] == "/links"
     assert "Order within category" not in client.get("/settings/links/1/edit").text
-    assert "Order in Forge Favorites" in client.get("/settings/links/1/edit").text
+    assert "Order in FGS Favorites" in client.get("/settings/links/1/edit").text
     client.post("/settings/links/1/edit", data=values(name="zulu"))
     assert links.get_link(db, 1)["position"] == 0
     sign_in(client, "reader")

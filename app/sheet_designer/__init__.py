@@ -1,6 +1,6 @@
 """Portable FGS structured GameSheet support.
 
-The public surface intentionally avoids importing Forge's library, account, or
+The public surface intentionally avoids importing FORGE GameSheets’ library, account, or
 database modules so the designer can run in its standalone shell.
 """
 

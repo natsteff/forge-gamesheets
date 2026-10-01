@@ -30,7 +30,7 @@ must not export a clipped PDF.
 ## Conformance
 
 The same point-based display list must drive SVG preview and vector PDF
-output in Forge and Studio. The renderer must emit an image command with the
+output in FORGE GameSheets and Studio. The renderer must emit an image command with the
 same box in both outputs and keep footer text selectable in the PDF. Tests
 cover old 1.0 geometry, a logo with different aspect ratios, footer fit,
 page dimensions, and PDF validity. A future geometry change requires another

@@ -1,4 +1,4 @@
-"""Admin-only server-rendered bulk FORGE Reprint maintenance UI."""
+"""Admin-only server-rendered bulk FORGE GameSheets Reprint maintenance UI."""
 
 from urllib.parse import urlencode
 

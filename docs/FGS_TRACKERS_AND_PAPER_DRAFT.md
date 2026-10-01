@@ -26,7 +26,7 @@ downgrade it merely because a logo/footer is changed or a new block is removed.
 
 The format extension, rendering profile extension and application interaction
 are separate contracts. Ship the new blocks in both editors together, using
-the canonical renderer in Forge's `packages/fgs-renderer` and its pinned Studio
+the canonical renderer in FORGE GameSheets’ `packages/fgs-renderer` and its pinned Studio
 distribution. A separate renderer repository is not required.
 
 ## 2. Tracker block

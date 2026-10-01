@@ -688,7 +688,7 @@ def test_standalone_shell_saves_and_exports_without_forge_database(tmp_path: Pat
         assert renderer.status_code == 200
         assert "javascript" in renderer.headers["content-type"]
         assert "/static/brand/forge-wordmark.png" in page.text
-        assert "Forge GameSheets on GitHub" in page.text
+        assert "FORGE GameSheets on GitHub" in page.text
         assert "https://github.com/natsteff/forge-gamesheets" in page.text
         assert client.get("/").url.path == "/sheet-designer"
         assert client.get("/health").json()["mode"] == "designer"
@@ -851,7 +851,7 @@ def test_designer_explains_its_scope_from_startup_and_editor():
     assert "About Sheet Designer" in template
     assert (
         '<p class="designer-startup-note">Sheets are saved automatically '
-        "in this shared Forge workspace.</p>"
+        "in this shared FORGE GameSheets workspace.</p>"
     ) in template
     assert (
         '<p class="designer-startup-about"><button class="designer-text-button" '

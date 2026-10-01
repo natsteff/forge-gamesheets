@@ -4,9 +4,9 @@ Status: superseded by [Profile 1.1](FGS_PAGE_RENDERING_PROFILE_1_1.md).
 Profile ID: `fgs-page-1.0`. This is a
 versioned appearance contract for
 FGS 1.0 documents, separate from the [FGS document specification](FGS_V1_SPECIFICATION.md).
-It does not change the meaning or schema of an `.fgs` file. Forge GameSheets
+It does not change the meaning or schema of an `.fgs` file. FORGE GameSheets
 and FGS Studio must use a pinned build of the same renderer to claim this
-profile. The source of that build is Forge's `packages/fgs-renderer/` package.
+profile. The source of that build is FORGE GameSheets’ `packages/fgs-renderer/` package.
 
 ## Page and placement
 
@@ -57,7 +57,7 @@ Images rendered at a fixed DPI are reviewed regression evidence, not the
 normative standard: PDF viewers may antialias identical geometry differently.
 
 The renderer package creates a manifest with SHA-256 hashes for its source and
-bundled browser, Node, font, and notice artifacts. Forge checks that its source
+bundled browser, Node, font, and notice artifacts. FORGE GameSheets checks that its source
 still matches the pinned build; each consumer verifies its copied artifacts.
 Any change to layout or
 appearance requires a new page-rendering-profile ID and reviewed conformance

@@ -64,7 +64,7 @@ async def manifest_preview(
             request,
             package.entries,
             policy,
-            "Forge metadata export",
+            "FORGE GameSheets metadata export",
             artwork=package.artwork,
             game_metadata=package.game_metadata,
             upload=payload,

@@ -1,6 +1,6 @@
 # 001 — Browser PDF printing is not tracked
 
-Forge GameSheets records successful PDF views and downloads. It does not expose
+FORGE GameSheets records successful PDF views and downloads. It does not expose
 a separate Print action while PDFs are served through the browser's built-in PDF
 viewer.
 

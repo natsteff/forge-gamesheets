@@ -17,7 +17,7 @@ Status: implemented and published; basic owner validation completed.
   numeric QR address permits only its one resource, original PDF, and existing
   generated copy. Access is public by default. An Admin can require sign-in for
   one resource, and that policy is checked on every landing-page and PDF request.
-- Every FORGE Reprint embeds the same stable resource address. Changing access
+- Every FORGE GameSheets Reprint embeds the same stable resource address. Changing access
   policy never modifies source content and does not require a new QR code.
 
 ## Account and session security

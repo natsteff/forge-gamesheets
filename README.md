@@ -1,18 +1,18 @@
 <p align="center">
   <img
     src="app/static/brand/forge-wordmark.png"
-    alt="Forge GameSheets logo"
+    alt="FORGE GameSheets logo"
     width="620"
   >
 </p>
 
-# Forge GameSheets
+# FORGE GameSheets
 
 **Collect. Create. Print. Play. Or Go Live with LiveSheets.**
 
-Forge GameSheets is a self-hosted home for the documents and custom sheets used
-at your gaming table. Organize and search PDF rulebooks, score sheets, player
-aids, references, and print-and-play files—all from a browser.
+FORGE GameSheets is a self-hosted sheet-design, live-scoring, and PDF library
+management system for your gaming table. Organize and search rulebooks, score
+sheets, player aids, references, and print-and-play files—all from a browser.
 
 Need a sheet that doesn’t exist yet? Use the visual Sheet Designer to build one
 from scratch, then save it as a portable FGS file or export it as a printable
@@ -20,7 +20,7 @@ PDF. Compatible GameSheets can also become temporary LiveSheets with automatic
 totals and live updates across devices. One person can score while everyone
 else follows along, or each player can enter and track their own scores.
 
-Forge GameSheets is currently in beta. Your source PDFs and saved GameSheets
+FORGE GameSheets is currently in beta. Your source PDFs and saved GameSheets
 remain under your control: the application works locally, does not require a
 cloud service, and does not modify source PDFs. Sheet Designer creates new
 sheets; it is not an editor for existing PDF files.
@@ -31,9 +31,9 @@ sheets; it is not an editor for existing PDF files.
 - Forgiving filename parsing and document-type recognition
 - Search across game and resource titles
 - Browser viewing, descriptive download filenames, and first-page PDF previews
-- Optional FORGE Reprint copies with a QR return link and source-rights notice
+- Optional FORGE GameSheets Reprint copies with a QR return link and source-rights notice
 - Admin bulk maintenance to create missing, refresh existing, or rebuild all
-  eligible FORGE Reprints with durable progress and per-resource results
+  eligible FORGE GameSheets Reprints with durable progress and per-resource results
 - Integrated Sheet Designer for creating new structured game sheets from
   scratch, with headers, score tables, references, checklists, notes, live page
   preview, automatically saved drafts, PDF or `.fgs` export, and optional
@@ -74,7 +74,7 @@ The [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md) and
 [FGS 1.3 additions](docs/FGS_V1_3_SPECIFICATION.md) define file content;
 the [Page Rendering Profile](docs/FGS_PAGE_RENDERING_PROFILE_1_3.md)
 defines single-page appearance and fit. The renderer's editable source and
-tests live in the [FGS Renderer package](packages/fgs-renderer/README.md). Forge includes
+tests live in the [FGS Renderer package](packages/fgs-renderer/README.md). FORGE GameSheets includes
 a verified, version-pinned build; the source package is not required to run the
 published image. When changing rendering, build and test that package, run
 `python3 scripts/sync_fgs_renderer.py` from this repository, and commit the
@@ -93,16 +93,17 @@ The current application also includes LiveSheet setup and play, GameSheet/game
 associations, generated GameSheet previews, the Designer's About dialog, and
 FGS 1.1 logo and Footer controls. Those newer workflows are not yet represented
 by dedicated gallery images; the existing Designer image shows an earlier
-version of the editor. The startup image also predates the separate About link
-below the save note and the reusable-paper New sheet description. The
+version of the editor. The library and reprint-maintenance images predate the
+full-name headings and broader home description. The startup image also predates
+the separate About link below the save note and the reusable-paper New sheet description. The
 [screenshot maintenance guide](docs/SCREENSHOTS.md) records the required safe
 replacement captures.
 
 | Library, pins, and categories | Game resources |
 | --- | --- |
-| ![Forge GameSheets library showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
-| **Bulk game categories** | **Bulk FORGE Reprint maintenance** |
-| ![Demo games with current categories and bulk assignment controls](docs/images/assign-categories.png) | ![Admin utility showing reprint inventory, guided bulk operations, and recent operation results](docs/images/reprint-maintenance.png) |
+| ![Earlier FORGE GameSheets library view showing pinned resources and category cards](docs/images/library-overview.png) | ![An invented game's rules, score sheets, references, and resource actions](docs/images/game-resources.png) |
+| **Bulk game categories** | **Bulk FORGE GameSheets Reprint maintenance** |
+| ![Demo games with current categories and bulk assignment controls](docs/images/assign-categories.png) | ![Earlier admin utility view showing reprint inventory, guided bulk operations, and recent operation results](docs/images/reprint-maintenance.png) |
 | **User Accounts** | **Activity History** |
 | ![Admin account controls explaining roles and account management](docs/images/users.png) | ![Activity history showing summarized scans, content changes, favorites, pins, and PDF use](docs/images/activity-history.png) |
 | **Integration and build details** | **Sheet Designer** |
@@ -124,7 +125,7 @@ passes the publication checks.
 
 - Docker Desktop or another Docker installation with Compose support
 - A local directory containing the PDF library
-- A separate writable directory for Forge GameSheets application data
+- A separate writable directory for FORGE GameSheets application data
 
 The included `compose.yml` uses the repository's `library/` and `data/`
 directories and binds the application only to `127.0.0.1:8000`.
@@ -135,7 +136,7 @@ backups, and troubleshooting, follow the
 
 ## Quick start
 
-Run these commands on the Docker host where FORGE will run. Obtain the
+Run these commands on the Docker host where FORGE GameSheets will run. Obtain the
 repository once to get `compose.yml` and the example configuration:
 
 ```sh
@@ -165,7 +166,7 @@ this through file sharing.
 
    Images are optional: use `icon` or `cover` with a PNG, JPEG, or WebP
    extension in the game folder. You can also upload artwork later through
-   **Edit game entry**. No game PDFs or artwork are bundled with FORGE.
+   **Edit game entry**. No game PDFs or artwork are bundled with FORGE GameSheets.
 
    Optional category hints go at the end of the **game folder name**:
    `Yahtzee [Dice]`, `Yahtzee [Dice, Children]`, or
@@ -210,10 +211,10 @@ change only the values needed for the host:
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `FORGE_GAMESHEETS_BIND_ADDRESS` | `127.0.0.1` | Host address that accepts connections |
-| `FORGE_GAMESHEETS_PORT` | `8000` | Host port used to open Forge |
+| `FORGE_GAMESHEETS_PORT` | `8000` | Host port used to open FORGE GameSheets |
 | `FORGE_GAMESHEETS_MODE` | `full` | Run the full library application or Designer-only mode |
-| `FORGE_GAMESHEETS_BASE_URL` | unset | Address encoded into FORGE Reprint QR links |
-| `FORGE_GAMESHEETS_ALLOWED_HOSTS` | unset | Additional exact hostnames or IP addresses accepted by Forge |
+| `FORGE_GAMESHEETS_BASE_URL` | unset | Address encoded into FORGE GameSheets Reprint QR links |
+| `FORGE_GAMESHEETS_ALLOWED_HOSTS` | unset | Additional exact hostnames or IP addresses accepted by FORGE GameSheets |
 | `FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS` | `127.0.0.1` | Trusted reverse-proxy IP or network; never use `*` for ordinary LAN access |
 | `FORGE_GAMESHEETS_DATA_PATH` | `./data` | Writable application state |
 | `FORGE_GAMESHEETS_LIBRARY_PATH` | `./library` | Source PDF library, mounted read-only |
@@ -242,7 +243,7 @@ docker compose up -d
 Do not add host-specific settings to `compose.yml`; keep them in `.env`.
 
 On a Linux Docker host using the default bind mount, prepare the data directory
-for Forge's fixed non-root container identity before the first start:
+for FORGE GameSheets’ fixed non-root container identity before the first start:
 
 ```sh
 sudo chown -R 10001:10001 data
@@ -279,7 +280,7 @@ nested beneath that game directory. The preferred filename is:
 PDFs placed directly in `library/` are ignored because every resource must
 belong to a first-level game folder. If you have unidentified or unorganized
 documents, place them in a normal staging folder such as `library/Unsorted/`.
-Forge displays **Unsorted** like any other game; move the files into their
+FORGE GameSheets displays **Unsorted** like any other game; move the files into their
 proper game folders and select **Rescan library** when you are ready. The name
 `Unsorted` is a convention, not a reserved folder with special behavior.
 
@@ -289,7 +290,7 @@ the source file. Select **Rescan library** after changing library contents.
 
 The preferred artwork method is a square 1024 × 1024 WebP placed at the top of a
 game folder using the name `icon.webp` (or `cover.webp`). PNG and JPEG are also
-supported. Non-square artwork is center-cropped, and Forge creates an optimized
+supported. Non-square artwork is center-cropped, and FORGE GameSheets creates an optimized
 512 × 512 WebP display cache without changing the library source. Artwork can also be
 uploaded through **Edit game entry**. A web upload is normalized into the writable
 application-data directory and overrides detected folder artwork; it is not
@@ -316,7 +317,7 @@ folders or source files are renamed. See [category guidance](docs/GAME_CATEGORIE
 Each game entry can store one optional **Official Resource Link** and one
 **Alternate Resource Link**, each with its own description. Add or remove them
 through **Edit game entry**. Saved links appear as quick-launch actions on the
-game page and open in a new tab. Forge accepts complete HTTP or HTTPS addresses
+game page and open in a new tab. FORGE GameSheets accepts complete HTTP or HTTPS addresses
 and stores them as application metadata; it does not visit, import, or scan the
 destination.
 
@@ -324,7 +325,7 @@ destination.
 
 In **Edit game entry → BoardGameGeek integration**, expand the manual URL fallback
 and paste a full BGG game URL containing both its numeric ID and game-name slug.
-Forge stores the manual association without fetching or verifying metadata.
+FORGE GameSheets stores the manual association without fetching or verifying metadata.
 Saving another valid URL replaces the prior association and clearly labels the
 result as unverified.
 Linked games show **View on BGG** and **BGG Files**; unlinked games offer **Open
@@ -357,7 +358,7 @@ the main version page to its current readable name. Pasting a full edition URL
 stores its ID, not its name segment. This differs from the game's Files/Versions
 subpages, which require the game-name segment.
 
-This reference works without an API token. Forge stores the version ID separately
+This reference works without an API token. FORGE GameSheets stores the version ID separately
 from the game's BGG ID; it does not fetch or verify the edition, import dimensions,
 or change existing measurements. Changing/unlinking the parent BGG game preserves
 the edition and prompts you to review it in the editor. Save it again to acknowledge
@@ -369,23 +370,23 @@ edition. API-backed edition selection and dimension retrieval are future work.
 
 API enrichment is disabled by default. When configured, **Find BoardGameGeek
 match** automatically selects only one unique exact normalized-title match. If
-there is no unique exact match, Forge shows the candidates and requires an
+there is no unique exact match, FORGE GameSheets shows the candidates and requires an
 explicit selection. Searches from an already linked entry always show results
 for review before replacing its association. Linked entries can be refreshed,
 changed, or removed without changing library scans, local files, or token-free
-manual links. The manual URL fallback is also an authoritative override: Forge
+manual links. The manual URL fallback is also an authoritative override: FORGE GameSheets
 verifies the exact ID from the submitted URL without a title search and replaces
 the association only after verification succeeds. Each
-administrator of an independently hosted Forge server must register that
+administrator of an independently hosted FORGE GameSheets server must register that
 installation with BGG and place its approved token in the server's private `.env`
-file. Tokens are never bundled with Forge, stored in its database, included in
+file. Tokens are never bundled with FORGE GameSheets, stored in its database, included in
 exports, or displayed in Settings. See
 [BoardGameGeek API setup](docs/BGG_API.md).
 
 ### Navigation
 
 Desktop navigation groups **Games** (All games, Categories, Assign game categories),
-**Quick access** (Pinned, Favorites, Recently used), **Admin** (FORGE Reprints,
+**Quick access** (Pinned, Favorites, Recently used), **Admin** (FORGE GameSheets Reprints,
 Settings, User Accounts), and **Account** (My account and Sign out). **Sheet
 Designer** and **History** are separate top-level links. The logo opens Library
 home. Mobile Menu shows the same permitted groups with visible links. Admin is
@@ -395,9 +396,9 @@ Recently used is hidden when its configured limit is zero.
 ### Global Links directory
 
 **Links** in the main navigation opens one page with Personal Favorites (when
-signed in), Admin-selected Forge Favorites, and all enabled links grouped by
+signed in), Admin-selected FGS Favorites, and all enabled links grouped by
 category. Favorites are shortcuts to the same records, not separate copies.
-Forge Favorites start empty. A link may appear in both favorites sections;
+FGS Favorites start empty. A link may appear in both favorites sections;
 disabled links disappear from both, and deleting a link removes its personal
 favorites. Re-enabling a link restores existing favorites; recreating a deleted
 link does not restore deleted personal favorites.
@@ -406,18 +407,18 @@ All Links uses compact rows like the Score Sheets listing, alphabetically within
 each category. Admin tools are at the top of this same page; disabled links
 are in a collapsed Admin-only section, also grouped and alphabetical.
 The star selects a Personal Favorite; the Admin-only pin (⌖) selects a shared
-Forge Favorite. Each row offers Open, plus Edit and confirmed Delete for Admins.
+FORGE GameSheets Favorite. Each row offers Open, plus Edit and confirmed Delete for Admins.
 The Favorites shortcut sections stay unchanged. Category editing is a separate
-Admin tool; category and Forge Favorites order remain configurable.
+Admin tool; category and FGS Favorites order remain configurable.
 
-Admins manage links, visibility and Forge Favorites on **Links**; **Settings →
+Admins manage links, visibility and FGS Favorites on **Links**; **Settings →
 Manage links** opens this same page. Signed-in users of any role can select Personal
 Favorites from existing enabled entries, but cannot change directory records.
 Without accounts, trusted operators manage the shared directory and Personal
 Favorites are unavailable. Resource-scoped QR guests do not gain directory
 access when accounts are enabled.
 
-Forge includes an editable starter directory of fourteen links in three categories:
+FORGE GameSheets includes an editable starter directory of fifteen links in three categories:
 Gamesheet Sources, Live Scoring and Other. The records are populated from
 [`app/defaults/links.json`](app/defaults/links.json) when the feature is first
 initialized—on a new installation or the first upgrade that adds Links. Admins
@@ -433,10 +434,12 @@ maintaining the bundled file.
 The starter directory includes My Free Bingo Cards, its Standard game (1–75)
 Generator shortcut, and Bingo Card Creator under Gamesheet Sources. All three
 start enabled and unpinned. Existing installations can add these through **Links
-→ Add missing starter links** after updating Forge.
+→ Add missing starter links** after updating FORGE GameSheets. The **Other** category
+also includes **FORGE TTRPG (web) — Character Sheet Templates**, a separate
+third-party browser tool, enabled and unpinned. It does not produce FGS files.
 
 Links open the external website in a new tab. Provenance labels are not security
-ratings or endorsements. Forge does not scrape sites, proxy downloads, mirror
+ratings or endorsements. FORGE GameSheets does not scrape sites, proxy downloads, mirror
 content or automatically check URLs. Free downloads do not necessarily permit
 redistribution. These installation-level links are separate from existing
 per-game resource links and are not part of FGS files or FGS Studio. Back up the
@@ -486,7 +489,7 @@ file and are not private storage. Each score table also has a **First column
 heading**, defaulting to **Category**, used in previews, PDFs, and LiveSheets.
 The former **Heading** editor label is now **Score table title** for score tables.
 
-FGS 1.3 adds **Tracker** and **Paper pattern** sections in Forge and Studio.
+FGS 1.3 adds **Tracker** and **Paper pattern** sections in FORGE GameSheets and Studio.
 Trackers support independent checkboxes, numbered boxes, segmented bars and
 current/maximum values. Printable
 spaces remain blank; optional starting values are guidance only. New paper
@@ -501,7 +504,7 @@ increments. Print at **actual size (100%)** to preserve physical spacing.
 Overflow is refused, not shrunk or clipped. No MusicXML/notation import or
 automatic pagination is included.
 
-Forge LiveSheets support temporary shared tracker values controlled by the host
+FORGE GameSheets LiveSheets support temporary shared tracker values controlled by the host
 in either scoring mode, with read-only guest/player views and reset. Session
 values never modify the source FGS or appear in ordinary PDFs. Source edits
 do not affect active sessions. Paper is static content, not a digital ink canvas.
@@ -515,8 +518,8 @@ free positioning, general image sections, custom formulas, multiple pages, or
 pixel-perfect copies of existing documents. FGS 1.1 supports one header logo
 and a one- or two-line Footer. The logo is embedded in the portable `.fgs` file;
 the title remains centered independently of it. The Footer occupies a reserved
-strip at the bottom of the page and is separate from FORGE Reprint attribution.
-New sheets created in Forge start with an editable footer linking to that
+strip at the bottom of the page and is separate from FORGE GameSheets Reprint attribution.
+New sheets created in FORGE GameSheets start with an editable footer linking to that
 server: the configured public base URL, or the browser address used to create
 the sheet. Existing and imported sheets keep their own footer unchanged.
 
@@ -558,14 +561,14 @@ game folder and the saved Designer workspace; it does not modify the library,
 embed a local game ID in the portable FGS file, or prevent an FGS export from
 being used elsewhere. Removing the association leaves both the game and sheet
 unchanged, while deleting the sheet removes its association.
-When the association window opens, Forge removes common endings such as “Score
+When the association window opens, FORGE GameSheets removes common endings such as “Score
 Sheet” from the GameSheet title, uses the remainder as the initial game search,
 and preselects one exact matching game for review. It never saves a suggested
 association until the user confirms it.
 
-Forge automatically saves each working draft under `data/sheet-designer/`. These
+FORGE GameSheets automatically saves each working draft under `data/sheet-designer/`. These
 saved drafts are the web Designer's primary working copies and are included when
-the Forge `data/` directory is backed up. This is a system-wide shared collection,
+the FORGE GameSheets `data/` directory is backed up. This is a system-wide shared collection,
 similar to the shared PDF library: Admins and Contributors can open, change,
 export, duplicate, or delete any saved draft. It is not a private per-user
 workspace. Users do not need to export an `.fgs` file after every edit, but
@@ -579,7 +582,7 @@ that was open before the import.
 added to the indexed library; place an exported PDF in the appropriate game
 folder and rescan when it should become a managed resource. **Export .fgs**
 downloads the editable source for portable backup, sharing, transfer to another
-Forge installation, or use with a compatible future editor. A future published
+FORGE GameSheets installation, or use with a compatible future editor. A future published
 FGS-library workflow has not yet been defined, so users should not manually move
 the Designer's internal working files out of `data/sheet-designer/`.
 
@@ -589,8 +592,8 @@ shared repository or import an FGS file, or **Resume last sheet** to explicitly
 continue the most recently used draft. Once a sheet is open, changes continue
 to save automatically.
 
-Designer source uses **FGS**, Forge's portable, JSON-based formal file format for
-structured GameSheets. FGS remains independent of the Forge web application so
+Designer source uses **FGS**, FORGE GameSheets’ portable, JSON-based formal file format for
+structured GameSheets. FGS remains independent of the FORGE GameSheets web application so
 compatible editors can exchange the same `.fgs` source. See the
 [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md),
 [FGS 1.1 additions](docs/FGS_V1_1_SPECIFICATION.md),
@@ -617,16 +620,16 @@ second-longest, and depth the thickness/shortest dimension. Supply all three
 positive finite measurements and explicitly select **in** or **cm**, or leave
 all measurements blank for unknown. Values are never guessed, reordered,
 converted, or imported from BGG. They appear compactly on the game page and
-survive rescans and unrelated edits. This is Forge game metadata only: it has
+survive rescans and unrelated edits. This is FORGE GameSheets game metadata only: it has
 no effect on FGS, Designer layout or PDF output.
 
 Admins can open **Admin → Metadata portability** to download a temporary ZIP
 containing app-managed uploaded game artwork, a complete versioned metadata manifest,
 and Windows `.url` and macOS `.webloc` shortcuts. Shortcut names combine the
-source game-directory name and recognized link type. Forge streams the ZIP to
+source game-directory name and recognized link type. FORGE GameSheets streams the ZIP to
 the browser and does not retain it.
 
-**Import a Forge metadata export** is the recommended method. It restores URLs,
+**Import a FORGE GameSheets metadata export** is the recommended method. It restores URLs,
 descriptions, BGG associations, box dimensions, uploaded artwork, and source-directory
 relationships. **Scan library shortcut files** is an alternative recovery or
 initial URL import that reads recognized shortcuts placed in game folders.
@@ -639,9 +642,9 @@ represented by valid imported records and never clears absent fields.
 See [Metadata portability](docs/METADATA_PORTABILITY.md) for the precise export
 contents, import policies, folder-based discovery naming, and backup boundary.
 
-### Bulk FORGE Reprint maintenance
+### Bulk FORGE GameSheets Reprint maintenance
 
-Admins can open **Admin → FORGE Reprints** to review current, missing,
+Admins can open **Admin → FORGE GameSheets Reprints** to review current, missing,
 out-of-sync reprints, and unavailable sources. Expand **What do these counts
 mean?** for definitions. Out-of-sync means a mismatch with the recorded source,
 reprint format, QR destination, or generated file—not age or expiration.
@@ -650,7 +653,7 @@ reprints** regenerates both current and out-of-sync copies but does not create
 missing copies. **Create or refresh all reprints** handles both. Unavailable
 sources are skipped and reported. Scan the library first after adding, changing,
 moving, or removing source PDFs; maintenance does not update the library index.
-Forge confirms the number of new and replaced files before starting. Work runs
+FORGE GameSheets confirms the number of new and replaced files before starting. Work runs
 sequentially as a durable job with progress, safe cancellation after the current
 file, interruption recovery, and individual skip/failure details. Source PDFs are
 never changed. Every generated copy uses its resource's stable QR address, so
@@ -684,20 +687,20 @@ Stop the application before making a simple filesystem copy of `data/`. See
 
 ## Security boundary
 
-FORGE supports optional local Admin, Contributor, and Reader accounts. Existing
+FORGE GameSheets supports optional local Admin, Contributor, and Reader accounts. Existing
 installations remain in trusted-operator mode until the operator explicitly
 creates the first Admin from a local terminal. An upgrade does not activate
 login or change source-library permissions.
 
 ### Enable accounts
 
-If Forge will be opened from another device, configure and test its final HTTPS
+If FORGE GameSheets will be opened from another device, configure and test its final HTTPS
 reverse-proxy address **before** enabling accounts. The deployment guide includes
 a tested [Nginx Proxy Manager setup](docs/deployment.md#https-with-nginx-proxy-manager),
 including private/self-signed certificates and trusted forwarded headers. Direct
 LAN HTTP login is deliberately rejected; localhost HTTP remains supported.
 
-Start the current Forge container, then open a terminal **on its Docker host**.
+Start the current FORGE GameSheets container, then open a terminal **on its Docker host**.
 From the directory containing that installation's `compose.yml`, run:
 
 ```sh
@@ -710,7 +713,7 @@ immediately requires sign-in for the existing library; it does not change PDFs,
 categories, or other content. Sign in with that Admin, then open **Admin → User
 Accounts** to create Contributor or Reader accounts. QR codes allow direct,
 resource-only access by default; an Admin can require sign-in for an individual
-resource from its FORGE Reprint page.
+resource from its FORGE GameSheets Reprint page.
 There is no default password or web-based initial setup.
 
 Read [Accounts and QR access](docs/ACCOUNTS.md) before activation for HTTPS
@@ -725,21 +728,21 @@ the [existing-installation upgrade procedure](docs/deployment.md#update-an-exist
 
 The supplied Compose file listens only on localhost. Non-local sign-in requires
 HTTPS through a correctly configured proxy. Accounts are not a substitute for
-network protection or approval for direct public exposure; do not expose Forge
+network protection or approval for direct public exposure; do not expose FORGE GameSheets
 directly to the Internet.
 
-The library mount is read-only. Forge GameSheets never edits source PDFs.
+The library mount is read-only. FORGE GameSheets never edits source PDFs.
 
 - **Trusted-operator mode:** until accounts are activated, anyone who can reach
   the application can edit it. Restrict network access before starting.
 - **Accounts:** passwords use salted Argon2id hashes, not plaintext. New passwords
   receive offline common-password screening. Sessions expire and account changes
   invalidate affected sessions. These controls do not make public exposure safe.
-- **QR access:** every FORGE Reprint uses a stable, resource-only address that is
+- **QR access:** every FORGE GameSheets Reprint uses a stable, resource-only address that is
   public by default. An Admin can require Reader-or-higher sign-in for an
   individual resource, including previously printed QR codes. Downloaded copies
   cannot be recalled.
-- **Host and backups:** the database is not encrypted by Forge. Protect data,
+- **Host and backups:** the database is not encrypted by FORGE GameSheets. Protect data,
   backups, activation markers, and BGG tokens. A container is not a complete
   security boundary; keep the host and images updated.
 - **Content:** PDF/image parsing is not malware scanning. Only add trusted files
@@ -756,25 +759,25 @@ Implementation review and publication safeguards are described separately in
 
 ## Content rights and responsibility
 
-Forge GameSheets is self-hosted software. It does not provide, sell, upload,
+FORGE GameSheets is self-hosted software. It does not provide, sell, upload,
 verify the safety or rights of the PDFs placed in an operator's library. The library
 operator controls those files and is responsible for ensuring that their
 storage, reproduction, use, printing, and distribution are permitted by the
 rights holder, applicable license terms, public-domain status, or applicable
 law.
 
-The FORGE GAMESHEETS mark on a generated reprint identifies the software used
+The FORGE GameSheets mark on a generated reprint identifies the software used
 to prepare that copy. It does not claim authorship or ownership of the source
 content and does not imply affiliation with or endorsement by its rights
-holders. A FORGE Reprint does not itself grant permission to reproduce or
+holders. A FORGE GameSheets Reprint does not itself grant permission to reproduce or
 distribute a source PDF.
 
-QR links point back to the operator's own Forge installation. Depending on its
+QR links point back to the operator's own FORGE GameSheets installation. Depending on its
 network configuration, that link may make one resource reachable from other
 devices. QR access is public by default. An Admin can require Reader-or-higher
 sign-in for an individual resource, and the same printed code responds to the
 current setting. This cannot recall downloaded copies. Use the original PDF
-when a copy without a FORGE QR link is desired.
+when a copy without a FORGE GameSheets QR link is desired.
 
 ## Testing and development
 
@@ -810,7 +813,7 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
   reliably detect whether a print completed.
 - PDF previews show only the first page and may be unavailable for malformed or
   unsupported PDFs.
-- Preview and FORGE Reprint processing supports source PDFs up to 250 MB, 500
+- Preview and FORGE GameSheets Reprint processing supports source PDFs up to 250 MB, 500
   pages, and 200 inches in either page dimension. Larger source PDFs remain
   available for original viewing and download but are not processed.
 - Game artwork is limited to 25 MB and 40 megapixels before normalization.
@@ -820,7 +823,7 @@ Beta testers should follow [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
   1 MiB; their combined managed storage budget is 5 GiB. New rendering requires
   free space for the maximum output plus 100 MiB of headroom. Existing copies
   remain usable when those limits prevent new generation.
-- FORGE Reprint creates a marked derived copy but does not edit, combine, or
+- FORGE GameSheets Reprint creates a marked derived copy but does not edit, combine, or
   replace source PDFs.
 - Game folders must currently be first-level children of the library root.
 - Manual BGG links and external search work without a token. Optional API
@@ -847,7 +850,7 @@ print-history decision.
 
 ## Development and security
 
-FORGE GAMESHEETS is developed with assistance from OpenAI Codex under the
+FORGE GameSheets is developed with assistance from OpenAI Codex under the
 direction of a maintainer with a degree in software development and professional
 experience in software testing, test management, and security. Development
 includes automated testing and incremental changes. Maintainer-led,
@@ -884,12 +887,12 @@ content. Testing and review reduce risk but cannot guarantee security.
 
 ## License
 
-Forge GameSheets is free software licensed under the
+FORGE GameSheets is free software licensed under the
 [GNU Affero General Public License version 3](LICENSE), identified as
 `AGPL-3.0-only`. Anyone may use it, including commercially, but distribution and
 modified network deployments remain subject to the AGPL source-sharing terms.
 
-The AGPL applies to the Forge software, not to PDFs, artwork, FGS documents,
-metadata, databases, or other user content managed with it. Forge versions
+The AGPL applies to the FORGE GameSheets software, not to PDFs, artwork, FGS documents,
+metadata, databases, or other user content managed with it. FORGE GameSheets versions
 through commit `91ba590` were previously offered under the MIT License that
 accompanied those versions. See [Licensing and version history](docs/LICENSING.md).

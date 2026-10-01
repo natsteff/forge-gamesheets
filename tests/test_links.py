@@ -126,7 +126,9 @@ def test_bingo_defaults_and_existing_install_add_missing(database):
 
 def test_ttrpg_starter_is_distinct_and_restored_only_on_request(database):
     starter = next(
-        link for link in links.links(database) if link["default_key"] == "forge_ttrpg_web"
+        link
+        for link in links.links(database)
+        if link["default_key"] == "forge_ttrpg_web"
     )
     assert starter["name"] == "FORGE TTRPG (web) — Character Sheet Templates"
     assert starter["url"] == "https://forge-ttrpg.vercel.app/app/templates"

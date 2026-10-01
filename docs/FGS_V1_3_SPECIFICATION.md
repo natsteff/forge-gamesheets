@@ -112,7 +112,7 @@ Finished print size and copy arrangement are print-job choices, not FGS 1.3
 fields. Compact output may uniformly reduce the physical spacing of an entire
 composition; use Full Page at actual size when pattern spacing must remain exact.
 
-Forge may enable LiveSheet for a document containing a score table or tracker.
+FORGE GameSheets may enable LiveSheet for a document containing a score table or tracker.
 At session creation, the validated template is snapshotted. Shared tracker
 values are separate temporary session data: host-only mutation in both scoring
 modes, read-only for guests/claimed players. Checkbox changes address independent

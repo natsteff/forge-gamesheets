@@ -145,7 +145,7 @@ def export_links(database: Database, data_path: Path | None = None) -> bytes:
 
 
 def parse_export(payload: bytes) -> MetadataImport:
-    """Validate a Forge ZIP export, or accept a manifest-only JSON fallback."""
+    """Validate a FORGE GameSheets ZIP or a manifest-only JSON export."""
     if len(payload) > MAX_EXPORT_BYTES:
         raise ValueError("The metadata export is too large.")
     if not zipfile.is_zipfile(io.BytesIO(payload)):

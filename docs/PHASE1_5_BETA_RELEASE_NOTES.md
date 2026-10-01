@@ -1,19 +1,19 @@
-# Forge GameSheets Phase 1.5 beta
+# FORGE GameSheets Phase 1.5 beta
 
-Forge GameSheets is a private, self-hosted library for organizing and using
+FORGE GameSheets is a private, self-hosted library for organizing and using
 printable game resources. Phase 1.5 adds the first generated-document workflow:
-FORGE Reprint creates a separate printable copy of an existing PDF with a small
-Forge footer and QR link back to the resource.
+FORGE GameSheets Reprint creates a separate printable copy of an existing PDF with a small
+FORGE GameSheets footer and QR link back to the resource.
 
 This is a prerelease for wider testing. Source PDFs remain authoritative and
 are never modified by the Reprint workflow.
 
 ## Highlights
 
-### FORGE Reprint
+### FORGE GameSheets Reprint
 
 - Creates a separate derived PDF while preserving the original source file
-- Adds a compact Forge logo, return URL, responsibility notice, and QR code
+- Adds a compact FORGE GameSheets logo, return URL, responsibility notice, and QR code
 - Uses stable resource links that survive display-title changes
 - Provides deliberate View, Download, and Regenerate actions
 - Confirms successful regeneration in the interface
@@ -41,7 +41,7 @@ regeneration so they receive the current footer design.
 - Adds a Categories navigation view and flat All Games view
 - Supports multiple customizable categories per game
 - Adds configurable library footer text and Recent-item limit
-- Places FORGE Reprint first among resource actions while retaining original
+- Places FORGE GameSheets Reprint first among resource actions while retaining original
   PDF access from the Reprint page
 - Prevents stale browser artwork and preview images after moving between
   installations or rebuilding application data
@@ -54,19 +54,19 @@ activation requires local Admin setup. Existing installations remain in
 trusted-operator mode until activated. The supplied configuration listens only
 on localhost by default. See [accounts and QR access](ACCOUNTS.md).
 
-Do not expose Forge directly to the public internet or an untrusted network.
-Use trusted-LAN access only when appropriate, or place Forge behind an
+Do not expose FORGE GameSheets directly to the public internet or an untrusted network.
+Use trusted-LAN access only when appropriate, or place FORGE GameSheets behind an
 authenticated proxy, VPN, or other intentionally configured access-control
 layer.
 
 The library operator controls the source files and is responsible for ensuring
 their storage, use, reproduction, printing, and distribution are authorized.
-The FORGE GAMESHEETS mark identifies the software used to prepare a copy; it
+The FORGE GameSheets mark identifies the software used to prepare a copy; it
 does not claim ownership, affiliation, or permission for the source content.
 
 ## Upgrade notes
 
-Before updating, stop Forge using the method appropriate to the deployment and
+Before updating, stop FORGE GameSheets using the method appropriate to the deployment and
 back up both configured persistent locations: the source library and the
 complete application data directory. Ensure the backup can read
 container-owned files and completes without omitted paths or permission errors.
@@ -77,11 +77,11 @@ the [deployment guide](deployment.md) for the supported workflow.
 
 ## Known limitations
 
-- Printing remains browser-managed; Forge cannot reliably confirm that a
+- Printing remains browser-managed; FORGE GameSheets cannot reliably confirm that a
   physical print completed.
 - PDF previews show only the first page and may be unavailable for malformed or
   unsupported files.
-- FORGE Reprint adds a footer but does not edit, combine, or redesign source
+- FORGE GameSheets Reprint adds a footer but does not edit, combine, or redesign source
   content.
 - Existing generator versions are not batch-regenerated during an upgrade;
   affected Reprints are recreated on demand.

@@ -1,6 +1,6 @@
 # Local development
 
-Forge GameSheets uses Docker Compose as the supported development workflow.
+FORGE GameSheets uses Docker Compose as the supported development workflow.
 Python 3.13 and all development dependencies are installed inside the image, so
 a separate host Python environment is optional.
 
@@ -26,14 +26,14 @@ Both directories must exist. Their contents are ignored by Git.
 
 ## Sheet Designer development shell
 
-The Sheet Designer development shell can run without the Forge database or PDF
+The Sheet Designer development shell can run without the FORGE GameSheets database or PDF
 library. See [the prototype boundary and known deferrals](SHEET_DESIGNER_PROTOTYPE.md).
 
 ```sh
 .venv/bin/uvicorn app.sheet_designer.standalone:app --reload --port 8765
 ```
 
-Open <http://127.0.0.1:8765/sheet-designer>. The normal Forge application also
+Open <http://127.0.0.1:8765/sheet-designer>. The normal FORGE GameSheets application also
 exposes the same shared Designer to Admins and Contributors through the top-level
 **Sheet Designer** link.
 

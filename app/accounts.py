@@ -544,7 +544,9 @@ def change_password(database: Database, actor: User, user_id: int, password: str
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Local FORGE Admin setup/recovery")
+    parser = argparse.ArgumentParser(
+        description="Local FORGE GameSheets Admin setup/recovery"
+    )
     parser.add_argument("command", choices=["create-admin", "recover-admin"])
     args = parser.parse_args()
     # getpass must never fall back to echoing a password into logs/pipes.

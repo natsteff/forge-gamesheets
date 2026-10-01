@@ -29,7 +29,7 @@
   </section>
 {% endmacro %}
 
-{% block title %}Metadata portability · Forge GameSheets{% endblock %}
+{% block title %}Metadata portability · FORGE GameSheets{% endblock %}
 
 {% block content %}
   <section class="page-intro compact-intro">
@@ -43,15 +43,15 @@
 
   <section class="settings-section metadata-portability-section">
     <div class="settings-heading"><div><p class="eyebrow">Portable copy</p><h2>Export game metadata</h2></div></div>
-    <p>Download one temporary ZIP containing uploaded game artwork, a complete metadata manifest, and Windows .url and macOS .webloc shortcuts. Forge does not retain the ZIP.</p>
+    <p>Download one temporary ZIP containing uploaded game artwork, a complete metadata manifest, and Windows .url and macOS .webloc shortcuts. FORGE GameSheets does not retain the ZIP.</p>
     <a class="primary-button" href="{{ url_for('link_portability_export') }}">Download metadata export</a>
   </section>
 
   <section class="settings-section metadata-portability-section">
-    <div class="settings-heading"><div><p class="eyebrow">Recommended restore method</p><h2>Import a Forge metadata export</h2></div></div>
-    <p>Restore links, their descriptions, BGG associations, edition references, box dimensions, uploaded artwork, and source-folder relationships from a Forge export.</p>
+    <div class="settings-heading"><div><p class="eyebrow">Recommended restore method</p><h2>Import a FORGE GameSheets metadata export</h2></div></div>
+    <p>Restore links, their descriptions, BGG associations, edition references, box dimensions, uploaded artwork, and source-folder relationships from a FORGE GameSheets export.</p>
     <form class="metadata-form settings-form" method="post" enctype="multipart/form-data" action="{{ url_for('link_manifest_preview') }}">
-      <label for="metadata-export-file">Forge metadata ZIP or manifest JSON</label>
+      <label for="metadata-export-file">FORGE GameSheets metadata ZIP or manifest JSON</label>
       <input id="metadata-export-file" type="file" name="export_file" accept="application/zip,application/json,.zip,.json" required>
       <label for="manifest-policy">Import policy</label>
       <select id="manifest-policy" name="policy"><option value="empty">Fill empty fields</option><option value="replace">Replace recognized fields</option></select>
@@ -59,11 +59,11 @@
     </form>
   </section>
 
-  {% if preview and source == "Forge metadata export" %}{{ import_review(preview, source, token, policy) }}{% endif %}
+  {% if preview and source == "FORGE GameSheets metadata export" %}{{ import_review(preview, source, token, policy) }}{% endif %}
 
   <section class="settings-section metadata-portability-section">
     <div class="settings-heading"><div><p class="eyebrow">Folder-based link discovery / alternative recovery</p><h2>Scan library shortcut files</h2></div></div>
-    <p>Search game folders for compatible Windows .url and macOS .webloc shortcuts. Use this for an initial link import from folder-based shortcuts or when a Forge manifest is unavailable. URLs can be discovered, but box dimensions, uploaded artwork and original descriptions cannot.</p>
+    <p>Search game folders for compatible Windows .url and macOS .webloc shortcuts. Use this for an initial link import from folder-based shortcuts or when a FORGE GameSheets manifest is unavailable. URLs can be discovered, but box dimensions, uploaded artwork and original descriptions cannot.</p>
     <form class="metadata-form settings-form" method="post" action="{{ url_for('link_scan_preview') }}">
       <label for="shortcut-policy">Import policy</label>
       <select id="shortcut-policy" name="policy"><option value="empty">Fill empty fields</option><option value="replace">Replace recognized fields</option></select>

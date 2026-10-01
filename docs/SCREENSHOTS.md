@@ -11,6 +11,10 @@ to demonstrate verified controls; it contains no private library data. The build
 panel correctly says Local development build: this was a local source run, not
 a published-container verification.
 
+The library-overview and reprint-maintenance captures predate the full
+**FORGE GameSheets** headings; the home description has also changed. Refresh
+them from a disposable library before
+presenting the gallery as current; do not edit words into the old screenshot.
 The gallery does not yet include dedicated current captures for LiveSheets,
 GameSheet-to-game association and rendered previews, the Sheet Designer About
 dialog, or FGS 1.1 logo and Footer controls. Existing Designer and game-page
@@ -26,14 +30,14 @@ The README gallery contains library-overview, game-resources, assign-categories,
 reprint-maintenance, users, activity-history, settings-build, sheet-designer,
 sheet-designer-startup, sheet-designer-open, and bgg-integration PNGs in
 `docs/images/`. The Sheet Designer
-captures were supplied from the integrated local Forge build and show only the
+captures were supplied from the integrated local FORGE GameSheets build and show only the
 invented default sheet content. The older desktop-navigation and mobile-navigation
 files remain available for historical comparison but are omitted from the gallery
 because they predate the top-level Sheet Designer link. The obsolete
 `settings.png` and
 `forge-reprint.png` captures were removed when global QR guest access and secure
 token sharing were replaced by public-by-default, per-resource QR restrictions.
-Capture replacement Settings and FORGE Reprint images after the interface is
+Capture replacement Settings and FORGE GameSheets Reprint images after the interface is
 finalized.
 
 The former `bgg-manual.png` remains as a historical capture but was removed from

@@ -1,1 +1,1 @@
-"""Forge GameSheets application package."""
+"""FORGE GameSheets application package."""

@@ -1,4 +1,4 @@
-"""Select the supported Forge runtime without changing existing defaults."""
+"""Select the supported FORGE GameSheets runtime without changing existing defaults."""
 
 import os
 

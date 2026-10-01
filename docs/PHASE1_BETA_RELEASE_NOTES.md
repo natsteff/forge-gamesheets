@@ -1,6 +1,6 @@
-# Forge GameSheets Phase 1 beta
+# FORGE GameSheets Phase 1 beta
 
-Forge GameSheets is a self-hosted browser library for printable board-game
+FORGE GameSheets is a self-hosted browser library for printable board-game
 resources. This first beta focuses on organizing and using existing PDFs while
 keeping files portable, private, and under the owner's control.
 

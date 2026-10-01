@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% from "_links_macros.html" import shortcut, link_row with context %}
-{% block title %}Links · Forge GameSheets{% endblock %}
+{% block title %}Links · FORGE GameSheets{% endblock %}
 {% block content %}
 <section class="page-intro compact-intro">
   <p class="eyebrow">Find more ways to play</p><h1>Links</h1>
-  <p>Find gamesheets and scoring tools outside Forge. External links open in a new tab.</p>
+  <p>Find gamesheets and scoring tools outside FORGE GameSheets. External links open in a new tab.</p>
   {% if request.state.can_admin %}<div class="directory-link-actions">
     <a class="primary-button" href="{{ url_for('link_create_form') }}">Add link</a>
     <a class="secondary-button" href="{{ url_for('links_categories') }}">Manage categories</a>
@@ -16,16 +16,16 @@
 {% elif request.query_params.get('status') %}<p class="status-banner success" role="status">{{ 'Changes saved.' if request.query_params.get('status') == 'saved' else 'Deleted successfully.' if request.query_params.get('status') == 'deleted' else request.query_params.get('status') }}</p>{% endif %}
 {% endif %}
 {% if personal %}<section class="settings-section"><h2>Personal Favorites</h2>
-  <p>Your shortcuts. These do not change Forge Favorites.</p>
+  <p>Your shortcuts. These do not change FGS Favorites.</p>
   <div class="links-shortcuts">{% for link in personal %}{{ shortcut(link) }}{% endfor %}</div>
 </section>{% endif %}
-<section class="settings-section"><h2>Forge Favorites</h2>
+<section class="settings-section"><h2>FGS Favorites</h2>
   {% if forge %}<div class="links-shortcuts">{% for link in forge %}{{ shortcut(link) }}{% endfor %}</div>
-  {% else %}<p class="muted">No Forge Favorites selected yet.{% if request.state.can_admin %} Pin links below to add shared shortcuts.{% endif %}</p>{% endif %}
+  {% else %}<p class="muted">No FGS Favorites selected yet.{% if request.state.can_admin %} Pin links below to add shared shortcuts.{% endif %}</p>{% endif %}
 </section>
 <section class="settings-section"><h2>All Links</h2>
   <p>Categories and links are maintained by this installation's Admin. Provenance labels are not endorsements or security ratings. A free download does not necessarily permit redistribution.</p>
-  <p class="muted">{% if request.state.user %}☆ marks your personal favorites. {% endif %}{% if request.state.can_admin %}⌖ pins links to Forge Favorites for everyone.{% endif %}</p>
+  <p class="muted">{% if request.state.user %}☆ marks your personal favorites. {% endif %}{% if request.state.can_admin %}⌖ pins links to FGS Favorites for everyone.{% endif %}</p>
   {% for category in groups if category.links %}<section class="links-category"><h3>{{ category.name }}</h3>
     <div class="resource-list">{% for link in category.links %}{{ link_row(link) }}{% endfor %}</div>
   </section>{% else %}<p class="empty-state">No enabled links are available.</p>{% endfor %}

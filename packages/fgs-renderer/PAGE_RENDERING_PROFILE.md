@@ -14,7 +14,7 @@ unprintable text reports a fit warning without truncating the FGS value.
 The following explains the unchanged base geometry:
 
 This document specifies *appearance* separately from the FGS 1.0 document
-schema. FGS 1.0's semantic meaning is unchanged. Forge and FGS Studio may claim
+schema. FGS 1.0's semantic meaning is unchanged. FORGE GameSheets and FGS Studio may claim
 this page rendering profile only when both use the same pinned renderer build and pass
 the conformance suite. This profile is not yet a published FGS standard.
 

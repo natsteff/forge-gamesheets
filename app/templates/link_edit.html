@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit' if link_id else 'Add' }} link · Forge GameSheets{% endblock %}
+{% block title %}{{ 'Edit' if link_id else 'Add' }} link · FORGE GameSheets{% endblock %}
 {% block content %}
 <section class="page-intro compact-intro"><p class="eyebrow">Admin · Links</p><h1>{{ 'Edit' if link_id else 'Add' }} link</h1>
   <p>External destinations are not fetched or checked automatically. Links appear alphabetically within each category.</p>
@@ -14,8 +14,8 @@
   <label for="link-type">Source type</label><select id="link-type" name="source_type" required>{% for key,label in source_types.items() %}<option value="{{ key }}"{% if link.get('source_type','third_party') == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
   <p class="muted">Provenance only—not an endorsement or security rating.</p>
   <label class="checkbox-option"><input name="enabled" type="checkbox" value="1"{% if link.get('enabled') %} checked{% endif %}><span>Enabled (visible on Links and in favorites)</span></label>
-  <label class="checkbox-option"><input name="forge_favorite" type="checkbox" value="1"{% if link.get('forge_favorite') %} checked{% endif %}><span>Pinned to Forge Favorites (shared shortcut selected by Admin)</span></label>
-  <label for="favorite-order">Order in Forge Favorites</label><input id="favorite-order" name="favorite_position" type="number" min="0" max="9999" value="{{ link.get('favorite_position',0) }}" required>
+  <label class="checkbox-option"><input name="forge_favorite" type="checkbox" value="1"{% if link.get('forge_favorite') %} checked{% endif %}><span>Pinned to FGS Favorites (shared shortcut selected by Admin)</span></label>
+  <label for="favorite-order">Order in FGS Favorites</label><input id="favorite-order" name="favorite_position" type="number" min="0" max="9999" value="{{ link.get('favorite_position',0) }}" required>
   <div class="directory-link-actions links-form-actions"><button class="primary-button" type="submit">Save link</button><a class="secondary-button" href="{{ url_for('links_home') }}">Cancel</a></div>
 </form>{% else %}<p>Add a category before adding links.</p><a class="secondary-button" href="{{ url_for('links_categories') }}">Manage categories</a>{% endif %}
 </section>

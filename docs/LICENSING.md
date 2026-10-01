@@ -2,7 +2,7 @@
 
 Copyright (C) 2026 Nate Steffenhagen
 
-Forge GameSheets is free software licensed under the **GNU Affero General Public
+FORGE GameSheets is free software licensed under the **GNU Affero General Public
 License version 3**, identified by the SPDX expression `AGPL-3.0-only`. The
 complete license text is in [`LICENSE`](../LICENSE).
 
@@ -14,9 +14,9 @@ person to distribute a covered version or operate a modified covered version for
 network users while withholding the corresponding source and AGPL rights that
 the license requires.
 
-Operators who modify Forge and allow users to interact with that modified
+Operators who modify FORGE GameSheets and allow users to interact with that modified
 version over a network must provide those users a prominent opportunity to
-receive its corresponding source. The permanent **Source code** link in Forge's
+receive its corresponding source. The permanent **Source code** link in FORGE GameSheets’
 footer points to the official project. A distributor or operator of a modified
 version is responsible for changing that link when necessary so it identifies
 the complete corresponding source for the version actually being run.
@@ -25,7 +25,7 @@ This summary is explanatory and does not replace the license text.
 
 ## User content is separate
 
-Using Forge does not place user content under the AGPL. The Forge software
+Using FORGE GameSheets does not place user content under the AGPL. The FORGE GameSheets software
 license does not change the ownership or license of:
 
 - Source PDFs and detected library artwork
@@ -39,18 +39,18 @@ content.
 
 ## Earlier MIT versions
 
-Forge versions through Git commit `91ba590` were publicly offered under the MIT
+FORGE GameSheets versions through Git commit `91ba590` were publicly offered under the MIT
 License included with those versions. Those historical permissions remain with
-copies obtained under that license. Subsequent Forge changes are offered under
+copies obtained under that license. Subsequent FORGE GameSheets changes are offered under
 `AGPL-3.0-only` unless a later release explicitly states otherwise.
 
 ## Direct dependencies
 
-Forge depends on third-party packages that retain their own license terms. The
+FORGE GameSheets depends on third-party packages that retain their own license terms. The
 direct runtime dependency review performed for this transition found permissive
 MIT, BSD, and Apache-2.0 packages, plus PyMuPDF/MuPDF, whose installed package
 metadata identifies its open-source distribution as GNU AGPLv3. Relicensing
-Forge under AGPL aligns the application with that PDF dependency; it does not
+FORGE GameSheets under AGPL aligns the application with that PDF dependency; it does not
 replace or alter any third-party license.
 
 Review dependency and bundled-asset licensing again before each major release

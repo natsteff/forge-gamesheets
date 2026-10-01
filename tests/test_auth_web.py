@@ -83,7 +83,7 @@ def test_grouped_navigation_users_visibility(secured, role):
     assert 'aria-controls="nav-resources"' in page
     assert 'aria-controls="nav-account"' in page
     assert ('aria-controls="nav-admin"' in page) == (role == "admin")
-    assert (">FORGE Reprints</a>" in page) == (role == "admin")
+    assert (">FORGE GameSheets Reprints</a>" in page) == (role == "admin")
     assert (">User Accounts</a>" in page) == (role == "admin")
     assert (">Sheet Designer</a>" in page) == (role != "reader")
     assert ">My account</a>" in page
@@ -92,8 +92,8 @@ def test_grouped_navigation_users_visibility(secured, role):
         admin_menu = page.split('id="nav-admin">', 1)[1].split("</div>", 1)[0]
         account_menu = page.split('id="nav-account">', 1)[1].split("</div>", 1)[0]
         assert ">Settings</a>" in admin_menu
-        assert ">FORGE Reprints</a>" in admin_menu
-        assert admin_menu.index(">FORGE Reprints</a>") < admin_menu.index(
+        assert ">FORGE GameSheets Reprints</a>" in admin_menu
+        assert admin_menu.index(">FORGE GameSheets Reprints</a>") < admin_menu.index(
             ">Settings</a>"
         )
         assert admin_menu.index(">Settings</a>") < admin_menu.index(
@@ -333,7 +333,7 @@ def test_game_link_portability_is_admin_only(secured, role, expected):
     response = client.get("/settings/metadata-portability")
     assert response.status_code == expected
     if role == "admin":
-        assert "Import a Forge metadata export" in response.text
+        assert "Import a FORGE GameSheets metadata export" in response.text
         exported = client.get("/settings/metadata-portability/export")
         assert exported.status_code == 200
         assert exported.headers["content-type"] == "application/zip"
@@ -355,7 +355,7 @@ def test_metadata_import_review_is_immediate_and_requires_real_changes(secured):
     assert "No changes have been made yet." in page
     assert "Nothing needs to be applied." in page
     assert "Confirm and apply import" not in page
-    assert page.index("Forge metadata export results") < page.index(
+    assert page.index("FORGE GameSheets metadata export results") < page.index(
         "Scan library shortcut files"
     )
 

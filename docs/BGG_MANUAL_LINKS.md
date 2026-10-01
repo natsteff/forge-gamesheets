@@ -3,7 +3,7 @@
 Full game URLs preserve the BGG slug (for example, `53412/crag`). The edit field
 shows the saved canonical URL. ID-only and older associations can open the Game
 page, but Files and Versions subpages require the game-name segment. If it is
-missing, Forge offers the main page with instructions to select the relevant tab
+missing, FORGE GameSheets offers the main page with instructions to select the relevant tab
 instead of generating a broken subpage URL. Use **Resolve BGG page link** in the
 editor to inspect the public main-page redirect, or paste the full game URL.
 Resolution is explicit, token-free, bounded to one request with a three-second
@@ -16,10 +16,10 @@ Admins and Contributors can open **Edit game entry → BoardGameGeek integration
 expand the manual fallback, and paste a full BoardGameGeek URL with both numeric
 ID and game-name slug into **Full BGG game URL**.
 Bare IDs and URLs without a slug are rejected without changing saved data.
-Forge extracts and
+FORGE GameSheets extracts and
 stores the ID locally; it does not verify the entry or fetch data. Manual saves
 replace any prior BGG cached metadata and disable automatic matching for the game.
-Forge labels these records as unverified and shows the local library title
+FORGE GameSheets labels these records as unverified and shows the local library title
 separately so it is not mistaken for a BGG-provided title.
 Local game titles, categories, artwork, and PDFs remain unchanged.
 

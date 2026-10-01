@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}{{ resource.title }} · Forge GameSheets{% endblock %}
+{% block title %}{{ resource.title }} · FORGE GameSheets{% endblock %}
 
 {% block content %}
   <a class="back-link" href="{{ url_for('game_detail', game_id=game.id) }}#resource-{{ resource.id }}">← {{ game.title }}</a>
   <section class="reprint-panel">
-    <p class="eyebrow">FORGE Reprint</p>
+    <p class="eyebrow">FORGE GameSheets Reprint</p>
     <h1>{{ resource.title }}</h1>
     <p class="reprint-game">
       {{ game.title }}{% if resource.variant %} · {{ resource.variant }}{% endif %}
@@ -13,13 +13,13 @@
 
     {% if available %}
       <p class="reprint-help">
-        Create a separate printable copy with a small Forge mark and a QR link
+        Create a separate printable copy with a small FORGE GameSheets mark and a QR link
         back to this page. Your original PDF is never changed.
       </p>
       <aside class="reprint-responsibility" aria-label="Content responsibility">
         <strong>Content responsibility</strong>
         <p>
-          FORGE Reprint adds printing and navigation marks only; it does not
+          FORGE GameSheets Reprint adds printing and navigation marks only; it does not
           claim ownership or affiliation or grant permission to reproduce or
           distribute the source. The library operator is responsible for
           ensuring that storage, use, and printing are authorized by the rights
@@ -29,18 +29,18 @@
 
       {% if generation_error == "generation-failed" %}
         <p class="status-banner warning" role="alert">
-          The FORGE Reprint could not be created. Processing may be busy, storage
+          The FORGE GameSheets Reprint could not be created. Processing may be busy, storage
           may be low, or the PDF may exceed a processing limit. Try again shortly
           or ask the library operator to check storage. The original PDF and any
-          previous FORGE Reprint were not changed.
+          previous FORGE GameSheets Reprint was not changed.
         </p>
       {% endif %}
       {% if generated_available %}
         <p class="status-banner success" role="status">
           {% if generation_status == "regenerated" %}
-            Your FORGE Reprint was regenerated successfully.
+            Your FORGE GameSheets Reprint was regenerated successfully.
           {% else %}
-            Your FORGE Reprint is ready and remains available until its source
+            Your FORGE GameSheets Reprint is ready and remains available until its source
             PDF or QR address changes.
           {% endif %}
         </p>
@@ -55,20 +55,20 @@
             href="{{ url_for('resource_reprint_view', resource_id=resource.id) }}"
             target="_blank"
             rel="noopener"
-          >View FORGE Reprint</a>
+          >View FORGE GameSheets Reprint</a>
           <a
             class="resource-action"
             href="{{ url_for('resource_reprint_download', resource_id=resource.id) }}"
-          >Download FORGE Reprint</a>
+          >Download FORGE GameSheets Reprint</a>
           <form action="{{ url_for('resource_reprint_regenerate', resource_id=resource.id) }}" method="post">
-            <button class="resource-action" type="submit">Regenerate FORGE Reprint</button>
+            <button class="resource-action" type="submit">Regenerate FORGE GameSheets Reprint</button>
           </form>
         </div>
       {% endif %}
 
       {% if generation_enabled and not generated_available %}
         <form class="reprint-generate" action="{{ url_for('resource_reprint_generate', resource_id=resource.id) }}" method="post">
-          <button class="resource-action primary" type="submit">Generate FORGE Reprint</button>
+          <button class="resource-action primary" type="submit">Generate FORGE GameSheets Reprint</button>
         </form>
       {% elif not generation_enabled %}
         <p class="status-banner warning" role="status">
@@ -98,7 +98,7 @@
       {% endif %}
       <div class="reprint-original">
         <h2>Original PDF</h2>
-        <p>The original remains available without a Forge mark.</p>
+        <p>The original remains available without a FORGE GameSheets mark.</p>
         <div class="reprint-actions">
           <a
             class="resource-action"
@@ -114,7 +114,7 @@
       </div>
     {% else %}
       <p class="status-banner warning" role="alert">
-        This PDF is currently unavailable. Return to the Forge library and
+        This PDF is currently unavailable. Return to the FORGE GameSheets library and
         rescan after restoring the source file.
       </p>
     {% endif %}

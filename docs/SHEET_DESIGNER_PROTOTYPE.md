@@ -1,8 +1,8 @@
 # Sheet Designer beta boundary
 
-Sheet Designer is an integrated Forge beta feature based on the approved
+Sheet Designer is an integrated FORGE GameSheets beta feature based on the approved
 structured-composer specification and mockup. Its current narrow scope proves
-the editing model, standalone boundary, Forge integration, and deterministic
+the editing model, standalone boundary, FORGE GameSheets integration, and deterministic
 PDF output while the [formal FGS v1 specification](FGS_V1_SPECIFICATION.md) is
 stabilized through migration and conformance testing.
 
@@ -37,9 +37,9 @@ only be bound to localhost for development.
 workspace, edit commands, and PDF renderer. Its storage root and HTTP template
 adapter are injected by the host:
 
-- Forge uses `<data>/sheet-designer/` and its normal Admin access control.
+- FORGE GameSheets uses `<data>/sheet-designer/` and its normal Admin access control.
 - The standalone shell uses `FORGE_SHEET_DESIGNER_DATA`, defaulting to
-  `/tmp/forge-sheet-designer`, and does not initialize the Forge database or
+  `/tmp/forge-sheet-designer`, and does not initialize the FORGE GameSheets database or
   scan the PDF library.
 
 Each sheet is stored as an independent `.fgs` draft. The active-sheet pointer
@@ -55,7 +55,7 @@ publication workflows remain undecided.
 
 New files use formal JSON-based FGS `1.0`. Existing `0.1-prototype` drafts are
 validated and migrated when opened; they are never merely relabelled. Files
-contain stable semantic IDs, no Forge database IDs, and no local paths. Imported
+contain stable semantic IDs, no FORGE GameSheets database IDs, and no local paths. Imported
 files are strictly validated and size-limited. FGS v1 formalizes compatibility,
 namespaced extensions, and the separation between portable document identity
 and an editor's local workspace identity.
@@ -78,7 +78,7 @@ other than the temporary default, set `FORGE_SHEET_DESIGNER_DATA` to a writable
 development directory before starting the shell.
 
 The integrated editor appears as **Sheet Designer** in the main navigation when
-the normal Forge application is running. It is visible to Admins and
+the normal FORGE GameSheets application is running. It is visible to Admins and
 Contributors, who work in the same shared draft workspace.
 
 ## Deferred decisions

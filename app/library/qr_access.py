@@ -1,4 +1,4 @@
-"""Resource-scoped access policy for stable FORGE Reprint QR addresses."""
+"""Resource-scoped access policy for stable FORGE GameSheets Reprint QR addresses."""
 
 from app.database import Database
 

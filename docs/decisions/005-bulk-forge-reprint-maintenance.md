@@ -1,4 +1,4 @@
-# Bulk FORGE Reprint maintenance
+# Bulk FORGE GameSheets Reprint maintenance
 
 Status: implemented, published, and owner-validated.
 
@@ -7,17 +7,17 @@ Status: implemented, published, and owner-validated.
 Add an Admin-only **Settings → Reprint maintenance** utility. It complements
 individual resource generation without crowding the main navigation. It is
 intended for an initial library load, a generator change, or a public/base-URL
-change that requires many stored static FORGE Reprints to be created again.
+change that requires many stored static FORGE GameSheets Reprints to be created again.
 
 The source PDFs remain authoritative and read-only. This utility creates or
-replaces only derived FORGE Reprint files and their metadata.
+replaces only derived FORGE GameSheets Reprint files and their metadata.
 
 ## Inventory and operations
 
 Before an operation, show:
 
 - total indexed PDF resources;
-- current FORGE Reprints;
+- current FORGE GameSheets Reprints;
 - eligible resources without a reprint;
 - out-of-sync reprints (internally `stale`), including generator-version, source, or QR target/base-URL
   changes that the application can identify;

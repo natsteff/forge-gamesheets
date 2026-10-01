@@ -9,8 +9,8 @@ FGS 1.2 adds Designer Notes and customizable score-table first-column headings;
 see [FGS 1.2](FGS_V1_2_SPECIFICATION.md).
 
 FGS is the portable, application-independent source format for a GameSheet.
-Forge GameSheets is one editor and renderer, but a conforming file must not
-depend on a Forge installation, database, library, web route, or local path.
+FORGE GameSheets is one editor and renderer, but a conforming file must not
+depend on a FORGE GameSheets installation, database, library, web route, or local path.
 Version 1 deliberately standardizes only the capabilities proven by the current
 Sheet Designer.
 
@@ -18,8 +18,8 @@ Sheet Designer.
 
 - Files use the `.fgs` extension and contain UTF-8 JSON without a byte-order
   mark. Duplicate object keys and non-finite numbers are invalid.
-- Forge uses the project media type `application/vnd.forge-gamesheets+json`.
-- Property order and insignificant whitespace have no semantic meaning. Forge
+- FORGE GameSheets uses the project media type `application/vnd.forge-gamesheets+json`.
+- Property order and insignificant whitespace have no semantic meaning. FORGE GameSheets
   exports two-space-indented JSON with sorted keys and a trailing line feed.
 - Every file declares `"format": "forge-gamesheets"` and
   `"format_version": "1.0"`.
@@ -51,7 +51,7 @@ fix implementations and do not appear in documents.
 [`schemas/fgs-v1.schema.json`](schemas/fgs-v1.schema.json) is normative. Readers
 must validate the complete document before storing, editing, or rendering it.
 Document, row, and block IDs must also be globally unique within the document.
-Forge limits imported files to 256 KiB. Implementations must apply reasonable
+FORGE GameSheets limits imported files to 256 KiB. Implementations must apply reasonable
 parser limits, reject prohibited control characters, and never interpret text
 as code, formulas, templates, HTML, URLs, or filesystem paths.
 
@@ -98,10 +98,10 @@ Field length and required-property rules are defined by the schema. Text is
 Unicode. Editors may trim outer whitespace from single-line fields but must not
 otherwise rewrite content.
 
-Forge's optional LiveSheet target recognizes score rows named exactly `Total`
+FORGE GameSheets’ optional LiveSheet target recognizes score rows named exactly `Total`
 or `Grand Total`, ignoring capitalization and surrounding whitespace, as
 calculated rows. This does not make runtime scores part of FGS v1. The legacy
-`show_total` and `total_label` representation remains valid; Forge presents that
+`show_total` and `total_label` representation remains valid; FORGE GameSheets presents that
 summary as a visible row when it is edited and saves new tables with visible
 row-driven totals.
 
@@ -118,4 +118,4 @@ object.
 FGS 1.1 adds one header logo and an author footer. General images, resource
 references, absolute placement, custom fonts, calculations,
 page breaks, repeating page elements, multiple pages, saved field values,
-scripts, HTML, ownership, and Forge library metadata are future capabilities.
+scripts, HTML, ownership, and FORGE GameSheets library metadata are future capabilities.

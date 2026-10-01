@@ -7,14 +7,14 @@ Accepted. Formal FGS v1 is established. The normative specification is
 
 ## Decision
 
-**Forge GameSheets** is the application. **FGS** is the application's native
+**FORGE GameSheets** is the application. **FGS** is the application's native
 structured GameSheet format, and `.fgs` is its portable file extension. An
 **FGS file** is editable structured source. A **GameSheet** is a human-readable
 result rendered from that source.
 
 Use these terms consistently:
 
-- **Forge GameSheets** — the self-hosted application and project.
+- **FORGE GameSheets** — the self-hosted application and project.
 - **FGS** — the native structured GameSheet format.
 - **FGS file** — a portable source document using the `.fgs` extension.
 - **GameSheet** — a rendered output produced from an FGS file.
@@ -23,7 +23,7 @@ Use these terms consistently:
 - **FGS Library** — the collection of FGS files associated with library
   entries.
 
-Do not use "Forge GameSheets file" for an FGS file where it could be confused
+Do not use "FORGE GameSheets file" for an FGS file where it could be confused
 with a file belonging to the application.
 
 ## Product boundary
@@ -31,7 +31,7 @@ with a file belonging to the application.
 FGS is a portable, structured, declarative definition of a GameSheet. It is not
 merely a configuration file for a board-game quick-reference PDF.
 
-The initial Forge use case remains tabletop games, but FGS must be broad enough
+The initial FORGE GameSheets use case remains tabletop games, but FGS must be broad enough
 for:
 
 - quick references, setup guides, player aids, and scoring sheets;
@@ -96,9 +96,9 @@ be treated as the FGS v1 specification.
 A library entry may have zero, one, or many independent FGS files. The data
 model must not assume one FGS per game.
 
-An FGS file must be portable between Forge installations. It must not depend on:
+An FGS file must be portable between FORGE GameSheets installations. It must not depend on:
 
-- a Forge database ID;
+- a FORGE GameSheets database ID;
 - an absolute path from the originating installation;
 - a private runtime cache;
 - the continued availability of the installation that created it.
@@ -113,7 +113,7 @@ An FGS may contain an optional BoardGameGeek ID or other external identifier.
 This can associate differently titled local and shared documents with the same
 game, but a BGG ID is not required for a valid FGS.
 
-BGG matching for a Forge library entry and optional BGG metadata inside an FGS
+BGG matching for a FORGE GameSheets library entry and optional BGG metadata inside an FGS
 are related but separate concerns. Non-BGG use cases such as a private golf
 outing, homemade game, or custom tournament must remain first-class.
 
@@ -134,7 +134,7 @@ new explicit decision.
 
 ## Sharing and content boundary
 
-Forge is private, self-hosted tooling, not a public FGS repository. Users may
+FORGE GameSheets is private, self-hosted tooling, not a public FGS repository. Users may
 independently share both a rendered GameSheet and its editable source, for
 example a PDF and a corresponding `.fgs` file.
 
@@ -144,7 +144,7 @@ discovery convention; `fgs` may be shorthand but is too generic to be the
 canonical identifier. Do not scrape BGG Files or automate uploads without an
 officially supported API and a later explicit decision.
 
-Forge distributes software and original fictional examples, not copyrighted
+FORGE GameSheets distributes software and original fictional examples, not copyrighted
 rulebooks, commercial sheets, community-created FGS files, or other third-party
 game content. Existing operator-responsibility notices remain applicable.
 

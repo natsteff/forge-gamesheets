@@ -1,4 +1,4 @@
-"""Durable, sequential bulk maintenance for derived FORGE Reprints."""
+"""Durable, sequential bulk maintenance for derived FORGE GameSheets Reprints."""
 
 from __future__ import annotations
 

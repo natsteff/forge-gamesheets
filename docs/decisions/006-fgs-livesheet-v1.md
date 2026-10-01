@@ -94,7 +94,7 @@ restart without turning it into a permanent library record.
 
 LiveSheet v1 is initially a full-application capability because its public
 invitations depend on the configured base URL and its host launch depends on
-Forge's Contributor/Admin access control. Enabling it in Designer-only mode is
+FORGE GameSheets’ Contributor/Admin access control. Enabling it in Designer-only mode is
 deferred until that mode has an intentional host-authentication and network
 exposure design; do not silently expose host controls from its unauthenticated
 standalone surface.

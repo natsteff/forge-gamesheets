@@ -9,11 +9,11 @@ Tuning each by eye did not remove the cause.
 
 We therefore maintain a versioned browser-and-Node JavaScript renderer in
 `packages/fgs-renderer/`. Its single point-based display list drives SVG preview and vector
-PDF. Forge pins the browser and Node bundles and runs the latter in an
+PDF. FORGE GameSheets pins the browser and Node bundles and runs the latter in an
 unprivileged, bounded subprocess after Python validates the FGS input. Studio
 pins the same browser bundle and runs entirely locally in the browser. Exact
 build hashes are recorded in a manifest and verified in both repositories.
-Forge's image adds a Node runtime for this approved exception to the general
+FORGE GameSheets’ image adds a Node runtime for this approved exception to the general
 server-rendered preference.
 
 The appearance contract is `docs/FGS_PAGE_RENDERING_PROFILE_1_0.md` with ID

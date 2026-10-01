@@ -1,10 +1,10 @@
 # Phase 1 beta testing guide
 
-Thank you for testing Forge GameSheets. The goal is to learn whether an ordinary
+Thank you for testing FORGE GameSheets. The goal is to learn whether an ordinary
 collection of board-game PDFs can be organized and used without requiring every
 filename to be cleaned up first.
 
-Use copies of PDFs for beta testing. Forge GameSheets mounts the library as
+Use copies of PDFs for beta testing. FORGE GameSheets mounts the library as
 read-only and should not modify source files, but a separate test collection
 makes verification and cleanup easier.
 
@@ -31,7 +31,7 @@ Open <http://localhost:8000> and confirm `/health` reports an `ok` status.
 1. Add at least five first-level game folders.
 2. Include both well-named and imperfectly named PDFs.
 3. Include a nested PDF beneath one game folder.
-4. Start Forge GameSheets or select **Rescan library**.
+4. Start FORGE GameSheets or select **Rescan library**.
 5. Confirm every game appears in All Games.
 6. Confirm every PDF remains accessible, even when classified as Other.
 
@@ -87,7 +87,7 @@ you have permission.
 4. Stop and restart the application.
 5. Confirm settings, categories, favorites, pins, metadata, and history persist.
 
-## Test 7 — FORGE Reprint
+## Test 7 — FORGE GameSheets Reprint
 
 Use test copies of resources that represent the range in your library. Include
 Letter and A4 pages, portrait and landscape orientation, a multi-page PDF, a
@@ -95,24 +95,24 @@ scanned PDF, and an unusually narrow page when available.
 
 1. Configure `FORGE_GAMESHEETS_BASE_URL` with an address reachable by the device
    that will scan the QR code.
-2. Generate a FORGE Reprint and confirm the original PDF remains unchanged.
+2. Generate a FORGE GameSheets Reprint and confirm the original PDF remains unchanged.
 3. Review every generated page and confirm the logo, complete URL, legal notice,
    and QR code are visible without covering source content.
 4. Scan the QR code from another device and confirm it opens the intended
    resource page without automatically opening or printing a PDF.
-5. View and download both the FORGE Reprint and original PDF.
-6. Restart Forge and confirm the generated copy remains available.
+5. View and download both the FORGE GameSheets Reprint and original PDF.
+6. Restart FORGE GameSheets and confirm the generated copy remains available.
 7. Print one generated copy using **Fit to printable area** and confirm the full
    URL and QR code remain visible on paper.
 8. Change the configured base URL or replace a test source PDF, then confirm
-   Forge requires a fresh generated copy rather than serving the stale one.
+   FORGE GameSheets requires a fresh generated copy rather than serving the stale one.
 
 Report the general page size and PDF characteristics when a layout fails, but
 do not submit copyrighted source files without permission.
 
-## Test 7a — bulk FORGE Reprint maintenance
+## Test 7a — bulk FORGE GameSheets Reprint maintenance
 
-1. As an Admin, open **Admin → FORGE Reprints** and compare the inventory counts
+1. As an Admin, open **Admin → FORGE GameSheets Reprints** and compare the inventory counts
    with the test library.
 2. Review each operation before starting it: create missing, refresh existing,
    and create or refresh all eligible reprints.

@@ -10,7 +10,7 @@
       <button class="secondary-button" data-start-open type="button"><strong>Open sheets</strong><span>Browse saved sheets or import an FGS file.</span></button>
       <button class="secondary-button" data-start-resume type="button"><strong>Resume last sheet</strong><span data-resume-description>Loading recent sheet…</span></button>
     </div>
-    <p class="designer-startup-note">Sheets are saved automatically in this shared Forge workspace.</p>
+    <p class="designer-startup-note">Sheets are saved automatically in this shared FORGE GameSheets workspace.</p>
     <p class="designer-startup-about"><button class="designer-text-button" data-about-designer type="button">About Sheet Designer</button></p>
     <div class="designer-message" data-startup-message role="alert" hidden></div>
   </section>
@@ -18,8 +18,8 @@
   <div data-editor-shell hidden>
   <header class="designer-bar">
     {% if standalone %}
-    <a class="designer-brand" href="/sheet-designer" aria-label="Forge GameSheets Sheet Designer">
-      <img src="{{ url_for('static', path='/brand/forge-wordmark.png') }}" alt="Forge GameSheets">
+    <a class="designer-brand" href="/sheet-designer" aria-label="FORGE GameSheets Sheet Designer">
+      <img src="{{ url_for('static', path='/brand/forge-wordmark.png') }}" alt="FORGE GameSheets">
     </a>
     {% else %}
     <h1>Sheet Designer</h1>
@@ -30,7 +30,7 @@
     <p class="designer-status" data-save-status role="status">Loading…</p>
     <div class="designer-actions">
       {% if standalone %}
-      <a class="designer-source-link" href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Forge GameSheets on GitHub</a>
+      <a class="designer-source-link" href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">FORGE GameSheets on GitHub</a>
       {% endif %}
       <button class="secondary-button" data-about-designer type="button">About</button>
       {% if not standalone %}<button class="secondary-button" data-game-link type="button">Associate game</button>{% endif %}
@@ -78,7 +78,7 @@
       <section class="designer-properties" aria-label="Page footer">
         <h2>Footer</h2>
         <label>Footer text (one or two entered lines)<textarea data-footer rows="2" placeholder="Created by …"></textarea></label>
-        <p class="designer-field-help">Appears at the bottom of the GameSheet, separate from FORGE Reprint information. If a line is too wide to print, the preview warns you without cutting off your text.</p>
+        <p class="designer-field-help">Appears at the bottom of the GameSheet, separate from FORGE GameSheets Reprint information. If a line is too wide to print, the preview warns you without cutting off your text.</p>
       </section>
       <section class="designer-properties" aria-label="Designer Notes">
         <h2>Designer Notes</h2>
@@ -149,7 +149,7 @@
         <div><p class="eyebrow">Game library</p><h2>Associate with a game</h2></div>
         <button class="designer-dialog-close" data-close-game-link type="button" aria-label="Close">×</button>
       </div>
-      <p>Connect this saved GameSheet to an existing game entry. The association is local to Forge and is not added to exported FGS files.</p>
+      <p>Connect this saved GameSheet to an existing game entry. The association is local to FORGE GameSheets and is not added to exported FGS files.</p>
       <p class="designer-game-link-current" data-game-link-current></p>
       <label>Find a game
         <span class="designer-game-search"><input data-game-search maxlength="200" placeholder="Search game titles"><button class="secondary-button" type="button" data-game-search-button>Search</button></span>
@@ -190,7 +190,7 @@
     </div>
     <div class="designer-library-import">
       <p><strong>Import a sheet</strong></p>
-      <p>Open a Forge Game Sheet file from this device.</p>
+      <p>Open a FGS file from this device.</p>
       <label class="secondary-button designer-import">Import .fgs<input data-import-file type="file" accept=".fgs,application/json"></label>
     </div>
     <div class="designer-sheet-list" data-sheet-list></div>

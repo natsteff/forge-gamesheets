@@ -226,8 +226,8 @@ class SameOriginMutations:
                 or headers.get("sec-fetch-site") in {"cross-site", "same-site"}
             ):
                 response = PlainTextResponse(
-                    "Request blocked: submit changes from the FORGE page on this "
-                    "server. Reload the page and try again.",
+                    "Request blocked: submit changes from the FORGE GameSheets "
+                    "page on this server. Reload the page and try again.",
                     status_code=403,
                 )
                 await response(scope, receive, send)

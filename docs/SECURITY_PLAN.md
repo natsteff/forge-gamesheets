@@ -91,11 +91,11 @@ scanner listed no fixed Debian version for those entries. On 2026-09-23 the
 owner reviewed the eight underlying advisories and accepted the remaining High
 findings for this trusted-network beta release. The affected functions concern
 local privileged mount/namespace or ACL operations, systemd-homed, infocmp, and
-Perl Archive::Tar; Forge does not invoke those functions in its normal runtime,
+Perl Archive::Tar; FORGE GameSheets does not invoke those functions in its normal runtime,
 which runs without root privileges or Linux capabilities. This is a scoped
 release decision, not blanket acceptance for future releases. Refresh the scan
 of the exact published image and reassess when Debian packages, the base image,
-or Forge's deployment boundary changes.
+or FORGE GameSheets’ deployment boundary changes.
 
 Remaining decisions/fixes, in priority order:
 
@@ -108,7 +108,7 @@ Remaining decisions/fixes, in priority order:
    that no redirect destination is contacted and Authorization is not copied.
    The owner has accepted live BGG integration validation as complete. Each
    self-hosted operator supplies their own approved token; none is distributed
-   with Forge. A manual no-internet resilience check remains future testing,
+   with FORGE GameSheets. A manual no-internet resilience check remains future testing,
    not a current completion blocker; see PROJECT_PLAN.md.
 3. Verify an actual protected-proxy deployment when one is used; current tests
    cover trusted versus untrusted forwarded scheme, not a live TLS perimeter.
@@ -140,12 +140,12 @@ username/password and is limited to one stable resource QR address.
   downloaded files cannot be recalled.
 - After sign-in, return to the intended resource using a validated local
   destination; do not permit arbitrary redirect URLs.
-- The FORGE Reprint page should explain the active access mode and that the
+- The FORGE GameSheets Reprint page should explain the active access mode and that the
   administrator may change it later. Keep this notice off the printed copy.
 - Test both modes, role permissions, direct endpoint access, cross-resource
   attempts, cache behavior, and setting changes on existing links.
 
-Owner validation is complete. Every FORGE Reprint uses a stable numeric
+Owner validation is complete. Every FORGE GameSheets Reprint uses a stable numeric
 `/r/{resource-id}` address. These addresses are intentionally discoverable rather
 than secret bearer credentials: anyone who can reach the installation may try
 adjacent IDs and access any resource that remains public. This is an accepted
@@ -161,16 +161,16 @@ public-Internet exposure.
 - The stable address has no secret to rotate or expire. Changing the resource
   policy is the supported way to remove anonymous access; downloaded copies
   cannot be recalled.
-- External proxy authentication may still require sign-in before Forge receives
+- External proxy authentication may still require sign-in before FORGE GameSheets receives
   a request, regardless of the resource setting.
-- The FORGE Reprint page explains the current policy. The original PDF remains
-  available as the source for printing without a FORGE QR code.
+- The FORGE GameSheets Reprint page explains the current policy. The original PDF remains
+  available as the source for printing without a FORGE GameSheets QR code.
 - Tests cover public and restricted access, direct endpoints, cross-resource
   attempts, cache behavior, and changes applied to an existing QR address.
 
 ### Bulk reprint maintenance
 
-Bulk FORGE Reprint maintenance is Admin-only and uses the same validated source,
+Bulk FORGE GameSheets Reprint maintenance is Admin-only and uses the same validated source,
 generated-path, rendering-lock, storage-budget, and QR-target services as the
 individual workflow. Only one persistent job may be queued or running. Items are
 processed sequentially, and cancellation takes effect after the current file so
@@ -180,7 +180,7 @@ and current per-resource restrictions are preserved.
 Job pages expose resource titles and bounded failure descriptions only to Admins.
 They do not store source contents or filesystem paths. Unexpected
 errors use a generic message. Database and generated-output backups should be
-taken while Forge is stopped so job state and derived files are consistent.
+taken while FORGE GameSheets is stopped so job state and derived files are consistent.
 
 ## Possible web uploads and new game entries — review with owner first
 

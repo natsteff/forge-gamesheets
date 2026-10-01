@@ -1,12 +1,12 @@
 # Accounts and QR access
 
 Accounts are optional: upgrading does not activate login. Without local setup,
-everyone who can reach Forge continues to have trusted-operator access. Do not
+everyone who can reach FORGE GameSheets continues to have trusted-operator access. Do not
 expose that mode to untrusted users.
 
 ## Activate deliberately
 
-Use a terminal **on the host running the intended Forge installation**, in its
+Use a terminal **on the host running the intended FORGE GameSheets installation**, in its
 Compose directory. Start the current container first:
 
 ```sh
@@ -15,7 +15,7 @@ docker compose up -d
 ```
 
 For access from another device, configure the HTTPS reverse proxy and verify that
-the Forge sign-in page loads over its final HTTPS hostname first. Follow the
+the FORGE GameSheets sign-in page loads over its final HTTPS hostname first. Follow the
 [Nginx Proxy Manager example](deployment.md#https-with-nginx-proxy-manager). A
 self-signed/private-CA certificate works when the client trusts that CA. Do not
 activate accounts while relying on direct LAN HTTP access.
@@ -38,13 +38,13 @@ Successful setup immediately protects the existing shared library; it does not
 move PDFs, change library permissions, or assign existing content to one owner.
 Sign in, then use **Admin → User Accounts** to add accounts. QR codes remain
 resource-only and public by default. An Admin may require sign-in for an
-individual resource from its FORGE Reprint page.
+individual resource from its FORGE GameSheets Reprint page.
 
 Non-local sign-in requires HTTPS through a correctly configured trusted proxy.
 Localhost HTTP is supported for development. Establish HTTPS before activating
 on a LAN server. Keep the direct backend port protected; accounts alone do not
 make public exposure appropriate. External proxy authentication can still block
-public QR access independently of Forge's resource setting.
+public QR access independently of FORGE GameSheets’ resource setting.
 
 ## Permissions
 
@@ -63,7 +63,7 @@ Sensitive account controls require the acting user's current passphrase.
 
 ## QR behavior
 
-Every FORGE Reprint uses its stable numeric `/r/123` address. That address is
+Every FORGE GameSheets Reprint uses its stable numeric `/r/123` address. That address is
 public by default, but exposes only its one resource, original PDF, and existing
 generated copy. Guests cannot enumerate the library or trigger rendering. An
 Admin can require Reader-or-higher sign-in for an individual resource. The
@@ -77,10 +77,10 @@ reprint regeneration; changing only the access setting does not.
 
 The migration from the earlier test-only secure-link design retires `/s/…`
 addresses and removes their tokens. After upgrading that test installation, run
-**Admin → FORGE Reprints → Create or refresh all reprints** once so every printed
+**Admin → FORGE GameSheets Reprints → Create or refresh all reprints** once so every printed
 copy uses its stable `/r/{resource-id}` address.
 
-The original PDF is the no-FORGE-QR option. Notices stay on the web page, not the
+The original PDF is the option without a FORGE GameSheets QR code. Notices stay on the web page, not the
 printed footer. Treat public QR PDFs/URLs as shareable links: anyone receiving
 them can pass them on. Downloaded copies cannot be recalled, and links do not
 make a private server reachable from outside its network.
@@ -111,7 +111,7 @@ solve login problems.
 Navigation groups Games, Quick access, Admin, and Account into desktop dropdowns,
 with Sheet Designer and History as separate top-level links. Sheet Designer is
 available to Admins and Contributors. The mobile Menu shows
-the same permitted groups with directly visible links. Admins can open FORGE
+the same permitted groups with directly visible links. Admins can open FORGE GameSheets
 Reprints, Metadata portability, Settings, and User Accounts from Admin and can
 open the Sheet Designer.
 Account contains personal account actions. Readers and Contributors do not see

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ game.title }} · Forge GameSheets{% endblock %}
+{% block title %}{{ game.title }} · FORGE GameSheets{% endblock %}
 
 {% block content %}
   <a class="back-link" href="{{ url_for('library_home') }}">← All games</a>
@@ -116,7 +116,7 @@
                     <a
                       class="resource-action primary"
                       href="{{ url_for('resource_reprint', resource_id=resource.id) }}"
-                    >FORGE Reprint</a>
+                    >FORGE GameSheets Reprint</a>
                     <a
                       class="resource-action"
                       href="{{ url_for('resource_view', resource_id=resource.id) }}"

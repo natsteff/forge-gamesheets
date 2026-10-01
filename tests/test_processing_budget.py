@@ -198,5 +198,5 @@ def test_regeneration_failure_is_visible_with_prior_copy(tmp_path, monkeypatch):
         failed = client.post("/resources/1/forge-reprint/regenerate")
         assert 'role="alert"' in failed.text
         assert "could not be created" in failed.text
-        assert "View FORGE Reprint" in failed.text
+        assert "View FORGE GameSheets Reprint" in failed.text
         assert client.get("/resources/1/forge-reprint/download").content == before

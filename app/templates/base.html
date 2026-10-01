@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Your self-hosted printable game library.">
-    <title>{% block title %}Forge GameSheets{% endblock %}</title>
+    <meta name="description" content="FORGE GameSheets helps you design printable sheets, use LiveSheets, and manage game PDFs.">
+    <title>{% block title %}FORGE GameSheets{% endblock %}</title>
     <link
       rel="icon"
       type="image/png"
@@ -16,7 +16,7 @@
       sizes="180x180"
       href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
     >
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=64">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=65">
     <script src="{{ url_for('static', path='/app.js') }}?v=10" defer></script>
     {% block head %}{% endblock %}
   </head>
@@ -28,7 +28,7 @@
         <img
           class="brand-wordmark"
           src="{{ url_for('static', path='/brand/forge-wordmark.png') }}"
-          alt="Forge GameSheets"
+          alt="FORGE GameSheets"
         >
       </a>
       <button
@@ -65,7 +65,7 @@
         <span class="nav-heading">Admin</span>
         <button class="nav-group-toggle" type="button" aria-expanded="false" aria-controls="nav-admin" hidden>Admin <span aria-hidden="true">▾</span></button>
         <div class="nav-group-links" id="nav-admin">
-        <a href="{{ url_for('reprint_maintenance') }}"{% if request.url.path.startswith("/settings/reprints") %} aria-current="page"{% endif %}>FORGE Reprints</a>
+        <a href="{{ url_for('reprint_maintenance') }}"{% if request.url.path.startswith("/settings/reprints") %} aria-current="page"{% endif %}>FORGE GameSheets Reprints</a>
         <a href="{{ url_for('link_portability') }}"{% if request.url.path.startswith("/settings/metadata-portability") %} aria-current="page"{% endif %}>Metadata portability</a>
         <a href="{{ url_for('settings_home') }}"{% if request.url.path == "/settings" %} aria-current="page"{% endif %}>Settings</a>
         {% if request.state.user %}<a href="{{ url_for('accounts_home') }}"{% if request.url.path == "/settings/users" %} aria-current="page"{% endif %}>User Accounts</a>{% endif %}
@@ -87,7 +87,7 @@
     </main>
     <footer class="site-footer">
       {% if preferences.footer_text %}<span>{{ preferences.footer_text }}</span>{% endif %}
-      <a href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">Forge GameSheets on GitHub</a>
+      <a href="https://github.com/natsteff/forge-gamesheets" target="_blank" rel="noopener">FORGE GameSheets on GitHub</a>
     </footer>
   </body>
 </html>

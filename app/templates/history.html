@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}History · Forge GameSheets{% endblock %}
+{% block title %}History · FORGE GameSheets{% endblock %}
 
 {% block content %}
   <section class="history-header">
     <p class="eyebrow">Local activity</p>
     <h1>Activity history</h1>
-    <p>Recent library scans, content changes, and successful PDF use recorded by this Forge GameSheets server.</p>
+    <p>Recent library scans, content changes, and successful PDF use recorded by this FORGE GameSheets server.</p>
   </section>
 
   {% if activity %}
@@ -36,6 +36,6 @@
     {% if older_cursor %}<a class="resource-action" href="{{ url_for('activity_history') }}?before={{ older_cursor }}">Older activity</a>{% endif %}
   </nav>
   <p class="settings-note">
-    {% if accounts_enabled %}Account sign-ins and security changes are recorded separately under <a href="{{ url_for('accounts_home') }}">User Accounts</a>. {% endif %}Detailed bulk reprint operation results are recorded separately under <a href="{{ url_for('reprint_maintenance') }}">FORGE Reprint maintenance</a>.{% if accounts_enabled %} Both pages require an Admin account.{% endif %}
+    {% if accounts_enabled %}Account sign-ins and security changes are recorded separately under <a href="{{ url_for('accounts_home') }}">User Accounts</a>. {% endif %}Detailed bulk reprint operation results are recorded separately under <a href="{{ url_for('reprint_maintenance') }}">FORGE GameSheets Reprint maintenance</a>.{% if accounts_enabled %} Both pages require an Admin account.{% endif %}
   </p>
 {% endblock %}
