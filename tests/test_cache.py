@@ -86,7 +86,7 @@ def test_cleanup_does_not_follow_managed_directory_symlink(
     database = Database.in_data_directory(data)
     database.initialize()
     outside_file = outside / "resource-999-1-2.pdf"
-    outside_file.write_bytes(b"not managed by Forge")
+    outside_file.write_bytes(b"not managed by FORGE GameSheets")
     (data / "generated").symlink_to(outside, target_is_directory=True)
 
     summary = cleanup_managed_files(database, data)

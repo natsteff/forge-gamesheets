@@ -1,4 +1,4 @@
-"""Pin a verified local FGS Renderer build into the Forge application."""
+"""Pin a verified local FGS Renderer build into FORGE GameSheets."""
 
 from __future__ import annotations
 

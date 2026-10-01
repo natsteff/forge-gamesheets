@@ -1,4 +1,4 @@
-"""Host validation limits which names can reach FORGE."""
+"""Host validation limits which names can reach FORGE GameSheets."""
 
 import pytest
 from fastapi.testclient import TestClient
