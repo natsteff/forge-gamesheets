@@ -52,6 +52,9 @@ def test_readme_current_capability_contract():
         "docs/ACCOUNTS.md",
         "docs/DOCUMENTATION_REVIEW.md",
         "individual workstation or trusted",
+        "Plex/Jellyfin-style library",
+        "scan to discover PDFs recursively",
+        "Rescan after adding, moving, or removing files",
     ):
         assert term in text
     assert "## Quick start" not in text
@@ -150,6 +153,8 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
     gallery = (ROOT / "docs/SCREENSHOT_GALLERY.md").read_text()
     images = set(re.findall(r"images/[\w-]+\.png", gallery))
     assert len(images) == 12
+    readme_images = set(re.findall(r"docs/images/[\w-]+\.png", text))
+    assert readme_images == {f"docs/{path}" for path in images}
     for name in (
         "users",
         "assign-categories",

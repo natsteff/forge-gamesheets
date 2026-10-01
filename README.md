@@ -32,8 +32,11 @@ but it is not part of FORGE GameSheets.
 
 ## What you can do
 
-- **Collect and find:** Browse a filesystem-based PDF library by game and
-  category, search resources, and open original files without changing them.
+- **Collect and find:** Think of it as a Plex/Jellyfin-style library for game
+  documents. Point it at existing folders—one first-level folder per game—and
+  scan to discover PDFs recursively. Browse by game or category, search game
+  and resource titles, preview, view, download, and print the original files
+  without changing them. Rescan after adding, moving, or removing files.
 - **Create and print:** Build portable FGS GameSheets with a live preview, then
   export a PDF or `.fgs` source. Design full sheets, half sheets, or cards and
   arrange smaller copies on printer paper with cut guides.
@@ -50,14 +53,27 @@ Explore the [workflow guide](docs/LIBRARY_GUIDE.md),
 
 ## Screenshots
 
-The [screenshot gallery](docs/SCREENSHOT_GALLERY.md) retains the library,
-resources, categories, Reprint maintenance, accounts, history, settings,
-Designer, and BoardGameGeek views. Older captures are labeled as earlier
-interfaces rather than presented as current. This active LiveSheet was
-captured from a disposable fictional demo; its invitation is inactive and the
-**qr code here** placeholder is not scannable.
+These use a fictional demonstration library and disposable data. Some older
+captures show earlier interface copy or controls; the
+[screenshot gallery](docs/SCREENSHOT_GALLERY.md) labels them and records capture
+details. Click an image to inspect it at full size.
 
-![Disposable LiveSheet with an inactive invitation and non-scannable QR placeholder](docs/images/livesheet-active.png)
+| Library, pins, and categories (earlier interface) | Game resources |
+| --- | --- |
+| ![Earlier library view with pinned resources and categories](docs/images/library-overview.png) | ![Fictional game's rules, score sheets, and resource actions](docs/images/game-resources.png) |
+| **Bulk game categories** | **Bulk Reprint maintenance (earlier heading)** |
+| ![Demo games with bulk category assignment controls](docs/images/assign-categories.png) | ![Earlier admin Reprint inventory and operations](docs/images/reprint-maintenance.png) |
+| **User Accounts** | **Activity History** |
+| ![Admin account management controls](docs/images/users.png) | ![Activity history for scans and resource use](docs/images/activity-history.png) |
+| **Integration and build details** | **Sheet Designer (earlier controls)** |
+| ![Settings showing integration status and build identification](docs/images/settings-build.png) | ![Sheet Designer sidebar and printable-sheet preview](docs/images/sheet-designer.png) |
+| **Designer startup (earlier copy)** | **Saved sheets and import** |
+| ![Earlier Designer startup choices](docs/images/sheet-designer-startup.png) | ![Saved drafts and FGS import](docs/images/sheet-designer-open.png) |
+| **BoardGameGeek integration** | **Active LiveSheet** |
+| ![BoardGameGeek association controls using public example data](docs/images/bgg-integration.png) | ![Disposable LiveSheet with an inactive invitation and non-scannable qr code here placeholder](docs/images/livesheet-active.png) |
+
+The LiveSheet image was captured from a disposable fictional demo. Its
+invitation is inactive and the **qr code here** placeholder is not scannable.
 
 ## Get started
 

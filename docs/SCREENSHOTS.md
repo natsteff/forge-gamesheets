@@ -11,9 +11,9 @@ to demonstrate verified controls; it contains no private library data. The build
 panel correctly says Local development build: this was a local source run, not
 a published-container verification.
 
-The [screenshot gallery](SCREENSHOT_GALLERY.md) keeps every image from the
-former README gallery, plus a new active LiveSheet capture. The README displays
-the new LiveSheet image and links the complete gallery. The
+The README and [screenshot gallery](SCREENSHOT_GALLERY.md) keep all eleven
+original gallery images, plus a new active LiveSheet capture. The gallery
+adds provenance and capture details. The
 library-overview and reprint-maintenance captures predate the full
 **FORGE GameSheets** headings; the home description has also changed. Refresh
 them from a disposable library before
