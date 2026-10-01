@@ -39,7 +39,7 @@ def test_new_and_upgraded_install_seed_once(tmp_path):
         for migration in MIGRATIONS[:-1]:
             _apply_migration(connection, migration)
     db.initialize()
-    assert len(links.links(db)) == 14
+    assert len(links.links(db)) == 15
     assert [c["name"] for c in links.categories(db)] == [
         "Gamesheet Sources",
         "Live Scoring",
@@ -57,7 +57,7 @@ def test_new_and_upgraded_install_seed_once(tmp_path):
     other = next(link for link in links.links(db) if link["id"] != item["id"])
     links.delete_link(db, other["id"])
     db.initialize()
-    assert len(links.links(db)) == 13
+    assert len(links.links(db)) == 14
     assert links.get_link(db, item["id"])["name"] == "Changed starter"
     assert not links.get_link(db, item["id"])["enabled"]
     assert links.add_missing_defaults(db) == 1
@@ -75,13 +75,13 @@ def test_category_moves_preserve_links_and_default_identity(database):
     with pytest.raises(links.LinkError):
         links.delete_category(database, first["id"], first["id"])
     links.delete_category(database, first["id"], second["id"])
-    assert len(links.links(database)) == 14
+    assert len(links.links(database)) == 15
     assert links.add_missing_defaults(database) == 0
     assert len(links.categories(database)) == 3
     assert all(
         link["category_id"] == second["id"]
         for link in links.links(database)
-        if link["default_key"] != "boardgamegeek"
+        if link["default_key"] not in {"boardgamegeek", "forge_ttrpg_web"}
     )
 
 
@@ -117,11 +117,30 @@ def test_bingo_defaults_and_existing_install_add_missing(database):
     )
     # Upgrading/reinitializing an existing directory does not insert new defaults.
     database.initialize()
-    assert len(links.links(database)) == 11
+    assert len(links.links(database)) == 12
     assert links.add_missing_defaults(database) == 3
     assert links.add_missing_defaults(database) == 0
     preserved = links.get_link(database, original["id"])
     assert preserved["name"] == "My customized source" and not preserved["enabled"]
+
+
+def test_ttrpg_starter_is_distinct_and_restored_only_on_request(database):
+    starter = next(
+        link for link in links.links(database) if link["default_key"] == "forge_ttrpg_web"
+    )
+    assert starter["name"] == "FORGE TTRPG (web) — Character Sheet Templates"
+    assert starter["url"] == "https://forge-ttrpg.vercel.app/app/templates"
+    assert "Separate from FORGE GameSheets (FGS)" in starter["description"]
+    assert starter["category_name"] == "Other"
+    assert starter["source_type"] == "third_party"
+    assert starter["enabled"] and not starter["forge_favorite"]
+    links.delete_link(database, starter["id"])
+    database.initialize()
+    assert not any(
+        link["default_key"] == "forge_ttrpg_web" for link in links.links(database)
+    )
+    assert links.add_missing_defaults(database) == 1
+    assert links.add_missing_defaults(database) == 0
 
 
 @pytest.mark.parametrize(
@@ -144,7 +163,7 @@ def test_bingo_defaults_and_existing_install_add_missing(database):
 def test_unsafe_urls_rejected(database, url):
     with pytest.raises(links.LinkError):
         links.save_link(database, form(1, url=url))
-    assert len(links.links(database)) == 14
+    assert len(links.links(database)) == 15
 
 
 def test_category_unique_order_validation_and_missing_records(database):
@@ -175,7 +194,7 @@ def test_seed_file_updates_do_not_override_database(database, monkeypatch, tmp_p
     path.write_text(json.dumps(contents))
     monkeypatch.setattr(links, "DEFAULTS_PATH", path)
     database.initialize()
-    assert len(links.links(database)) == 14
+    assert len(links.links(database)) == 15
     assert links.add_missing_defaults(database) == 1
     assert (
         next(
@@ -188,11 +207,11 @@ def test_seed_file_updates_do_not_override_database(database, monkeypatch, tmp_p
 
 
 def test_seeding_is_atomic_and_limits_apply(database, monkeypatch):
-    monkeypatch.setattr(links, "MAX_LINKS", 14)
+    monkeypatch.setattr(links, "MAX_LINKS", 15)
     with pytest.raises(links.LinkError):
         links.save_link(database, form(1))
     links.delete_link(database, 1)
     links.save_link(database, form(1))
     with pytest.raises(links.LinkError):
         links.add_missing_defaults(database)
-    assert len(links.links(database)) == 14
+    assert len(links.links(database)) == 15

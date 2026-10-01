@@ -191,7 +191,7 @@ def test_user_text_escaped_and_ordered_shortcuts(client):
     assert "&lt;script&gt;" in page
     assert page.index("First shortcut") < page.index("&lt;script&gt;")
     assert "&lt;script&gt;" in client.get("/settings/links").text
-    assert len(links.links(db)) == 14
+    assert len(links.links(db)) == 15
 
 
 def test_category_management_and_explicit_restore(client):
@@ -204,10 +204,10 @@ def test_category_management_and_explicit_restore(client):
     client.post(
         "/settings/links/categories/1/delete", data={"confirm": "1", "move_to": "2"}
     )
-    assert len(links.links(client.app.state.database)) == 14
+    assert len(links.links(client.app.state.database)) == 15
     client.post("/settings/links/1/delete", data={"confirm": "1"})
     client.post("/settings/links/starters", data={"confirm": "1"})
-    assert len(links.links(client.app.state.database)) == 14
+    assert len(links.links(client.app.state.database)) == 15
     assert not any(
         link["forge_favorite"] for link in links.links(client.app.state.database)
     )
@@ -216,7 +216,7 @@ def test_category_management_and_explicit_restore(client):
 def test_compact_rows_and_role_controls(client):
     sign_in(client, "reader")
     page = client.get("/links").text
-    assert page.count('class="resource-row links-row') == 14
+    assert page.count('class="resource-row links-row') == 15
     assert 'class="links-grid"' not in page
     assert 'aria-label="Add personal favorite: Printable Paper"' in page
     assert "/settings/links/1/pin" not in page
@@ -225,7 +225,7 @@ def test_compact_rows_and_role_controls(client):
     sign_in(client, "admin")
     for path in ("/links", "/settings/links"):
         page = client.get(path).text
-        assert page.count('class="resource-row links-row') == 14
+        assert page.count('class="resource-row links-row') == 15
         assert "/settings/links/1/pin" in page
         assert "/settings/links/1/edit" in page
         assert "/settings/links/1/delete" in page
