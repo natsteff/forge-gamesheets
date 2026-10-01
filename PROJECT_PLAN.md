@@ -600,8 +600,8 @@ renderer, header logos/footer, FGS 1.2 editorial notes and configurable table
 headings are implemented. Global external-resource navigation is provided by Links.
 These are not future-work items.
 
-The first small-format print increment is implemented locally for Forge Designer
-and Studio. A reversible local trial now keeps Full Page's existing single-page
+The first small-format print increment is implemented in Forge Designer
+and Studio. The reviewed beta keeps Full Page's existing single-page
 renderer unchanged while composing Half Page, Poker Card, Bridge Card, and Custom
 Size as intentionally designed, single-item sheets. Compact content wraps and
 uniformly fits when needed; fit percentage and effective body type size are
@@ -617,7 +617,7 @@ compact sheets remain one finished item, never automatically another card.
 Remaining future components include richer section types beyond the supported
 headers, score tables, references, checklists and lined notes; multi-page output;
 advanced layout; optional desktop/offline editor packaging; additional render
-targets; migrations for future format versions beyond the supported 1.0/1.1/1.2;
+targets; migrations for future format versions beyond the supported 1.0–1.3;
 and any structured community-sharing workflow beyond ordinary external links.
 These require their own scope decisions, not automatic implementation.
 

@@ -93,7 +93,8 @@ The current application also includes LiveSheet setup and play, GameSheet/game
 associations, generated GameSheet previews, the Designer's About dialog, and
 FGS 1.1 logo and Footer controls. Those newer workflows are not yet represented
 by dedicated gallery images; the existing Designer image shows an earlier
-version of the editor. The
+version of the editor. The startup image also predates the separate About link
+below the save note and the reusable-paper New sheet description. The
 [screenshot maintenance guide](docs/SCREENSHOTS.md) records the required safe
 replacement captures.
 
@@ -107,7 +108,7 @@ replacement captures.
 | **Integration and build details** | **Sheet Designer** |
 | ![Settings showing optional integration status and complete local build identification](docs/images/settings-build.png) | ![Sheet Designer with a compact editing sidebar and live printable-sheet preview](docs/images/sheet-designer.png) |
 | **Designer startup choices** | **Saved sheets and import** |
-| ![Sheet Designer startup page offering New sheet, Open sheets, and Resume last sheet](docs/images/sheet-designer-startup.png) | ![Open sheets window with saved drafts, duplication, deletion, and FGS import](docs/images/sheet-designer-open.png) |
+| ![Earlier Sheet Designer startup layout offering New sheet, Open sheets, and Resume last sheet](docs/images/sheet-designer-startup.png) | ![Open sheets window with saved drafts, duplication, deletion, and FGS import](docs/images/sheet-designer-open.png) |
 | **BoardGameGeek integration** | |
 | ![BoardGameGeek integration section showing a verified association, replacement search, and manual URL override](docs/images/bgg-integration.png) | |
 
@@ -461,7 +462,7 @@ The separate **Finished size** control offers Full Page (the existing output),
 Half Page, Poker Card (2.5 × 3.5 in), Bridge Card (2.25 × 3.5 in), or an explicit
 custom size in inches/centimeters. Preview and PDF use the same finished-size
 layout. Full Page retains its original single-page overflow behavior. In the
-local small-format trial, design a separate sheet for each intended size:
+small-format beta, design a separate sheet for each intended size:
 headings and content wrap at the selected width, then the complete composition
 is uniformly fitted if necessary. The preview reports the fit percentage and
 approximate body-text size so the designer can decide whether to shorten a
@@ -521,8 +522,9 @@ the sheet. Existing and imported sheets keep their own footer unchanged.
 
 GameSheets can be exported as printable PDFs,
 and compatible score sheets can also be used as temporary interactive
-LiveSheets. The Designer startup page and editor toolbar provide the same short
-**About Sheet Designer** explanation in the application.
+LiveSheets. The Designer startup page offers a low-emphasis
+**About Sheet Designer** link below the save note; the editor toolbar opens
+the same explanation.
 
 **Tip:** An LLM can draft an `.fgs` file from a score-sheet image or PDF when it
 is also given the [FGS 1.0 specification](docs/FGS_V1_SPECIFICATION.md) and

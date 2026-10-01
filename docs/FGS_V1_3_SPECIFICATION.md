@@ -108,6 +108,9 @@ Both editors create/import/export the same blocks and use the same pinned
 [Page Rendering Profile 1.3](FGS_PAGE_RENDERING_PROFILE_1_3.md) for preview,
 PDF and printing. A paper starter creates one fill section; users do not
 manually insert individual staff lines or grid cells. Existing templates remain valid.
+Finished print size and copy arrangement are print-job choices, not FGS 1.3
+fields. Compact output may uniformly reduce the physical spacing of an entire
+composition; use Full Page at actual size when pattern spacing must remain exact.
 
 Forge may enable LiveSheet for a document containing a score table or tracker.
 At session creation, the validated template is snapshotted. Shared tracker

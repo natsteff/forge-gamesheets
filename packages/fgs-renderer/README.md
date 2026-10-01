@@ -19,8 +19,10 @@ display list drives the SVG preview and finished-size PDF. A separate imposition
 step places unchanged copies on Letter or A4 with optional cut guides and keeps
 ordinary-printer output at least 0.5 inch from the page edge; exact
 two-up Half Page is available only with an explicit borderless option. The
-renderer refuses content that cannot fit without reducing type below its
-defined profile sizes.
+renderer keeps Full Page's one-page overflow refusal. Compact sheets instead
+wrap for their finished width and, when needed, uniformly scale the composition
+to one item; the preview reports the resulting scale and approximate body type
+size so the designer can judge legibility.
 
 The same point-based display list produces an SVG preview and a vector PDF
 with extractable text. Fonts are pinned Noto files under `fonts/OFL.txt`.

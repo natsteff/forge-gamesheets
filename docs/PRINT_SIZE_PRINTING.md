@@ -3,7 +3,7 @@
 **Finished size** sets the physical size of one designed sheet. Poker Card is 2.5 × 3.5 in;
 Bridge Card is 2.25 × 3.5 in. **Page** selects the Letter or A4 base for Full
 and Half Page. The **Orientation** control turns preset sizes, while Custom
-Width and Height determine custom orientation directly. For this local trial,
+Width and Height determine custom orientation directly. In this beta,
 finished size is not saved in `.fgs`; record a recommendation in Designer Notes
 and reselect it when the file is opened again. Design a separate sheet for each
 purpose—for example, a full-page rules sheet, half-page score sheet, and poker

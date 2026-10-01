@@ -15,6 +15,9 @@ The gallery does not yet include dedicated current captures for LiveSheets,
 GameSheet-to-game association and rendered previews, the Sheet Designer About
 dialog, or FGS 1.1 logo and Footer controls. Existing Designer and game-page
 captures remain useful for their core layouts but predate those added controls.
+The startup capture also predates the separate About link below the save note
+and the reusable-paper New sheet description; the README labels it as an
+earlier layout until a safe replacement is captured.
 Do not describe the gallery as complete coverage until the replacement captures
 below have been created and inspected. Use only a disposable fictional sheet for
 the logo/Footer capture; do not publish a personal game logo or author credit.

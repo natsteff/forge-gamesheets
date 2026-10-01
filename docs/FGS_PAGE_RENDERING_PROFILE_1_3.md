@@ -12,6 +12,23 @@ from 22 to 33 points so dense content cannot overlap it. Page dimensions,
 upper and side margins, row spacing, and compact-size geometry are unchanged.
 Dense sheets that no longer fit report overflow rather than shrinking.
 
+## Optional finished-size print jobs
+
+Full Page retains the layout and overflow rules above. A print job may instead
+select Half Page, Poker Card (180 × 252 pt), Bridge Card (162 × 252 pt), or a
+bounded custom finished size. This choice is outside the `.fgs` document: it
+must be reselected after import. Compact sheets compose at the finished width,
+wrap text, and uniformly scale one complete composition when necessary to fit
+its height; the UI reports scale and approximate body type size for human review.
+There is no automatic readability threshold or compact multi-page continuation.
+Uniform scaling also changes the physical spacing of paper and tracker marks.
+Preview and direct PDF use the same finished-size geometry. A separate print
+sheet places unchanged copies on Letter or A4 with cut guides and ordinary
+printer margins; only explicit borderless Half Page permits exact edge-to-edge
+two-up output. See [small-format printing](PRINT_SIZE_PRINTING.md) for printer
+instructions. This documents the existing beta output behavior without adding
+a new FGS field or changing Full Page rendering.
+
 ## Score-table column widths (beta adjustment)
 
 Each column's preferred width is the font-measured heading plus 10 points of
