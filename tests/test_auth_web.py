@@ -334,6 +334,14 @@ def test_game_link_portability_is_admin_only(secured, role, expected):
     assert response.status_code == expected
     if role == "admin":
         assert "Import a FORGE GameSheets metadata export" in response.text
+        assert "This is not a full backup." in response.text
+        assert "a portable, partial copy" in response.text
+        assert "docs/BACKUP_AND_RECOVERY.md" in response.text
+        assert response.text.index("This is not a full backup.") < response.text.index(
+            "Download metadata export"
+        )
+        assert "a complete metadata manifest" not in response.text
+        assert "a manifest of the included game metadata" in response.text
         exported = client.get("/settings/metadata-portability/export")
         assert exported.status_code == 200
         assert exported.headers["content-type"] == "application/zip"

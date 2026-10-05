@@ -36,6 +36,7 @@
     <p class="eyebrow">Admin utility</p>
     <h1>Metadata portability</h1>
     <p>Export or deliberately restore game links, box dimensions, edition references and uploaded artwork without changing the read-only PDF library.</p>
+    <p class="status-banner warning" role="note"><strong>This is not a full backup.</strong> The export is a portable, partial copy of game links, box dimensions, edition references, and uploaded game artwork. It does not include your PDF library, Sheet Designer files, accounts, settings, favorites, or other application data. For a recoverable backup, preserve both your configured library and the complete application data directory. See <a href="https://github.com/natsteff/forge-gamesheets/blob/main/docs/BACKUP_AND_RECOVERY.md">Backup and recovery</a>.</p>
   </section>
 
   {% if request.query_params.get('imported') %}<p class="status-banner success" role="status">Imported {{ request.query_params.get('imported') }} metadata fields.</p>{% endif %}
@@ -43,7 +44,7 @@
 
   <section class="settings-section metadata-portability-section">
     <div class="settings-heading"><div><p class="eyebrow">Portable copy</p><h2>Export game metadata</h2></div></div>
-    <p>Download one temporary ZIP containing uploaded game artwork, a complete metadata manifest, and Windows .url and macOS .webloc shortcuts. FORGE GameSheets does not retain the ZIP.</p>
+    <p>Download one temporary ZIP containing uploaded game artwork, a manifest of the included game metadata, and Windows .url and macOS .webloc shortcuts. FORGE GameSheets does not retain the ZIP.</p>
     <a class="primary-button" href="{{ url_for('link_portability_export') }}">Download metadata export</a>
   </section>
 
