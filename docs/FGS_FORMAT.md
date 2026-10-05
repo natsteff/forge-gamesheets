@@ -1,29 +1,30 @@
 # FGS format and version history
 
 FGS is the portable, JSON-based source format for structured GameSheets. The
-current file version is **1.3**. An `.fgs` file can be opened in the integrated
+current file version is **1.4**. An `.fgs` file can be opened in the integrated
 FORGE GameSheets Sheet Designer or in the browser-only
 [FGS Studio](https://natsteff.github.io/FGS-Studio/). It is not a PDF, and
-finished print size is currently an export choice rather than saved FGS content.
+FGS 1.4 can store finished-size and print-sheet defaults while allowing export overrides.
 
 ## Current specification
 
-The specification is cumulative. **The 1.3 additions are not a complete
+The specification is cumulative. **The version additions are not complete
 standalone document**: read the base format, then each version's additions.
 
 1. [FGS 1.0 base specification](FGS_V1_SPECIFICATION.md)
 2. [FGS 1.1 additions](FGS_V1_1_SPECIFICATION.md) — footer and header logo
 3. [FGS 1.2 additions](FGS_V1_2_SPECIFICATION.md) — Designer Notes and table headings
 4. [FGS 1.3 additions](FGS_V1_3_SPECIFICATION.md) — trackers and paper patterns
+5. [FGS 1.4 additions](FGS_V1_4_SPECIFICATION.md) — portable print defaults
 
 For machine validation, use the
-[current FGS 1.3 JSON Schema](schemas/fgs-v1.3.schema.json). Earlier schemas
+[current FGS 1.4 JSON Schema](schemas/fgs-v1.4.schema.json). Earlier schemas
 remain available for [1.0](schemas/fgs-v1.schema.json),
 [1.1](schemas/fgs-v1.1.schema.json), and
-[1.2](schemas/fgs-v1.2.schema.json).
+[1.2](schemas/fgs-v1.2.schema.json), and [1.3](schemas/fgs-v1.3.schema.json).
 
 File structure and printed appearance are separate contracts. The current
-[FGS 1.3 Page Rendering Profile](FGS_PAGE_RENDERING_PROFILE_1_3.md) defines
+[FGS 1.3 Page Rendering Profile](FGS_PAGE_RENDERING_PROFILE_1_3.md) still defines
 single-page layout and fit. Earlier rendering profiles are retained for
 [1.0](FGS_PAGE_RENDERING_PROFILE_1_0.md),
 [1.1](FGS_PAGE_RENDERING_PROFILE_1_1.md), and

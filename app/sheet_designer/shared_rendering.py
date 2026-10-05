@@ -89,10 +89,6 @@ def render_pdf(
             raise RendererUnavailableError(
                 "The shared renderer gave an invalid page count."
             )
-        if print_size is None and print_sheet is None:
-            size = PAGE_SIZES[model["page"]["size"]]
-            if model["page"]["orientation"] == "landscape":
-                size = size[::-1]
         with pymupdf.open(target) as check:
             if check.page_count != expected_pages:
                 raise RendererUnavailableError(

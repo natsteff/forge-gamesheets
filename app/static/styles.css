@@ -1003,6 +1003,9 @@ input[type="checkbox"] {
 .designer-print-dialog::backdrop { background: #0007; }
 .designer-print-dialog label { display: grid; gap: .3rem; margin: .8rem 0; }
 .designer-print-dialog .designer-print-check { display: flex; align-items: center; }
+.designer-print-dialog .designer-print-field { gap: .45rem; }
+.designer-print-dialog .designer-print-paper-summary { margin: .8rem 0 .25rem; color: var(--muted); font-size: .85rem; }
+.designer-print-dialog [hidden] { display: none; }
 .designer-print-dialog .designer-print-hint { color: var(--muted); font-size: .78rem; line-height: 1.4; }
 .designer-print-dialog .designer-print-plan { padding: .75rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface-soft, #f6f1eb); font-weight: 700; line-height: 1.45; }
 .designer-print-preview { display: grid; place-items: center; max-height: 22rem; overflow: auto; background: #e9e9e9; border: 1px solid var(--line); border-radius: .35rem; padding: .7rem; }

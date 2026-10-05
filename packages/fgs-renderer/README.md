@@ -14,9 +14,11 @@ Both FORGE GameSheets and FGS Studio must consume a pinned build from this
 source; neither should maintain its own independent print layout rules.
 
 Print jobs may select Full Page, Half Page, Poker Card, Bridge Card, or a bounded
-custom finished size. These options are outside the strict `.fgs` schema. One
+custom finished size. FGS 1.4 can carry these as optional editable defaults;
+explicit print-job selections still override them. One
 display list drives the SVG preview and finished-size PDF. A separate imposition
-step places unchanged copies on Letter or A4 with optional cut guides and keeps
+step places unchanged copies on Letter or A4 with Auto or manual printer-sheet
+orientation and optional cut guides, while keeping
 ordinary-printer output at least 0.5 inch from the page edge; exact
 two-up Half Page is available only with an explicit borderless option. The
 renderer keeps Full Page's one-page overflow refusal. Compact sheets instead

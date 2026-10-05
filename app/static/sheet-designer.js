@@ -20,9 +20,9 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
   let selected = null;
   let saveTimer = null;
   let lastSaved = null;
-  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3.1&layout=9")
+  const printEngine = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3.1&layout=10")
     .then((module) => module.loadPrintEngine(new URL("/static/fgs-renderer/", location.href)));
-  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3.1&layout=9");
+  const logoTools = import("/static/fgs-renderer/browser.mjs?profile=fgs-page-1.3.1&layout=10");
   let contentTools=null;
   logoTools.then(tools=>{contentTools=tools;}).catch(error=>message(error.message));
   let previewRevision = 0;
@@ -35,6 +35,42 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
       width: $("custom-width").value, height: $("custom-height").value, unit: $("custom-unit").value
     });
     return selection;
+  }
+  function restoreFinishedSize(){
+    const size=model.page.finished_size??{preset:"full"};
+    $("print-size").value=size.preset;
+    if(size.preset==="custom"){$("custom-width").value=size.width;$("custom-height").value=size.height;$("custom-unit").value=size.unit;}
+    syncCustomBounds();updatePrintControls();
+  }
+  function saveFinishedSize() {
+    const size=printSizeSelection();
+    if(size.preset==="custom"){
+      size.width=Number(size.width);size.height=Number(size.height);
+      const factor=size.unit==="cm"?1/2.54:1;
+      if(!Number.isFinite(size.width)||!Number.isFinite(size.height)||size.width*factor<0.5||size.width*factor>14||size.height*factor<0.5||size.height*factor>14){message("Enter custom dimensions between 0.5 and 14 inches.");return;}
+    }
+    commit(draft=>{draft.format_version="1.4";draft.page.finished_size=size;});
+    updatePrintControls();
+  }
+  function restorePrintSheet(){
+    const sheet=model.print_sheet??{paper:"inherit",copies:1,cut_guides:true,borderless:false};
+    $("override-paper").checked=sheet.paper!=="inherit";
+    $("print-paper").value=sheet.paper==="inherit"?model.page.size:sheet.paper;
+    $("print-orientation").value=sheet.orientation??"auto";
+    $("print-copies").value=sheet.copies;
+    $("cut-guides").checked=sheet.cut_guides;$("borderless").checked=sheet.borderless;
+    copiesManuallyEdited=false;
+    updatePaperControls();
+  }
+  function updatePaperControls(){
+    const override=$("override-paper").checked;
+    $("paper-override").hidden=!override;
+    $("paper-summary").hidden=override;
+    $("paper-summary").textContent=`Printer paper: same as sheet (${model.page.size.toUpperCase()})`;
+  }
+  function printSheetDefinition(){
+    const options=printSheetOptions();
+    return {paper:$("override-paper").checked?options.paper:"inherit",orientation:options.orientation,copies:options.copies,cut_guides:options.cutGuides,borderless:options.borderless};
   }
   function syncCustomBounds() {
     const cm=$("custom-unit").value==="cm";
@@ -62,15 +98,15 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
     const size = printSizeSelection();
     const query = new URLSearchParams({print_size: size.preset});
     if (size.preset === "custom") Object.entries({custom_width:size.width,custom_height:size.height,custom_unit:size.unit}).forEach(([key,value])=>query.set(key,value));
-    if (sheet) Object.entries({print_sheet:"true",paper:$("print-paper").value,copies:$("print-copies").value,cut_guides:String($("cut-guides").checked),borderless:String($("borderless").checked)}).forEach(([key,value])=>query.set(key,value));
+    if (sheet) Object.entries({print_sheet:"true",paper:printSheetOptions().paper,orientation:$("print-orientation").value,copies:$("print-copies").value,cut_guides:String($("cut-guides").checked),borderless:String($("borderless").checked)}).forEach(([key,value])=>query.set(key,value));
     return `/sheet-designer/export.pdf?${query}`;
   }
   function printSheetOptions() {
-    return {paper:$("print-paper").value,copies:Number($("print-copies").value),cutGuides:$("cut-guides").checked,borderless:$("borderless").checked};
+    return {paper:$("override-paper").checked?$("print-paper").value:model.page.size,orientation:$("print-orientation").value,copies:Number($("print-copies").value),cutGuides:$("cut-guides").checked,borderless:$("borderless").checked};
   }
   async function updatePrintPlan() {
     const revision=++printPlanRevision;
-    const eligible=$("print-size").value==="half"&&$("print-paper").value===model.page.size;
+    const eligible=$("print-size").value==="half"&&printSheetOptions().paper===model.page.size;
     $("borderless").disabled=!eligible;
     if(!eligible && $("borderless").checked){
       $("borderless").checked=false;
@@ -83,7 +119,8 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
       const plan=engine.printSheetPlan(result,printSheetOptions());
       if(revision!==printPlanRevision)return;
       const counts=plan.pages.map(page=>page.length).join(" + ");
-      $("print-plan").textContent=`Output: ${plan.paper.toUpperCase()} ${plan.orientation} PDF; ${plan.capacity} ${plan.capacity===1?"copy":"copies"} per page. ${plan.pages.length} ${plan.pages.length===1?"page":"pages"} (${counts}). Preview shows page 1. ${plan.borderless?"Edge-to-edge printing required.":"0.5-inch printable margin, including cut guides."}`;
+      const marginNote=plan.borderless?"Edge-to-edge printing required.":plan.cutGuides?"0.5-inch printable margin, including cut guides.":"0.5-inch printable margin; cut guides off.";
+      $("print-plan").textContent=`Output: ${plan.paper.toUpperCase()} ${plan.orientation} PDF; ${plan.capacity} ${plan.capacity===1?"copy":"copies"} per page. ${plan.pages.length} ${plan.pages.length===1?"page":"pages"} (${counts}). Preview shows page 1. ${marginNote}`;
       $("print-sheet-preview").innerHTML=engine.toPrintSheetSvg(result,printSheetOptions());
     } catch(error) {if(revision===printPlanRevision){$("print-plan").textContent=error.message;$("print-sheet-preview").innerHTML="";}}
   }
@@ -325,7 +362,7 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
     root.querySelector("[data-first-column-heading]")?.addEventListener("change", (event) => commit((draft) => {
       const heading = event.target.value.trim() || "Category";
       if (heading === "Category") delete block.first_column_heading;
-      else {if(draft.format_version!=="1.3")draft.format_version = "1.2"; block.first_column_heading = heading;}
+      else {if(["1.0","1.1"].includes(draft.format_version))draft.format_version = "1.2"; block.first_column_heading = heading;}
     }));
     root.querySelector("[data-logo-trigger]")?.addEventListener("click", () => root.querySelector("[data-logo-upload]").click());
     root.querySelector("[data-logo-upload]")?.addEventListener("change", async (event) => {
@@ -465,8 +502,7 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
     clearTimeout(saveTimer);
     saveTimer = null;
     model = document;
-    $("print-size").value = "full";
-    updatePrintControls();
+    restoreFinishedSize();
     lastSaved = clone(document);
     selected = model.rows[0].blocks[0].id;
     history.length = 0;
@@ -584,14 +620,14 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
       paper_pattern:(await logoTools).newContent("paper_pattern")
     };
     if (!templates[type]) return;
-    commit((draft) => { const block = {...templates[type], id: id(type)};if(["tracker","paper_pattern"].includes(type))draft.format_version="1.3";draft.rows.push({id: id("row"), blocks: [block]}); selected = block.id; });
+    commit((draft) => { const block = {...templates[type], id: id(type)};if(["tracker","paper_pattern"].includes(type)&&draft.format_version!=="1.4")draft.format_version="1.3";draft.rows.push({id: id("row"), blocks: [block]}); selected = block.id; });
   }
 
   $("document-title").addEventListener("change", (event) => commit((draft) => { draft.title = event.target.value; }));
   $("page-size").addEventListener("change", (event) => commit((draft) => { draft.page.size = event.target.value; }));
   $("orientation").addEventListener("change", (event) => commit((draft) => { draft.page.orientation = event.target.value; }));
-  $("print-size").addEventListener("change", updatePrintControls);
-  ["custom-width","custom-height","custom-unit"].forEach(name=>$(name).addEventListener("change",()=>{syncCustomBounds();preview();}));
+  $("print-size").addEventListener("change", saveFinishedSize);
+  ["custom-width","custom-height","custom-unit"].forEach(name=>$(name).addEventListener("change",()=>{syncCustomBounds();if($("print-size").value==="custom")saveFinishedSize();}));
   syncCustomBounds();
   $("open-print-sheet").disabled=true;
   $("export-fgs").addEventListener("click", async (event) => {
@@ -609,14 +645,12 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
     } catch(error) {message(error.message);}
   });
   $("open-print-sheet").addEventListener("click", () => {
-    $("print-paper").value=model.page.size;
-    $("print-copies").value="1";
-    copiesManuallyEdited=false;
-    $("borderless").checked=false;
+    restorePrintSheet();
     $("print-sheet-dialog").showModal();
     updatePrintPlan();
   });
-  ["print-paper","cut-guides"].forEach(name=>$(name).addEventListener("change",updatePrintPlan));
+  $("override-paper").addEventListener("change",()=>{updatePaperControls();updatePrintPlan();});
+  ["print-paper","print-orientation","cut-guides"].forEach(name=>$(name).addEventListener("change",updatePrintPlan));
   $("print-copies").addEventListener("input",()=>{copiesManuallyEdited=true;updatePrintPlan();});
   $("print-copies").addEventListener("change",()=>{copiesManuallyEdited=true;updatePrintPlan();});
   $("borderless").addEventListener("change",()=>{
@@ -626,14 +660,27 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
   $("close-print-sheet").addEventListener("click",()=>$("print-sheet-dialog").close());
   $("print-sheet-form").addEventListener("submit",async(event)=>{
     event.preventDefault();
-    if (!await flushSave()) return;
     try {
       const engine=await printEngine;
       const result=engine.layout(model,printSizeSelection());
       if (!result.fits) throw new Error(result.reason || `Section "${result.overflow}" does not fit at the selected print size.`);
       engine.printSheetPlan(result,printSheetOptions());
+      if (!await flushSave()) return;
+      const response=await fetch(printQuery(true));
+      if(!response.ok){
+        const problem=await response.json().catch(()=>({}));
+        throw new Error(problem.detail||`Print-sheet export failed (${response.status}).`);
+      }
+      const pdf=await response.blob();
+      const sheet=printSheetDefinition();
+      if(JSON.stringify(model.print_sheet)!==JSON.stringify(sheet))commit(draft=>{draft.format_version="1.4";draft.print_sheet=sheet;});
+      if (!await flushSave()) return;
+      const stem=model.title.replace(/[<>:"/\\|?*\x00-\x1f\x7f]/g,"-").trim().replace(/[. ]+$/g,"")||"Game Sheet";
+      const link=document.createElement("a");
+      link.href=URL.createObjectURL(pdf);link.download=`${stem} - print sheet.pdf`;
+      document.body.append(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(link.href),60000);
       $("print-sheet-dialog").close();
-      location.href=printQuery(true);
     } catch(error) {message(error.message);}
   });
   $("accent").addEventListener("change", (event) => commit((draft) => { draft.theme.accent = event.target.value; }));
@@ -644,7 +691,7 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
   }));
   $("designer-notes").addEventListener("change", (event) => commit((draft) => {
     const notes = event.target.value;
-    if (notes) {if(draft.format_version!=="1.3")draft.format_version = "1.2"; draft.designer_notes = notes;}
+    if (notes) {if(["1.0","1.1"].includes(draft.format_version))draft.format_version = "1.2"; draft.designer_notes = notes;}
     else delete draft.designer_notes;
   }));
   $("add-block").addEventListener("click", addBlock);
@@ -743,8 +790,8 @@ import {numberedRows} from "./numbered-rows.mjs?v=1";
       $("new-dialog").close();
     } catch (error) { message(error.message); }
   });
-  $("undo").addEventListener("click", () => { if (!history.length) return; future.push(clone(model)); model = history.pop(); render(); queueSave(); });
-  $("redo").addEventListener("click", () => { if (!future.length) return; history.push(clone(model)); model = future.pop(); render(); queueSave(); });
+  $("undo").addEventListener("click", () => { if (!history.length) return; future.push(clone(model)); model = history.pop(); restoreFinishedSize(); render(); queueSave(); });
+  $("redo").addEventListener("click", () => { if (!future.length) return; history.push(clone(model)); model = future.pop(); restoreFinishedSize(); render(); queueSave(); });
   $("import-file").addEventListener("change", async (event) => {
     try {
       const imported = JSON.parse(await event.target.files[0].text());

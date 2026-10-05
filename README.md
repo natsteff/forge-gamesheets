@@ -102,22 +102,22 @@ The published container also has an optional Designer-only mode; see the
 | Install, configure, update, or troubleshoot | [Self-hosted deployment](docs/deployment.md) |
 | Organize PDFs, game links, and Reprints | [PDF library workflows](docs/LIBRARY_GUIDE.md) |
 | Create sheets, print smaller sizes, or start LiveSheets | [Sheet Designer and LiveSheets](docs/SHEET_DESIGNER.md) · [Finished-size printing](docs/PRINT_SIZE_PRINTING.md) |
-| Understand the current FGS format | [FGS 1.3 format and version history](docs/FGS_FORMAT.md) |
+| Understand the current FGS format | [FGS 1.4 format and version history](docs/FGS_FORMAT.md) |
 | Browse every screenshot | [Screenshot gallery](docs/SCREENSHOT_GALLERY.md) |
 | Enable local accounts or plan backups | [Accounts and QR access](docs/ACCOUNTS.md) · [Backup and recovery](docs/BACKUP_AND_RECOVERY.md) |
 | Develop or test from source | [Development guide](docs/DEVELOPMENT.md) · [Beta testing](docs/BETA_TESTING.md) |
 | Review roadmap and release readiness | [Project plan](PROJECT_PLAN.md) · [Beta release checklist](docs/PHASE1_5_RELEASE_CHECKLIST.md) |
 
-The [FGS format index](docs/FGS_FORMAT.md) links the cumulative 1.0–1.3
-specifications, JSON Schemas, rendering profiles, and renderer source. The 1.3
+The [FGS format index](docs/FGS_FORMAT.md) links the cumulative 1.0–1.4
+specifications, JSON Schemas, rendering profiles, and renderer source. The 1.4
 additions document alone is not the entire specification.
 
 ## Current boundaries
 
 Sheet Designer creates structured new sheets; it does not edit existing PDFs,
 provide arbitrary free-positioned page layout, or automatically paginate
-multi-page output. Finished size is currently selected for preview/export and
-is not saved in `.fgs`. See the [Designer guide](docs/SHEET_DESIGNER.md) and
+multi-page output. FGS 1.4 can save editable finished-size and print-sheet
+defaults in `.fgs`. See the [Designer guide](docs/SHEET_DESIGNER.md) and
 [current FGS format](docs/FGS_FORMAT.md) for details.
 
 The application does not include cloud synchronization or backup. Back up

@@ -58845,6 +58845,7 @@ function paperSize(name) {
 }
 function finishedSize(document2, selection = {}) {
   if (!selection || typeof selection !== "object" || Array.isArray(selection)) throw new Error("Invalid print size selection.");
+  if (!Object.keys(selection).length) selection = document2.page.finished_size ?? {};
   const preset = selection.preset ?? "full";
   if (!PRINT_PRESETS.includes(preset)) throw new Error("Choose a supported print size.");
   const [paperWidth, paperHeight] = paperSize(document2.page.size);
@@ -58886,21 +58887,28 @@ function printSheetPlan(result, options = {}) {
   if (typeof cutGuides !== "boolean") throw new Error("Cut guides must be on or off.");
   const borderless = options.borderless ?? false;
   if (typeof borderless !== "boolean") throw new Error("Borderless mode must be on or off.");
+  const orientation = options.orientation ?? "auto";
+  if (!["auto", "portrait", "landscape"].includes(orientation)) throw new Error("Choose Auto, Portrait, or Landscape printer orientation.");
   let chosen;
   if (borderless) {
     if (result.printPreset !== "half") throw new Error("Borderless two-up is only available for Half Page.");
     const candidates = [
-      { width: short, height: long, columns: 1, rows: 2, capacity: 2 },
-      { width: long, height: short, columns: 2, rows: 1, capacity: 2 }
+      { width: short, height: long, columns: 1, rows: 2, capacity: 2, orientation: "portrait" },
+      { width: long, height: short, columns: 2, rows: 1, capacity: 2, orientation: "landscape" }
     ];
-    chosen = candidates.find((candidate) => Math.abs(candidate.width - candidate.columns * result.width) < 0.011 && Math.abs(candidate.height - candidate.rows * result.height) < 0.011);
-    if (!chosen) throw new Error("Borderless two-up requires the same Letter or A4 paper used for Half Page.");
+    chosen = candidates.find((candidate) => (orientation === "auto" || candidate.orientation === orientation) && Math.abs(candidate.width - candidate.columns * result.width) < 0.011 && Math.abs(candidate.height - candidate.rows * result.height) < 0.011);
+    if (!chosen) throw new Error("Borderless two-up requires matching Half Page paper and a compatible orientation.");
   } else {
     const margin = 36 + (cutGuides ? 8 : 0), gap2 = 12;
     const portrait = coordinates(short, long, result.width, result.height, margin, gap2);
     const landscape = coordinates(long, short, result.width, result.height, margin, gap2);
-    chosen = landscape.capacity > portrait.capacity ? landscape : portrait;
-    if (!chosen.capacity) throw new Error("The finished sheet does not fit within the printer paper's 0.5-inch printable margins. Use larger paper or export the finished-size PDF for suitable card stock.");
+    if (orientation === "portrait") chosen = portrait;
+    else if (orientation === "landscape") chosen = landscape;
+    else {
+      const pages2 = (capacity) => capacity ? Math.ceil(copies / capacity) : Infinity;
+      chosen = pages2(landscape.capacity) < pages2(portrait.capacity) ? landscape : portrait;
+    }
+    if (!chosen.capacity) throw new Error("The finished sheet does not fit in this paper orientation within 0.5-inch printable margins. Choose Auto, another orientation, larger paper, or export the finished-size PDF.");
   }
   const gap = borderless ? 0 : 12;
   const usedWidth = chosen.columns * result.width + (chosen.columns - 1) * gap;
@@ -59008,7 +59016,7 @@ function createPrintEngine(fontData) {
     return output;
   }
   function layout(document2, printSize = {}) {
-    if (!document2 || document2.format !== "forge-gamesheets" || !["1.0", "1.1", "1.2", "1.3"].includes(document2.format_version)) throw new Error("Expected validated FGS 1.0\u20131.3");
+    if (!document2 || document2.format !== "forge-gamesheets" || !["1.0", "1.1", "1.2", "1.3", "1.4"].includes(document2.format_version)) throw new Error("Expected validated FGS 1.0\u20131.4");
     validateFill(document2);
     const size = finishedSize(document2, printSize);
     const compact = size.preset !== "full";

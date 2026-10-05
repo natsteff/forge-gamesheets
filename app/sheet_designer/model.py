@@ -18,11 +18,13 @@ FORMAT_VERSION = "1.0"
 FORMAT_VERSION_1_1 = "1.1"
 FORMAT_VERSION_1_2 = "1.2"
 FORMAT_VERSION_1_3 = "1.3"
+FORMAT_VERSION_1_4 = "1.4"
 SUPPORTED_VERSIONS = {
     FORMAT_VERSION,
     FORMAT_VERSION_1_1,
     FORMAT_VERSION_1_2,
     FORMAT_VERSION_1_3,
+    FORMAT_VERSION_1_4,
 }
 PROTOTYPE_VERSION = "0.1-prototype"
 MAX_DOCUMENT_BYTES = 256 * 1024
@@ -80,14 +82,21 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
             *(
                 {"footer"}
                 if version
-                in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+                in {
+                    FORMAT_VERSION_1_1,
+                    FORMAT_VERSION_1_2,
+                    FORMAT_VERSION_1_3,
+                    FORMAT_VERSION_1_4,
+                }
                 else set()
             ),
             *(
                 {"designer_notes"}
-                if version in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+                if version
+                in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3, FORMAT_VERSION_1_4}
                 else set()
             ),
+            *({"print_sheet"} if version == FORMAT_VERSION_1_4 else set()),
         },
         "document",
         strict,
@@ -103,7 +112,13 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
         raise DocumentValidationError("Page settings are required.")
     if not isinstance(theme, dict):
         raise DocumentValidationError("Theme must be an object.")
-    _keys(page, {"size", "orientation", "extensions"}, "page", strict)
+    _keys(
+        page,
+        {"size", "orientation", "extensions"}
+        | ({"finished_size"} if version == FORMAT_VERSION_1_4 else set()),
+        "page",
+        strict,
+    )
     _keys(theme, {"accent", "extensions"}, "theme", strict)
     if page.get("size") not in {"letter", "a4"}:
         raise DocumentValidationError("Page size must be Letter or A4.")
@@ -148,6 +163,10 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
         "theme": {"accent": accent.lower()},
         "rows": normalized_rows,
     }
+    if "finished_size" in page:
+        result["page"]["finished_size"] = _finished_size(page["finished_size"])
+    if "print_sheet" in value:
+        result["print_sheet"] = _print_sheet(value["print_sheet"])
     logos = [
         block for row in normalized_rows for block in row["blocks"] if "logo" in block
     ]
@@ -158,7 +177,13 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
     except ValueError as error:
         raise DocumentValidationError(str(error)) from error
     if (
-        version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+        version
+        in {
+            FORMAT_VERSION_1_1,
+            FORMAT_VERSION_1_2,
+            FORMAT_VERSION_1_3,
+            FORMAT_VERSION_1_4,
+        }
         and "footer" in value
     ):
         footer = value["footer"]
@@ -177,7 +202,7 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
             )
         result["footer"] = footer
     if (
-        version in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+        version in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3, FORMAT_VERSION_1_4}
         and "designer_notes" in value
     ):
         notes = value["designer_notes"]
@@ -196,12 +221,103 @@ def _normalize(value: Any, version: str, *, strict: bool) -> dict[str, Any]:
     return result
 
 
+def _finished_size(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise DocumentValidationError("Finished size must be an object.")
+    _keys(value, {"preset", "width", "height", "unit"}, "finished size", True)
+    preset = value.get("preset")
+    if not isinstance(preset, str) or preset not in {
+        "full",
+        "half",
+        "poker",
+        "bridge",
+        "custom",
+    }:
+        raise DocumentValidationError("Choose a supported finished size.")
+    if preset != "custom":
+        if set(value) != {"preset"}:
+            raise DocumentValidationError(
+                "Only a custom finished size may specify dimensions."
+            )
+        return {"preset": preset}
+    if (
+        set(value) != {"preset", "width", "height", "unit"}
+        or not isinstance(value["unit"], str)
+        or value["unit"] not in {"in", "cm"}
+    ):
+        raise DocumentValidationError(
+            "Custom finished size needs width, height, and inch or centimeter units."
+        )
+    factor = 1 if value["unit"] == "in" else 1 / 2.54
+    for dimension in ("width", "height"):
+        number = value[dimension]
+        if (
+            isinstance(number, bool)
+            or not isinstance(number, (int, float))
+            or not 0.5 <= number * factor <= 14
+        ):
+            raise DocumentValidationError(
+                "Custom finished dimensions must be between 0.5 and 14 inches."
+            )
+    return {
+        "preset": preset,
+        "width": value["width"],
+        "height": value["height"],
+        "unit": value["unit"],
+    }
+
+
+def _print_sheet(value: Any) -> dict[str, Any]:
+    required = {
+        "paper",
+        "copies",
+        "cut_guides",
+        "borderless",
+    }
+    if (
+        not isinstance(value, dict)
+        or not required.issubset(value)
+        or set(value) - required - {"orientation"}
+    ):
+        raise DocumentValidationError(
+            "Print-sheet defaults need paper, copies, cut guides, and borderless."
+        )
+    if not isinstance(value["paper"], str) or value["paper"] not in {
+        "inherit",
+        "letter",
+        "a4",
+    }:
+        raise DocumentValidationError(
+            "Print-sheet paper must inherit the sheet or be Letter or A4."
+        )
+    if "orientation" in value and (
+        not isinstance(value["orientation"], str)
+        or value["orientation"] not in {"auto", "portrait", "landscape"}
+    ):
+        raise DocumentValidationError(
+            "Print-sheet orientation must be Auto, Portrait, or Landscape."
+        )
+    if (
+        isinstance(value["copies"], bool)
+        or not isinstance(value["copies"], int)
+        or not 1 <= value["copies"] <= 48
+    ):
+        raise DocumentValidationError("Print-sheet copies must be between 1 and 48.")
+    if not isinstance(value["cut_guides"], bool) or not isinstance(
+        value["borderless"], bool
+    ):
+        raise DocumentValidationError(
+            "Print-sheet cut guides and borderless settings must be true or false."
+        )
+    return value.copy()
+
+
 def _block(value: Any, ids: set[str], strict: bool, version: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise DocumentValidationError("Every block must be an object.")
     kind = value.get("type")
     if kind in {"tracker", "paper_pattern"}:
-        if version != FORMAT_VERSION_1_3:
+        if version not in {FORMAT_VERSION_1_3, FORMAT_VERSION_1_4}:
             raise DocumentValidationError(
                 "Trackers and paper patterns require FGS 1.3."
             )
@@ -217,12 +333,18 @@ def _block(value: Any, ids: set[str], strict: bool, version: str) -> dict[str, A
         return result
     extras = {
         "header": {"subtitle", "logo"}
-        if version in {FORMAT_VERSION_1_1, FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+        if version
+        in {
+            FORMAT_VERSION_1_1,
+            FORMAT_VERSION_1_2,
+            FORMAT_VERSION_1_3,
+            FORMAT_VERSION_1_4,
+        }
         else {"subtitle"},
         "score_table": {"players", "score_rows", "show_total", "total_label"}
         | (
             {"first_column_heading"}
-            if version in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3}
+            if version in {FORMAT_VERSION_1_2, FORMAT_VERSION_1_3, FORMAT_VERSION_1_4}
             else set()
         ),
         "reference": {"items"},
@@ -247,12 +369,14 @@ def _block(value: Any, ids: set[str], strict: bool, version: str) -> dict[str, A
             FORMAT_VERSION_1_1,
             FORMAT_VERSION_1_2,
             FORMAT_VERSION_1_3,
+            FORMAT_VERSION_1_4,
         }:
             result["logo"] = _logo(value["logo"])
     elif kind == "score_table":
         if "first_column_heading" in value and version in {
             FORMAT_VERSION_1_2,
             FORMAT_VERSION_1_3,
+            FORMAT_VERSION_1_4,
         }:
             raw_heading = value["first_column_heading"]
             if isinstance(raw_heading, str) and any(

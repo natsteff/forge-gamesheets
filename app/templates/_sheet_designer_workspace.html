@@ -97,7 +97,7 @@
         <button class="secondary-button" data-undo type="button" aria-label="Undo">↶ Undo</button>
         <button class="secondary-button" data-redo type="button" aria-label="Redo">↷ Redo</button>
       </div>
-      <p class="designer-print-note">Choose the finished size before composing this sheet. <span data-print-note-full>For Full Page, use Export PDF.</span><span data-print-note-compact hidden>For ordinary Letter/A4 printers, use Export → Create print sheet; direct Export PDF makes one finished-size page without cut guides. Custom Width and Height set its orientation directly.</span> Finished size is not saved in the .fgs file during this trial; add the intended size to Designer Notes and reselect it after reopening.{% if not standalone %} <span class="designer-box-dimensions" data-game-box-dimensions hidden></span>{% endif %}</p>
+      <p class="designer-print-note">Choose the finished size before composing this sheet. <span data-print-note-full>For Full Page, use Export PDF.</span><span data-print-note-compact hidden>For ordinary Letter/A4 printers, use Export → Create print sheet; direct Export PDF makes one finished-size page without cut guides. Custom Width and Height set its orientation directly.</span> Finished size and print-sheet choices are saved with the FGS file.{% if not standalone %} <span class="designer-box-dimensions" data-game-box-dimensions hidden></span>{% endif %}</p>
       <p class="designer-fit-info" data-fit-info role="status" hidden></p>
       <div class="designer-message" data-message role="alert" hidden></div>
       <div class="designer-message" data-fit-message role="status" hidden></div>
@@ -105,7 +105,24 @@
       <div class="sheet-preview" data-sheet-preview></div>
     </section>
   </div>
-  <dialog data-print-sheet-dialog class="designer-print-dialog"><form data-print-sheet-form><h2>Create print sheet</h2><p>This places finished-size copies on Letter or A4. The direct Export PDF makes one card-sized page without cut guides and may be clipped by an ordinary printer.</p><label>Printer paper <select data-print-paper><option value="letter">Letter</option><option value="a4">A4</option></select></label><label>Copies <input data-print-copies type="number" min="1" max="48" value="1" required></label><label class="designer-print-check"><input data-cut-guides type="checkbox" checked> Cut guides</label><label class="designer-print-check"><input data-borderless type="checkbox"> Borderless two-up</label><p class="designer-print-hint" data-borderless-help>Only for Half Page on matching paper, with a printer that supports edge-to-edge printing. Unavailable for card sizes.</p><p class="designer-print-plan" data-print-plan role="status"></p><div class="designer-print-preview" data-print-sheet-preview aria-label="First arranged printer page preview"></div><p class="designer-print-hint">In the printer dialog, choose the paper and orientation shown above, print at Actual size / 100%, and turn off Fit to page. Check your printer's printable margins.</p><div class="designer-dialog-actions"><button class="secondary-button" data-close-print-sheet type="button">Cancel</button><button class="primary-button" type="submit">Export print-sheet PDF</button></div></form></dialog>
+  <dialog data-print-sheet-dialog class="designer-print-dialog">
+    <form data-print-sheet-form>
+      <h2>Create print sheet</h2>
+      <p>This places finished-size copies on printer paper. Settings are remembered after a successful export. Direct Export PDF makes one finished-size page without cut guides and may be clipped by an ordinary printer.</p>
+      <p class="designer-print-paper-summary" data-paper-summary></p>
+      <label class="designer-print-check"><input data-override-paper type="checkbox"> Use different printer paper</label>
+      <label class="designer-print-field" data-paper-override hidden><span>Printer paper</span><select data-print-paper><option value="letter">Letter</option><option value="a4">A4</option></select></label>
+      <label class="designer-print-field"><span>Orientation</span><select data-print-orientation><option value="auto">Auto (fewest pages)</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+      <label class="designer-print-field"><span>Copies</span><input data-print-copies type="number" min="1" max="48" value="1" required></label>
+      <label class="designer-print-check"><input data-cut-guides type="checkbox" checked> Cut guides</label>
+      <label class="designer-print-check"><input data-borderless type="checkbox"> Borderless two-up</label>
+      <p class="designer-print-hint" data-borderless-help>Only for Half Page on matching paper, with a printer that supports edge-to-edge printing. Unavailable for card sizes.</p>
+      <p class="designer-print-plan" data-print-plan role="status"></p>
+      <div class="designer-print-preview" data-print-sheet-preview aria-label="First arranged printer page preview"></div>
+      <p class="designer-print-hint">In the printer dialog, choose the paper and orientation shown above, print at Actual size / 100%, and turn off Fit to page. Check your printer's printable margins.</p>
+      <div class="designer-dialog-actions"><button class="secondary-button" data-close-print-sheet type="button">Cancel</button><button class="primary-button" type="submit">Export print-sheet PDF</button></div>
+    </form>
+  </dialog>
   </div>
 
   <dialog class="designer-dialog" data-new-dialog>
@@ -133,10 +150,10 @@
       <button class="designer-dialog-close" data-close-about type="button" aria-label="Close">×</button>
     </div>
     <p>Sheet Designer creates portable GameSheets for score tracking, reference information, checklists, and notes. It works best for structured, single-page layouts made from full-width or side-by-side sections.</p>
-    <p>FGS is not a general page-layout or spreadsheet tool. Version 1.3 adds resource trackers and reusable paper patterns to header logos, footers, Designer Notes, and customizable table headings. Free positioning, general image sections, custom formulas, multiple pages, and MusicXML import are not supported.</p>
+    <p>FGS is not a general page-layout or spreadsheet tool. Version 1.4 adds portable print defaults; 1.3 added resource trackers and reusable paper patterns. Header logos, footers, Designer Notes, and customizable table headings are also supported. Free positioning, general image sections, custom formulas, multiple pages, and MusicXML import are not supported.</p>
     <p>GameSheets can be exported as printable PDFs. Compatible score sheets can also become temporary interactive LiveSheets.</p>
     <p><strong>Tip:</strong> An LLM can draft an FGS file from a score-sheet image or PDF when given the FGS specification. Review and verify the result before importing it, and only share source documents you are permitted to upload.</p>
-    <p><a class="text-link" href="https://github.com/natsteff/forge-gamesheets/blob/main/docs/FGS_V1_3_SPECIFICATION.md" target="_blank" rel="noopener">Read the FGS 1.3 specification</a></p>
+    <p><a class="text-link" href="https://github.com/natsteff/forge-gamesheets/blob/main/docs/FGS_FORMAT.md" target="_blank" rel="noopener">Read the current FGS specification</a></p>
     <div class="designer-dialog-actions">
       <button class="primary-button" data-dismiss-about type="button">Close</button>
     </div>

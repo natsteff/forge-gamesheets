@@ -30,6 +30,12 @@ test("Full Page is unchanged and ignores editorial notes",async()=>{
   assert.deepEqual(pdf.getPage(0).getSize(),{width:612,height:792});
 });
 
+test("FGS 1.4 finished-size default applies unless explicitly overridden",()=>{
+  const sheet=document();sheet.format_version="1.4";sheet.page.finished_size={preset:"poker"};
+  assert.deepEqual([engine.layout(sheet).width,engine.layout(sheet).height],[180,252]);
+  assert.deepEqual([engine.layout(sheet,{preset:"full"}).width,engine.layout(sheet,{preset:"full"}).height],[612,792]);
+});
+
 test("finished PDF dimensions match Half Page, poker, bridge and custom sizes",async()=>{
   const cases=[
     [{preset:"half"},[396,612]],
@@ -136,9 +142,13 @@ test("print sheets place exact-size copies with guides and no scaling",async()=>
   assert.equal(plan.pages[1].length,3);
   assert.ok(plan.pages[0].every(({x,y})=>x>=44&&y>=44&&x+result.width<=plan.width-44&&y+result.height<=plan.height-44));
   const pair=printSheetPlan(result,{paper:"letter",copies:2,cutGuides:true});
-  assert.equal(pair.orientation,"landscape");
-  assert.equal(pair.capacity,6);
+  assert.equal(pair.orientation,"portrait");
+  assert.equal(pair.capacity,4);
   assert.equal(pair.pages.length,1);
+  assert.equal(printSheetPlan(result,{paper:"letter",copies:2,orientation:"landscape"}).orientation,"landscape");
+  assert.equal(printSheetPlan(result,{paper:"a4",copies:2,orientation:"auto"}).orientation,"portrait");
+  assert.equal(printSheetPlan(result,{paper:"a4",copies:5,cutGuides:false,orientation:"auto"}).orientation,"landscape");
+  assert.throws(()=>printSheetPlan(result,{paper:"letter",orientation:"sideways"}),/orientation/);
   const pdf=await PDFDocument.load(await engine.toPrintSheetPdf(result,"Card Test",{paper:"letter",copies:9,cutGuides:true}));
   assert.equal(pdf.getPageCount(),2);
   assert.deepEqual(pdf.getPage(0).getSize(),{width:792,height:612});
@@ -158,5 +168,6 @@ test("exact Half Page two-up requires explicit borderless mode",async()=>{
   assert.deepEqual([edge.width,edge.height,edge.capacity,edge.pages.length],[792,612,2,1]);
   assert.deepEqual(edge.pages[0],[{x:0,y:0},{x:396,y:0}]);
   assert.equal((await PDFDocument.load(await engine.toPrintSheetPdf(result,"Half",{paper:"letter",copies:2,borderless:true}))).getPageCount(),1);
-  assert.throws(()=>printSheetPlan(result,{paper:"a4",copies:2,borderless:true}),/same Letter or A4/);
+  assert.throws(()=>printSheetPlan(result,{paper:"a4",copies:2,borderless:true}),/matching Half Page paper/);
+  assert.throws(()=>printSheetPlan(result,{paper:"letter",copies:2,borderless:true,orientation:"portrait"}),/compatible orientation/);
 });

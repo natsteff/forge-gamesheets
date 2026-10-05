@@ -76,7 +76,7 @@ def _fgs_filename(title: str) -> str:
 def _download_disposition(title: str, suffix: str) -> str:
     filename = _sheet_filename(title, suffix)
     fallback = filename if filename.isascii() else _filename(title, suffix)
-    return f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{quote(filename)}'
+    return f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(filename)}"
 
 
 @router.get("/sheet-designer", response_class=HTMLResponse, name="sheet_designer")
@@ -297,31 +297,45 @@ def export_fgs(request: Request):
 @router.get("/sheet-designer/export.pdf", name="sheet_designer_pdf")
 def export_pdf(
     request: Request,
-    print_size: str = "full",
+    print_size: str | None = None,
     custom_width: float | None = None,
     custom_height: float | None = None,
-    custom_unit: str = "in",
+    custom_unit: str | None = None,
     print_sheet: bool = False,
     paper: str | None = None,
-    copies: int = 1,
-    cut_guides: bool = True,
-    borderless: bool = False,
+    orientation: str | None = None,
+    copies: int | None = None,
+    cut_guides: bool | None = None,
+    borderless: bool | None = None,
 ):
     current = normalize_document(_store(request).load())
     output = _store(request).root / "current.pdf"
     try:
-        if print_size == "full" and not print_sheet:
-            render_pdf(current, output)
-        else:
+        size = current["page"].get("finished_size", {"preset": "full"}).copy()
+        if print_size is not None:
             size = {"preset": print_size}
             if print_size == "custom":
                 size.update(width=custom_width, height=custom_height, unit=custom_unit)
-            sheet = (
-                {"paper": paper or current["page"]["size"], "copies": copies,
-                 "cutGuides": cut_guides, "borderless": borderless}
-                if print_sheet else None
-            )
-            render_pdf(current, output, print_size=size, print_sheet=sheet)
+        defaults = current.get("print_sheet", {})
+        selected_paper = paper or defaults.get("paper", "inherit")
+        if selected_paper == "inherit":
+            selected_paper = current["page"]["size"]
+        sheet = (
+            {
+                "paper": selected_paper,
+                "orientation": orientation or defaults.get("orientation", "auto"),
+                "copies": copies if copies is not None else defaults.get("copies", 1),
+                "cutGuides": cut_guides
+                if cut_guides is not None
+                else defaults.get("cut_guides", True),
+                "borderless": borderless
+                if borderless is not None
+                else defaults.get("borderless", False),
+            }
+            if print_sheet
+            else None
+        )
+        render_pdf(current, output, print_size=size, print_sheet=sheet)
     except PageOverflowError as error:
         raise HTTPException(409, str(error)) from error
     except PrintOptionError as error:

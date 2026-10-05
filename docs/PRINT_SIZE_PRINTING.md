@@ -3,9 +3,10 @@
 **Finished size** sets the physical size of one designed sheet. Poker Card is 2.5 × 3.5 in;
 Bridge Card is 2.25 × 3.5 in. **Page** selects the Letter or A4 base for Full
 and Half Page. The **Orientation** control turns preset sizes, while Custom
-Width and Height determine custom orientation directly. In this beta,
-finished size is not saved in `.fgs`; record a recommendation in Designer Notes
-and reselect it when the file is opened again. Design a separate sheet for each
+Width and Height determine custom orientation directly. FGS 1.4 saves selected
+finished size and last-used print-sheet settings in `.fgs` after successful
+print-sheet export, while allowing later changes.
+Design a separate sheet for each
 purpose—for example, a full-page rules sheet, half-page score sheet, and poker
 reference card can all belong to the same game.
 
@@ -21,9 +22,11 @@ change physical size when a composition is reduced.
 
 1. Choose the Finished size before composing the sheet. Review the fit percentage
    and apparent text size in the preview; headings may wrap across multiple lines.
-2. Open **Export → Create print sheet**, choose printer paper and the
-   number of copies, and leave **Cut guides** on if the sheets will be trimmed.
+2. Open **Export → Create print sheet**. Printer paper follows the sheet's Page
+   setting unless you choose **Use different printer paper**. Select copies and
+   Auto, Portrait, or Landscape orientation. Leave **Cut guides** on if trimmed.
 3. Review the first arranged printer page and its output summary before export.
+   Auto uses the fewest pages for the selected copies and prefers portrait on a tie.
    The summary gives the PDF's paper orientation, maximum copies per page, and
    page count. The layout may use landscape even when the
    individual card is portrait. For example, eight Poker Cards on Letter make

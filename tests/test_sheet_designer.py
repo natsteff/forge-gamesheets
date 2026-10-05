@@ -66,10 +66,10 @@ def test_section_order_controls_match_reading_order():
     template = (root / "app/templates/_sheet_designer_workspace.html").read_text()
     script = (root / "app/static/sheet-designer.js").read_text()
     assert "Sections read left to right, then top to bottom." in template
-    assert 'data-row-up=' in script
-    assert 'data-row-down=' in script
-    assert 'moveSectionTo(draft, blockId, neighbor.block.id)' in script
-    assert 'canMoveSectionTo(model, fromId, item.dataset.blockId)' in script
+    assert "data-row-up=" in script
+    assert "data-row-down=" in script
+    assert "moveSectionTo(draft, blockId, neighbor.block.id)" in script
+    assert "canMoveSectionTo(model, fromId, item.dataset.blockId)" in script
     for page in ("sheet_designer.html", "sheet_designer_standalone.html"):
         html = (root / "app/templates" / page).read_text()
         assert 'type="module"' in html
@@ -286,9 +286,7 @@ def test_new_forge_sheet_footer_uses_configured_public_url(tmp_path: Path):
     )
     with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         existing = client.get("/sheet-designer/document").json()
-        created = client.post(
-            "/sheet-designer/documents", json={"title": "New scores"}
-        )
+        created = client.post("/sheet-designer/documents", json={"title": "New scores"})
         assert created.status_code == 201
         assert created.json()["format_version"] == FORMAT_VERSION_1_1
         assert created.json()["footer"] == (
@@ -314,9 +312,7 @@ def test_new_forge_sheet_footer_uses_https_browser_origin_without_base_url(
         base_url="https://forge.nate",
         headers={"Origin": "https://forge.nate"},
     ) as client:
-        created = client.post(
-            "/sheet-designer/documents", json={"title": "New scores"}
-        )
+        created = client.post("/sheet-designer/documents", json={"title": "New scores"})
         assert created.status_code == 201
         assert created.json()["footer"] == (
             "Customize this sheet (with source FGS file) at https://forge.nate"
@@ -461,12 +457,19 @@ def test_finished_print_sizes_and_copy_layout_remain_outside_fgs(tmp_path: Path)
         assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((396, 612))
     card = {
         **document,
-        "rows": [{"id": "card-row", "blocks": [{
-            "id": "card-header",
-            "type": "header",
-            "title": "Phase 10 Player Card",
-            "subtitle": "",
-        }]}],
+        "rows": [
+            {
+                "id": "card-row",
+                "blocks": [
+                    {
+                        "id": "card-header",
+                        "type": "header",
+                        "title": "Phase 10 Player Card",
+                        "subtitle": "",
+                    }
+                ],
+            }
+        ],
     }
     poker = render_pdf(card, tmp_path / "poker.pdf", print_size={"preset": "poker"})
     with pymupdf.open(poker) as pdf:
@@ -483,13 +486,43 @@ def test_finished_print_sizes_and_copy_layout_remain_outside_fgs(tmp_path: Path)
         tmp_path / "copies.pdf",
         print_size={"preset": "half"},
         print_sheet={
-            "paper": "letter", "copies": 2, "cutGuides": True, "borderless": True
+            "paper": "letter",
+            "copies": 2,
+            "cutGuides": True,
+            "borderless": True,
         },
     )
     with pymupdf.open(sheet) as pdf:
         assert pdf.page_count == 1
         assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((792, 612))
     assert json.dumps(document, sort_keys=True) == original
+
+
+def test_fgs_1_4_print_defaults_round_trip_and_render(tmp_path: Path):
+    document = FileDraftStore(tmp_path / "drafts").load()
+    document["format_version"] = "1.4"
+    document["page"]["finished_size"] = {"preset": "poker"}
+    document["print_sheet"] = {
+        "paper": "inherit",
+        "orientation": "auto",
+        "copies": 3,
+        "cut_guides": True,
+        "borderless": False,
+    }
+    assert normalize_document(document) == document
+    document["print_sheet"]["orientation"] = "sideways"
+    with pytest.raises(DocumentValidationError, match="orientation"):
+        normalize_document(document)
+    document["print_sheet"]["orientation"] = "auto"
+    with pymupdf.open(render_pdf(document, tmp_path / "saved-size.pdf")) as pdf:
+        assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((180, 252))
+    with pymupdf.open(
+        render_pdf(document, tmp_path / "override.pdf", print_size={"preset": "full"})
+    ) as pdf:
+        assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((612, 792))
+    document["print_sheet"]["copies"] = 49
+    with pytest.raises(DocumentValidationError, match="copies"):
+        normalize_document(document)
 
 
 def test_print_size_http_validation_and_compatibility(tmp_path: Path):
@@ -510,7 +543,10 @@ def test_print_size_http_validation_and_compatibility(tmp_path: Path):
         assert "data-print-note-full" in designer.text
         assert "data-print-note-compact hidden" in designer.text
         assert "Create print sheet…" not in designer.text
-        assert "not saved in the .fgs file" in designer.text
+        assert "saved with the FGS file" in designer.text
+        assert "Use different printer paper" in designer.text
+        assert "Auto (fewest pages)" in designer.text
+        assert 'data-close-print-sheet type="button">Cancel' in designer.text
         script = (
             Path(__file__).parents[1] / "app/static/sheet-designer.js"
         ).read_text()
@@ -519,21 +555,58 @@ def test_print_size_http_validation_and_compatibility(tmp_path: Path):
         assert "printSheet.hidden=!compact" in script
         assert '$("print-note-full").hidden=compact' in script
         assert '$("print-note-compact").hidden=!compact' in script
-        assert '$("print-copies").value="1"' in script
+        assert '$("print-copies").value=sheet.copies' in script
         assert '$("print-copies").value=$("borderless").checked?"2":"1"' in script
         assert "copiesManuallyEdited=true" in script
+        assert (
+            'plan.cutGuides?"0.5-inch printable margin, including cut guides."'
+            in script
+        )
+        assert '"0.5-inch printable margin; cut guides off."' in script
+        assert "await fetch(printQuery(true))" in script
         assert client.get("/sheet-designer/export.pdf").status_code == 200
         poker = client.get("/sheet-designer/export.pdf?print_size=poker")
         assert poker.status_code == 200
         with pymupdf.open(stream=poker.content, filetype="pdf") as pdf:
             assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((180, 252))
+        saved = client.get("/sheet-designer/document").json()
+        saved["format_version"] = "1.4"
+        saved["page"]["finished_size"] = {"preset": "poker"}
+        saved["print_sheet"] = {
+            "paper": "a4",
+            "copies": 3,
+            "cut_guides": True,
+            "borderless": False,
+        }
+        assert client.post("/sheet-designer/document", json=saved).status_code == 200
+        with pymupdf.open(
+            stream=client.get("/sheet-designer/export.pdf").content, filetype="pdf"
+        ) as pdf:
+            assert (pdf[0].rect.width, pdf[0].rect.height) == pytest.approx((180, 252))
+        arranged = client.get("/sheet-designer/export.pdf?print_sheet=true")
+        assert arranged.status_code == 200
+        with pymupdf.open(stream=arranged.content, filetype="pdf") as pdf:
+            assert pdf[0].rect.width == pytest.approx(PAGE_SIZES["a4"][0])
+        saved["print_sheet"].update(paper="inherit", orientation="landscape")
+        assert client.post("/sheet-designer/document", json=saved).status_code == 200
+        inherited = client.get("/sheet-designer/export.pdf?print_sheet=true")
+        assert inherited.status_code == 200
+        with pymupdf.open(stream=inherited.content, filetype="pdf") as pdf:
+            assert pdf[0].rect.width == pytest.approx(PAGE_SIZES["letter"][1])
+        assert (
+            client.get("/sheet-designer/document").json()["print_sheet"]
+            == saved["print_sheet"]
+        )
         assert (
             client.get("/sheet-designer/export.pdf?print_size=poster").status_code
             == 422
         )
-        assert client.get(
-            "/sheet-designer/export.pdf?print_size=custom&custom_width=5"
-        ).status_code == 422
+        assert (
+            client.get(
+                "/sheet-designer/export.pdf?print_size=custom&custom_width=5"
+            ).status_code
+            == 422
+        )
 
 
 def test_pdf_category_labels_use_the_shared_bold_font(tmp_path: Path):
@@ -863,8 +936,8 @@ def test_designer_explains_its_scope_from_startup_and_editor():
     assert "temporary interactive LiveSheets" in template
     assert "An LLM can draft an FGS file" in template
     assert "only share source documents you are permitted to upload" in template
-    assert "Read the FGS 1.3 specification" in template
-    assert "FGS_V1_3_SPECIFICATION.md" in template
+    assert "Read the current FGS specification" in template
+    assert "FGS_FORMAT.md" in template
     assert "FGS_V1_2_SPECIFICATION.md" not in template
     assert "<h2>Footer</h2>" in template
     assert "data-logo-trigger" in script

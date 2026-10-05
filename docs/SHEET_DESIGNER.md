@@ -43,8 +43,9 @@ requires a matching printer and paper. See the
 [finished-size printing guide](PRINT_SIZE_PRINTING.md) before cutting or
 printing card-sized sheets.
 
-Finished size is **not stored in `.fgs`** during this beta. Record the intended
-size in Designer Notes and select it again when reopening the file. Designer
+FGS 1.4 stores optional finished-size defaults and remembers print-sheet
+settings only after successful export. Both remain editable after reopening;
+older FGS files still open with Full Page. Designer
 Notes travel with an exported FGS file but never appear on the printed sheet,
 PDF, or LiveSheet. A one- or two-line Footer and one header logo can be part of
 the portable FGS source. New integrated-Designer sheets start with an editable

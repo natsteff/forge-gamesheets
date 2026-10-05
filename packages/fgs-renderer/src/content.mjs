@@ -76,7 +76,9 @@ export function applyPaperTemplate(model,pattern,id) {
   if(!Object.hasOwn(PATTERNS,kind))throw new Error("Unknown paper template");
   const block={id:id("block"),...newContent("paper_pattern"),pattern:kind,settings:patternDefaults(kind),sizing:{mode:"fill_remaining"}};
   if(paired){block.settings.staff_style="paired";block.settings.pair_gap_pt=18;}
-  model.rows=[{id:id("row"),blocks:[block]}];model.format_version="1.3";return model;
+  model.rows=[{id:id("row"),blocks:[block]}];
+  if(model.format_version!=="1.4")model.format_version="1.3";
+  return model;
 }
 // Uses existing label/input styling, with identical controls in both editors.
 export function contentControls(block,{change,canFill,onError=()=>{}}) {

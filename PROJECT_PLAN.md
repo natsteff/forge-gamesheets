@@ -620,17 +620,18 @@ Size as intentionally designed, single-item sheets. Compact content wraps and
 uniformly fits when needed; fit percentage and effective body type size are
 reported for the designer to judge, with no hard readability threshold. A
 separate Letter/A4 copy-layout export includes an arranged-page preview, cut
-guides, capacity-based orientation, and explicit borderless two-up Half Page.
-Finished size remains a temporary export choice outside `.fgs`; Designer Notes
-may record a recommendation, but reopening requires reselection. The trial must
-be reviewed before adding a portable finished-size field to a future FGS version.
+guides, Auto or explicit printer-sheet orientation, and explicit borderless two-up Half Page.
+FGS 1.4 stores optional finished-size defaults and last-used print-sheet settings
+after successful export. Printer paper inherits the design page unless overridden.
+The choices remain editable;
+the printer-sheet arrangement is still validated at export time.
 Opt-in multi-page continuation for Full Page is a separate future milestone;
 compact sheets remain one finished item, never automatically another card.
 
 Remaining future components include richer section types beyond the supported
 headers, score tables, references, checklists and lined notes; multi-page output;
 advanced layout; optional desktop/offline editor packaging; additional render
-targets; migrations for future format versions beyond the supported 1.0–1.3;
+targets; migrations for future format versions beyond the supported 1.0–1.4;
 and any structured community-sharing workflow beyond ordinary external links.
 These require their own scope decisions, not automatic implementation.
 

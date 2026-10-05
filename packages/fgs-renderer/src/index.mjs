@@ -90,7 +90,7 @@ export function createPrintEngine(fontData) {
   }
 
   function layout(document, printSize={}) {
-    if (!document || document.format !== "forge-gamesheets" || !["1.0","1.1","1.2","1.3"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0–1.3");
+    if (!document || document.format !== "forge-gamesheets" || !["1.0","1.1","1.2","1.3","1.4"].includes(document.format_version)) throw new Error("Expected validated FGS 1.0–1.4");
     validateFill(document);
     const size=finishedSize(document,printSize);
     const compact=size.preset!=="full";

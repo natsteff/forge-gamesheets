@@ -2,7 +2,8 @@
 
 Status: Implemented and owner-reviewed. Publication is verified separately.
 Profile ID: `fgs-page-1.3.1`. Extends [Profile 1.2](FGS_PAGE_RENDERING_PROFILE_1_2.md)
-and accepts FGS 1.0–1.3. Fonts, 36-point margins,
+and accepts FGS 1.0–1.4. FGS 1.4 adds print defaults without changing this
+profile's geometry. Fonts, 36-point margins,
 16-point column gap, 14-point row gap, logo/title placement and optional
 footer reserve remain unchanged for one-line footers. No automatic pagination is introduced.
 
@@ -16,8 +17,8 @@ Dense sheets that no longer fit report overflow rather than shrinking.
 
 Full Page retains the layout and overflow rules above. A print job may instead
 select Half Page, Poker Card (180 × 252 pt), Bridge Card (162 × 252 pt), or a
-bounded custom finished size. This choice is outside the `.fgs` document: it
-must be reselected after import. Compact sheets compose at the finished width,
+bounded custom finished size. FGS 1.4 may store this choice as a default;
+earlier files default to Full Page. Compact sheets compose at the finished width,
 wrap text, and uniformly scale one complete composition when necessary to fit
 its height; the UI reports scale and approximate body type size for human review.
 There is no automatic readability threshold or compact multi-page continuation.
