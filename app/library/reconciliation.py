@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from app.database import Database
 from app.library.filename_parser import parse_resource_filename
+from app.library.folder_names import default_game_title
 from app.library.scanner import ScanResult
 
 
@@ -77,6 +78,7 @@ def _reconcile(
 
     for game in scan.games:
         game_path = game.relative_path.as_posix()
+        display_title = default_game_title(game.name)
         scanned_game_paths.add(game_path)
         existing_game = existing_games.get(game_path)
         artwork_values = (
@@ -93,7 +95,7 @@ def _reconcile(
                     artwork_size_bytes, artwork_modified_ns
                 ) VALUES (?, ?, ?, ?, ?)
                 """,
-                (game_path, game.name, *artwork_values),
+                (game_path, display_title, *artwork_values),
             ).lastrowid
             if connection.execute(
                 "SELECT folder_categories FROM application_preferences WHERE id=1"
@@ -109,7 +111,7 @@ def _reconcile(
                 existing_game["artwork_size_bytes"],
                 existing_game["artwork_modified_ns"],
             )
-            game_changed = existing_game["title"] != game.name
+            game_changed = existing_game["title"] != display_title
             artwork_changed = existing_artwork != artwork_values
             if game_changed or artwork_changed:
                 connection.execute(
@@ -120,7 +122,7 @@ def _reconcile(
                         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
                     WHERE id = ?
                     """,
-                    (game.name, *artwork_values, game_id),
+                    (display_title, *artwork_values, game_id),
                 )
                 games_updated += 1
 

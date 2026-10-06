@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.access import CONTRIBUTOR_ROUTES
+from app.bgg.client import BggVersion
 from app.bgg.edition import (
     BggEdition,
     get_bgg_edition,
@@ -233,6 +234,7 @@ def test_old_association_repair_is_explicit_and_preserves_metadata(client, monke
     monkeypatch.setattr("app.web.resolve_game_slug", resolve)
     editor = browser.get("/games/1/edit").text
     assert "Open BGG to select Versions" in editor
+    assert "/games/1/bgg/resolve-url?open=versions" in editor
     assert "/822/versions" not in editor
     assert "/822/files" not in browser.get("/games/1").text
     assert not calls
@@ -247,6 +249,12 @@ def test_old_association_repair_is_explicit_and_preserves_metadata(client, monke
     assert get_game(database, 1).box_dimensions.to_dict() == dimensions
     browser.post("/games/1/bgg/resolve-url")
     assert calls == [822]
+    version_link = browser.post(
+        "/games/1/bgg/resolve-url?open=versions", follow_redirects=False
+    )
+    assert version_link.headers["location"] == (
+        "https://boardgamegeek.com/boardgame/822/carcassonne/versions"
+    )
 
 
 def test_old_association_repair_offline_leaves_state_unchanged(client, monkeypatch):
@@ -257,6 +265,24 @@ def test_old_association_repair_offline_leaves_state_unchanged(client, monkeypat
     assert "could not be resolved" in browser.post("/games/1/bgg/resolve-url").text
     assert get_bgg_association(database, 1) == association
     assert browser.post("/games/999/bgg/resolve-url").status_code == 404
+
+
+def test_versions_button_opens_canonical_bohnanza_url(client, monkeypatch):
+    browser, database, _ = client
+    save_bgg_association(
+        database, BggAssociation(1, True, BggMatchState.MANUAL, "Bohnanza", bgg_id=11)
+    )
+    monkeypatch.setattr("app.web.resolve_game_slug", lambda bgg_id: "bohnanza")
+
+    response = browser.post(
+        "/games/1/bgg/resolve-url?open=versions", follow_redirects=False
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == (
+        "https://boardgamegeek.com/boardgame/11/bohnanza/versions"
+    )
+    assert get_bgg_association(database, 1).url_slug == "bohnanza"
 
 
 def test_portable_roundtrip_and_independent_import_fields(client):
@@ -305,3 +331,50 @@ def test_portable_roundtrip_and_independent_import_fields(client):
     assert get_bgg_edition(database, 1) == edition
     apply_import(database, (), "replace", game_metadata=clear)
     assert get_bgg_edition(database, 1) is None
+
+
+def test_verified_version_save_fills_blanks_and_warns_on_new_version(client):
+    browser, database, _ = client
+    browser.app.state.settings = replace(
+        browser.app.state.settings, bgg_api_token="test-token"
+    )
+    save_bgg_association(
+        database,
+        BggAssociation(
+            1,
+            True,
+            BggMatchState.MANUAL,
+            "Example",
+            bgg_id=822,
+            last_lookup_at="2026-10-01T00:00:00Z",
+        ),
+    )
+
+    class FakeClient:
+        def get_version(self, game_id, version_id):
+            assert (game_id, version_id) == (822, 187468)
+            return BggVersion(187468, "English edition", (7.25, 5.5, 2.0))
+
+    browser.app.state.bgg_client_factory = lambda _token: FakeClient()
+    response = browser.post(
+        "/games/1/bgg/edition", data={"edition_reference": "187468"}
+    )
+    assert response.status_code == 200
+    assert get_bgg_edition(database, 1).label == "English edition"
+    assert get_game(database, 1).box_dimensions.display == "7.25 × 5.5 × 2 in"
+    changed = browser.post(
+        "/games/1/bgg/edition",
+        data={"edition_reference": "187469", "edition_label": "English edition"},
+    )
+    assert "may describe the previous version" in changed.text
+    assert (
+        "The version changed while a label or dimensions were already present"
+        in changed.text
+    )
+    assert get_game(database, 1).box_dimensions.display == "7.25 × 5.5 × 2 in"
+    assert "The version changed while" in browser.get("/games/1/edit").text
+    confirmed = browser.post(
+        "/games/1/bgg/edition",
+        data={"edition_reference": "187469", "edition_label": "English edition"},
+    )
+    assert "The version changed while" not in confirmed.text

@@ -15,7 +15,14 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app import accounts
-from app.activity import PAGE_SIZE, list_activity, record_activity, record_scan
+from app.activity import (
+    PAGE_SIZE,
+    get_scan_detail,
+    list_activity,
+    record_activity,
+    record_scan,
+)
+from app.bgg.categories import apply_bgg_categories
 from app.bgg.client import (
     BggApiError,
     BggAuthenticationError,
@@ -23,14 +30,17 @@ from app.bgg.client import (
     BggRateLimitError,
     BggUnavailableError,
     resolve_game_slug,
+    safe_bgg_image_url,
 )
 from app.bgg.edition import (
     BggEdition,
     get_bgg_edition,
+    get_edition_sources,
     parse_edition_reference,
     save_bgg_edition,
 )
-from app.bgg.matching import enrich_game, normalize_game_name
+from app.bgg.jobs import enqueue_batch, enqueue_initial, preview_batch, retry_failed
+from app.bgg.matching import enrich_game, search_match
 from app.bgg.repository import (
     BggAssociation,
     BggMatchState,
@@ -38,6 +48,7 @@ from app.bgg.repository import (
     get_bgg_association,
     save_bgg_association,
 )
+from app.bgg.version_enrichment import fill_blank_version_details
 from app.database import Database
 from app.library.artwork import (
     MAX_ARTWORK_BYTES,
@@ -54,7 +65,7 @@ from app.library.files import (
     resolve_resource_file,
     resolve_resource_pdf,
 )
-from app.library.game_categories import bulk_apply, folder_hint
+from app.library.game_categories import add_missing_defaults, bulk_apply, folder_hint
 from app.library.game_links import (
     GameLinkError,
     list_game_resource_links,
@@ -174,19 +185,30 @@ def library_home(request: Request) -> HTMLResponse:
     query = request.query_params.get("q", "").strip()[:200]
     games = list_games(_database(request), query or None)
     pinned = () if query else list_pinned_resources(_database(request))
+    categories = list_game_categories(_database(request))
     uncategorized_count = len(list_games_in_category(_database(request), None))
+    scan_detail = None
+    if request.query_params.get("scan") == "complete":
+        try:
+            scan_event_id = int(request.query_params.get("event", ""))
+        except ValueError:
+            scan_event_id = 0
+        scan_detail = get_scan_detail(_database(request), scan_event_id)
     return templates.TemplateResponse(
         request=request,
         name="library.html",
         context={
             "games": games,
             "pinned": pinned,
-            "game_categories": list_game_categories(_database(request)),
+            "game_categories": categories,
             "total_game_count": len(games),
             "uncategorized_count": uncategorized_count,
+            "show_empty": request.query_params.get("show_empty") == "1",
+            "empty_category_count": sum(not item.game_count for item in categories)
+            + (not uncategorized_count),
             "query": query,
             "scan_status": request.query_params.get("scan"),
-            "scan_changes": request.query_params.get("changes"),
+            "scan_detail": scan_detail,
             "scan_issues": request.app.state.scan_issues,
         },
     )
@@ -369,15 +391,18 @@ async def settings_scanning(request: Request):
 def categories_home(request: Request) -> HTMLResponse:
     """Show the complete game-category directory."""
     games = list_games(_database(request))
+    categories = list_game_categories(_database(request))
+    uncategorized_count = len(list_games_in_category(_database(request), None))
     return templates.TemplateResponse(
         request=request,
         name="categories.html",
         context={
-            "game_categories": list_game_categories(_database(request)),
+            "game_categories": categories,
             "total_game_count": len(games),
-            "uncategorized_count": len(
-                list_games_in_category(_database(request), None)
-            ),
+            "uncategorized_count": uncategorized_count,
+            "show_empty": request.query_params.get("show_empty") == "1",
+            "empty_category_count": sum(not item.game_count for item in categories)
+            + (not uncategorized_count),
         },
     )
 
@@ -492,6 +517,7 @@ def settings_home(request: Request) -> HTMLResponse:
             "timezone_names": _timezone_names(),
             "build_info": request.app.state.build_info,
             "bgg_configured": bool(request.app.state.settings.bgg_api_token),
+            "bgg_batch": preview_batch(_database(request)),
             "session_policy": session_policy,
             "session_duration_options": (
                 (1800, "30 minutes"),
@@ -531,6 +557,53 @@ def settings_bgg_test(request: Request) -> RedirectResponse:
     if game is None:
         return _settings_redirect(error="bgg-response")
     return _settings_redirect(status="bgg-connected")
+
+
+@router.post(
+    "/settings/bgg/refresh-all",
+    response_class=RedirectResponse,
+    name="settings_bgg_refresh_all",
+)
+def settings_bgg_refresh_all(request: Request) -> RedirectResponse:
+    """Queue one paced enrichment pass after explicit Admin confirmation."""
+    if not request.app.state.settings.bgg_api_token:
+        return _settings_redirect(error="bgg-not-configured")
+    count = enqueue_batch(_database(request))
+    record_activity(
+        _database(request),
+        "bgg_refresh_started",
+        "BoardGameGeek refresh started",
+        detail=f"{count} games queued for background lookup.",
+    )
+    return _settings_redirect(status="bgg-batch-started", anchor="bgg-integration")
+
+
+@router.post(
+    "/settings/bgg/retry-failed",
+    response_class=RedirectResponse,
+    name="settings_bgg_retry_failed",
+)
+def settings_bgg_retry_failed(request: Request) -> RedirectResponse:
+    if not request.app.state.settings.bgg_api_token:
+        return _settings_redirect(error="bgg-not-configured")
+    count = retry_failed(_database(request))
+    record_activity(
+        _database(request),
+        "bgg_refresh_retried",
+        "Failed BoardGameGeek lookups retried",
+        detail=f"{count} failed games queued again.",
+    )
+    return _settings_redirect(status="bgg-retry-started", anchor="bgg-integration")
+
+
+@router.post(
+    "/settings/categories/add-defaults",
+    response_class=RedirectResponse,
+    name="settings_categories_add_defaults",
+)
+def settings_categories_add_defaults(request: Request) -> RedirectResponse:
+    added = add_missing_defaults(_database(request))
+    return _settings_redirect(status=f"category-defaults-{added}")
 
 
 @router.post("/settings/preferences", response_class=RedirectResponse)
@@ -621,6 +694,8 @@ def settings_category_delete(request: Request, category_id: int) -> RedirectResp
 def library_rescan(request: Request) -> RedirectResponse:
     """Synchronize the SQLite index with the current filesystem library."""
     settings = request.app.state.settings
+    with _database(request).connect() as connection:
+        before_game_ids = {row[0] for row in connection.execute("SELECT id FROM games")}
     try:
         scan_result = scan_library(settings.library_path)
         summary = reconcile_scan(_database(request), scan_result)
@@ -638,19 +713,15 @@ def library_rescan(request: Request) -> RedirectResponse:
 
     request.app.state.scan_issues = ()
     request.app.state.last_reconciliation = summary
+    if settings.bgg_api_token:
+        with _database(request).connect() as connection:
+            after_game_ids = {
+                row[0] for row in connection.execute("SELECT id FROM games")
+            }
+        enqueue_initial(_database(request), after_game_ids - before_game_ids)
     cleanup_managed_files(_database(request), settings.data_path)
-    change_count = sum(
-        (
-            summary.games_added,
-            summary.games_updated,
-            summary.games_removed,
-            summary.resources_added,
-            summary.resources_updated,
-            summary.resources_removed,
-        )
-    )
-    record_scan(_database(request), summary)
-    query = urlencode({"scan": "complete", "changes": change_count})
+    event_id = record_scan(_database(request), summary)
+    query = urlencode({"scan": "complete", "event": event_id})
     return RedirectResponse(url=f"/?{query}", status_code=303)
 
 
@@ -903,7 +974,12 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
                 if resource.provider in {"fgs", "image", "document"}
             },
             "bgg_association": get_bgg_association(_database(request), game.id),
+            "bgg_image_url": safe_bgg_image_url(
+                (association := get_bgg_association(_database(request), game.id))
+                and (association.image_url or association.thumbnail_url)
+            ),
             "bgg_edition": get_bgg_edition(_database(request), game.id),
+            "bgg_edition_sources": get_edition_sources(_database(request), game.id),
             "game_resource_links": list_game_resource_links(
                 _database(request), game.id
             ),
@@ -1135,24 +1211,18 @@ async def game_bgg_find(request: Request, game_id: int) -> HTMLResponse:
     if not query or len(query) > 200:
         return _game_edit_response(request, game, bgg_error="invalid-query")
     try:
-        candidates = client.search_games(query)
+        exact_match, candidates = search_match(client, query)
     except BggApiError:
         return _game_edit_response(request, game, bgg_error="lookup-failed")
     existing = get_bgg_association(_database(request), game_id)
-    normalized_query = normalize_game_name(query)
-    exact_matches = tuple(
-        candidate
-        for candidate in candidates
-        if normalize_game_name(candidate.name) == normalized_query
-    )
-    if len(exact_matches) == 1 and not (existing and existing.bgg_id):
+    if exact_match is not None and not (existing and existing.bgg_id):
         try:
-            details = client.get_game(exact_matches[0].id)
+            details = client.get_game(exact_match.id)
         except BggApiError:
             return _game_edit_response(request, game, bgg_error="lookup-failed")
         if details is None:
             return _game_edit_response(request, game, bgg_error="not-found")
-        save_bgg_association(
+        saved = save_bgg_association(
             _database(request),
             BggAssociation(
                 game_id=game_id,
@@ -1166,8 +1236,13 @@ async def game_bgg_find(request: Request, game_id: int) -> HTMLResponse:
                 image_url=details.image_url,
                 thumbnail_url=details.thumbnail_url,
                 last_lookup_at=_utc_timestamp(),
+                description=(details.description or "")[:20000] or None,
             ),
+            expected=existing,
         )
+        if not saved:
+            return _game_edit_response(request, game, bgg_error="association-changed")
+        apply_bgg_categories(_database(request), game_id, details, mode="empty-only")
         record_activity(
             _database(request),
             "bgg_link_updated",
@@ -1205,6 +1280,7 @@ async def game_bgg_select(request: Request, game_id: int) -> RedirectResponse:
         raise HTTPException(status_code=422, detail="Invalid BGG ID") from None
     if bgg_id <= 0:
         raise HTTPException(status_code=422, detail="Invalid BGG ID")
+    existing = get_bgg_association(_database(request), game_id)
     try:
         details = client.get_game(bgg_id)
     except BggApiError:
@@ -1224,8 +1300,11 @@ async def game_bgg_select(request: Request, game_id: int) -> RedirectResponse:
         thumbnail_url=details.thumbnail_url,
         last_lookup_at=_utc_timestamp(),
         url_slug=details.url_slug,
+        description=(details.description or "")[:20000] or None,
     )
-    save_bgg_association(_database(request), association)
+    if not save_bgg_association(_database(request), association, expected=existing):
+        return _game_edit_redirect(game_id, bgg_error="association-changed")
+    apply_bgg_categories(_database(request), game_id, details, mode="empty-only")
     record_activity(
         _database(request),
         "bgg_link_updated",
@@ -1258,7 +1337,7 @@ def game_bgg_refresh(request: Request, game_id: int) -> RedirectResponse:
         return _game_edit_redirect(game_id, bgg_error="lookup-failed")
     if details is None:
         return _game_edit_redirect(game_id, bgg_error="not-found")
-    save_bgg_association(
+    saved = save_bgg_association(
         _database(request),
         BggAssociation(
             game_id=game_id,
@@ -1273,8 +1352,14 @@ def game_bgg_refresh(request: Request, game_id: int) -> RedirectResponse:
             thumbnail_url=details.thumbnail_url,
             last_lookup_at=_utc_timestamp(),
             url_slug=details.url_slug or existing.url_slug,
+            description=(details.description or "")[:20000] or None,
         ),
+        expected=existing,
     )
+    if not saved:
+        return _game_edit_redirect(game_id, bgg_error="association-changed")
+    if request.state.can_admin:
+        apply_bgg_categories(_database(request), game_id, details, mode="additive")
     record_activity(
         _database(request),
         "bgg_link_updated",
@@ -1369,6 +1454,7 @@ async def game_bgg_manual(request: Request, game_id: int):
             thumbnail_url=details.thumbnail_url,
             last_lookup_at=_utc_timestamp(),
             url_slug=slug,
+            description=(details.description or "")[:20000] or None,
         )
         status = (
             "manual-replaced-verified"
@@ -1396,10 +1482,15 @@ async def game_bgg_manual(request: Request, game_id: int):
             if existing and existing.bgg_id
             else "BoardGameGeek association created from an unverified supplied URL."
         )
-    save_bgg_association(
+    saved = save_bgg_association(
         database,
         association,
+        expected=existing,
     )
+    if not saved:
+        return _game_edit_redirect(game_id, bgg_error="association-changed")
+    if client is not None:
+        apply_bgg_categories(database, game_id, details, mode="empty-only")
     record_activity(
         _database(request),
         "bgg_link_updated",
@@ -1413,7 +1504,8 @@ async def game_bgg_manual(request: Request, game_id: int):
 @router.post("/games/{game_id}/bgg/edition", name="game_bgg_edition_save")
 async def game_bgg_edition_save(request: Request, game_id: int):
     database = _database(request)
-    if get_game(database, game_id) is None:
+    game = get_game(database, game_id)
+    if game is None:
         raise HTTPException(404, "Game not found")
     form = await request.form()
     association = get_bgg_association(database, game_id)
@@ -1425,8 +1517,39 @@ async def game_bgg_edition_save(request: Request, game_id: int):
         )
     except ValueError:
         return _game_edit_redirect(game_id, bgg_error="invalid-edition")
+    previous = get_bgg_edition(database, game_id)
+    previous_values = previous is not None and previous.version_id != edition.version_id
     save_bgg_edition(database, game_id, edition)
-    return _game_edit_redirect(game_id, bgg_status="edition-saved")
+    client = (
+        _bgg_client(request) if association and association.last_lookup_at else None
+    )
+    if (
+        client is not None
+        and association is not None
+        and association.bgg_id is not None
+        and association.last_lookup_at is not None
+        and (not edition.label or game.box_dimensions is None)
+    ):
+        try:
+            found = fill_blank_version_details(
+                database,
+                client,
+                game_id=game_id,
+                parent_bgg_id=association.bgg_id,
+                version_id=edition.version_id,
+            )
+        except BggApiError:
+            return _game_edit_redirect(
+                game_id, bgg_status="edition-saved-bgg-unavailable"
+            )
+        if not found:
+            return _game_edit_redirect(game_id, bgg_status="edition-saved-no-details")
+    return _game_edit_redirect(
+        game_id,
+        bgg_status="edition-saved-review-previous"
+        if previous_values
+        else "edition-saved",
+    )
 
 
 @router.post("/games/{game_id}/bgg/resolve-url", name="game_bgg_resolve_url")
@@ -1447,6 +1570,15 @@ def game_bgg_resolve_url(request: Request, game_id: int):
             "WHERE game_id=? AND bgg_id=? AND url_slug IS NULL",
             (slug, game_id, association.bgg_id),
         )
+    if request.query_params.get("open") == "versions":
+        current = get_bgg_association(database, game_id)
+        if (
+            current is None
+            or current.bgg_id != association.bgg_id
+            or not current.versions_url
+        ):
+            return _game_edit_redirect(game_id, bgg_status="page-link-unavailable")
+        return RedirectResponse(current.versions_url, status_code=303)
     return _game_edit_redirect(game_id, bgg_status="page-link-resolved")
 
 
@@ -1925,13 +2057,15 @@ def _reprint_redirect(
 
 
 def _settings_redirect(
-    *, status: str | None = None, error: str | None = None
+    *, status: str | None = None, error: str | None = None, anchor: str | None = None
 ) -> RedirectResponse:
     query = urlencode(
         {key: value for key, value in (("status", status), ("error", error)) if value}
     )
     return RedirectResponse(
-        url=f"/settings?{query}" if query else "/settings", status_code=303
+        url=(f"/settings?{query}" if query else "/settings")
+        + (f"#{anchor}" if anchor else ""),
+        status_code=303,
     )
 
 
@@ -1961,6 +2095,7 @@ def _game_edit_response(
             "bgg_candidates": bgg_candidates,
             "bgg_query": bgg_query or game.detected_title,
             "bgg_edition": get_bgg_edition(_database(request), game.id),
+            "bgg_edition_sources": get_edition_sources(_database(request), game.id),
             "bgg_status": request.query_params.get("bgg_status"),
             "bgg_error": bgg_error or request.query_params.get("bgg_error"),
         },
@@ -1972,6 +2107,8 @@ def _bgg_client(request: Request) -> BggClient | None:
     if token is None:
         return None
     factory = getattr(request.app.state, "bgg_client_factory", BggClient)
+    if factory is BggClient:
+        return BggClient(token, request_pacer=request.app.state.bgg_request_pacer)
     return factory(token)
 
 

@@ -18,7 +18,7 @@
   <form action="{{ url_for('settings_scanning') }}" method="post">
     <label class="checkbox-option">
       <input type="checkbox" name="folder_categories" {% if application_preferences(request).folder_categories %}checked{% endif %}>
-      <span><strong>Import game categories from folder names</strong><small>Use a trailing list such as Yahtzee [Dice, Children]. Missing categories are created automatically. Parentheses remain part of the title. Applies only to newly discovered games on the next scan; existing assignments are unchanged.</small></span>
+      <span><strong>Import game categories from folder names</strong><small>Use a trailing list such as Yahtzee [Dice, Children]. Missing categories are created automatically. A trailing standalone year such as (1998) is omitted from the default display title; other parentheses remain. Category import applies only to newly discovered games on the next scan; existing assignments are unchanged.</small></span>
     </label>
     <button class="primary-button" type="submit">Save scanning preference</button>
   </form>
@@ -39,7 +39,7 @@
     <p class="status-banner success" role="status">QR access setting saved successfully.</p>
   {% elif status == "session-policy-saved" %}
     <p class="status-banner success" role="status">Sign-in policy saved successfully.</p>
-  {% elif status %}
+  {% elif status and not status.startswith('bgg-batch-') and not status.startswith('bgg-retry-') %}
     <p class="status-banner success" role="status">Settings saved successfully.</p>
   {% elif error == "duplicate-category" %}
     <p class="status-banner warning" role="alert">That category name is already in use.</p>
@@ -153,16 +153,56 @@
       {% endfor %}
     </div>
     <p class="settings-note"><strong>Uncategorized</strong> is automatic and cannot be renamed or deleted.</p>
+    <p class="settings-note">For optional BGG auto-categorization, use category names that match BGG Categories or Mechanisms. Existing categories are never renamed or removed by BGG.</p>
+    <form action="{{ url_for('settings_categories_add_defaults') }}" method="post"><button class="secondary-button" type="submit">Add missing suggested categories</button></form>
   </section>
 
-  <section class="settings-section bgg-settings">
+  <section class="settings-section bgg-settings" id="bgg-integration"{% if bgg_batch.queued %} data-bgg-progress{% endif %}>
     <p class="eyebrow">Optional integration</p>
     <h2>BoardGameGeek integration</h2>
     {% include "_bgg_attribution.html" %}
     {% if bgg_configured %}
-      <p><strong>Application token configured.</strong></p>
-      <p class="settings-note">The private token is available to this server but is never displayed here. Test it after initial setup or replacement; testing makes one request to BGG.</p>
-      <form class="bgg-connection-test" action="{{ url_for('settings_bgg_test') }}" method="post"><button class="secondary-button" type="submit">Test BGG connection</button></form>
+      <div class="bgg-settings-group">
+        <h3>Connection</h3>
+        <p class="bgg-settings-status">Application token configured.</p>
+        <p class="settings-note">The private token is available to this server but is never displayed here. Test it after initial setup or replacement; testing makes one request to BGG.</p>
+        <form class="bgg-connection-test" action="{{ url_for('settings_bgg_test') }}" method="post"><button class="secondary-button" type="submit">Test BGG connection</button></form>
+      </div>
+      <div class="bgg-settings-group">
+        <h3>Refresh game information</h3>
+      <p class="status-banner{% if bgg_batch.batch_failed and not bgg_batch.batch_queued %} warning{% else %} success{% endif %}" role="status">
+        {% if status == 'bgg-batch-started' and bgg_batch.queued %}
+          BGG refresh started. Games are processed in the background; progress updates automatically.<br>
+        {% elif status == 'bgg-retry-started' and bgg_batch.queued %}
+          Failed BGG lookups were queued again. Progress updates automatically.<br>
+        {% elif bgg_batch.batch_total and not bgg_batch.batch_queued %}
+          Latest BGG batch finished: {{ bgg_batch.batch_total - bgg_batch.batch_failed }} of {{ bgg_batch.batch_total }} lookups completed; {{ bgg_batch.batch_linked }} game{% if bgg_batch.batch_linked != 1 %}s{% endif %} linked or refreshed; {{ bgg_batch.batch_review }} need manual selection{% if bgg_batch.batch_failed %}; {{ bgg_batch.batch_failed }} failed{% endif %}.<br>
+        {% endif %}
+        <strong>Lookup progress:</strong> {{ bgg_batch.queued }} waiting or in progress, {{ bgg_batch.done }} completed, {{ bgg_batch.failed }} failed. Completed includes games that could not be matched automatically. {% if bgg_batch.queued %}This page refreshes every 10 seconds while work is active. {% endif %}Requests are paced and unfinished work resumes after restart.
+      </p>
+      <p class="settings-note">{{ bgg_batch.linked_refreshes }} linked games can refresh in {{ bgg_batch.linked_batches }} BGG ID batch{% if bgg_batch.linked_batches != 1 %}es{% endif %} of up to 20 games; {{ bgg_batch.match_candidates }} unlinked games need individual title searches, then automatically matched IDs are fetched in batches of up to 20. Up to {{ bgg_batch.estimated_requests }} XML API requests before retries. Resolving a newly matched game's page link may make an additional public BGG request. Only exact Category and Mechanism names already in FORGE GameSheets are added; your existing categories and local artwork stay unchanged.</p>
+      <p class="settings-note">To respect <a href="https://boardgamegeek.com/wiki/page/BGG_XML_API2" target="_blank" rel="noopener">BGG's XML API throttling guidance</a>, FORGE waits at least 5 seconds between API requests. {% if not bgg_batch.queued and bgg_batch.estimated_requests %}For this library, allow at least {{ bgg_batch.estimated_pacing }} for request spacing, plus BGG response time; it may take longer. Starting a new full refresh repeats the lookups.{% endif %}</p>
+      {% if bgg_batch.ambiguous or bgg_batch.unmatched %}
+        <details>
+          <summary>{{ bgg_batch.ambiguous + bgg_batch.unmatched }} game{% if bgg_batch.ambiguous + bgg_batch.unmatched != 1 %}s{% endif %} need{% if bgg_batch.ambiguous + bgg_batch.unmatched == 1 %}s{% endif %} manual BGG selection</summary>
+          <p class="settings-note">These games were not linked automatically: multiple BGG entries matched, or none did. Open a game to search and select its correct BGG entry. This is separate from failed API requests.</p>
+          <ul>{% for game in bgg_batch.review_games %}<li><a href="{{ url_for('game_edit', game_id=game.id) }}#bgg-integration">{{ game.title }}</a> — {{ 'multiple matches' if game.state == 'ambiguous' else 'no match found' }}</li>{% endfor %}</ul>
+          {% if bgg_batch.ambiguous + bgg_batch.unmatched > bgg_batch.review_games|length %}<p class="settings-note">Showing the first {{ bgg_batch.review_games|length }} games.</p>{% endif %}
+        </details>
+      {% else %}<p class="settings-note">No games currently need manual BGG selection.</p>{% endif %}
+      {% if bgg_batch.failed %}
+        <details>
+          <summary>{{ bgg_batch.failed }} BGG lookups failed</summary>
+          <p class="settings-note">These lookups did not finish, usually because BGG could not be reached. Retry them without repeating successful lookups.</p>
+          <ul>{% for game in bgg_batch.failed_games %}<li><a href="{{ url_for('game_edit', game_id=game.id) }}#bgg-integration">{{ game.title }}</a></li>{% endfor %}</ul>
+        </details>
+      {% endif %}
+      {% if bgg_batch.disabled %}<p class="settings-note">{{ bgg_batch.disabled }} games have BGG lookup disabled and will be skipped.</p>{% endif %}
+        <div class="bgg-settings-actions">
+          <form action="{{ url_for('settings_bgg_refresh_all') }}" method="post"><button class="secondary-button" type="submit"{% if bgg_batch.queued %} disabled{% endif %}>{{ 'Refresh in progress' if bgg_batch.queued else 'Refresh all eligible games' }}</button></form>
+          {% if bgg_batch.failed and not bgg_batch.queued %}<form action="{{ url_for('settings_bgg_retry_failed') }}" method="post"><button class="secondary-button" type="submit">Retry {{ bgg_batch.failed }} failed lookup{% if bgg_batch.failed != 1 %}s{% endif %}</button></form>{% endif %}
+        </div>
+      </div>
     {% else %}
       <p><strong>Disabled: no token configured.</strong></p>
       <p class="settings-note">This is the default. Local games, PDFs, manual BGG links, and external BGG search continue to work. An administrator may register this installation with BGG and add its private token later.</p>

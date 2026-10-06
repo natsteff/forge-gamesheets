@@ -2,6 +2,58 @@
 
 import re
 
+from app.library.folder_names import default_game_title
+
+DEFAULT_GAME_CATEGORIES = (
+    "Board",
+    "Family",
+    "Other",
+    "Strategy",
+    "Video",
+    "Yard",
+    "Abstract Strategy",
+    "Bluffing",
+    "Card Game",
+    "Children's Game",
+    "Deduction",
+    "Dice",
+    "Educational",
+    "Humor",
+    "Mature / Adult",
+    "Memory",
+    "Party Game",
+    "Print & Play",
+    "Puzzle",
+    "Territory Building",
+    "Trivia",
+    "Word Game",
+    "Cooperative Game",
+    "Dice Rolling",
+    "Hand Management",
+    "Hidden Roles",
+    "Push Your Luck",
+    "Role Playing",
+    "Set Collection",
+    "Take That",
+    "Team-Based Game",
+    "Tile Placement",
+    "Worker Placement",
+)
+
+
+def add_missing_defaults(database) -> int:
+    """Optional Admin action for existing installations; never rename categories."""
+    with database.connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        before = connection.total_changes
+        connection.executemany(
+            "INSERT OR IGNORE INTO game_categories(name) VALUES(?)",
+            ((name,) for name in DEFAULT_GAME_CATEGORIES),
+        )
+        added = connection.total_changes - before
+        connection.commit()
+    return added
+
 
 def folder_hint(name):
     match = re.fullmatch(r"([^\[\]]+?)\s*\[([^\[\]]+)\]", name)
@@ -43,7 +95,7 @@ def import_hint(connection, game_id, folder, *, title=False):
     if names and title:
         connection.execute(
             "INSERT OR IGNORE INTO game_overrides(game_id,title) VALUES (?,?)",
-            (game_id, display),
+            (game_id, default_game_title(display)),
         )
 
 

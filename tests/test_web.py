@@ -39,7 +39,7 @@ class _ExecutableMarkupProbe(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=10"):
+        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=12"):
             self.unsafe.append(tag)
         for name, value in attrs:
             if name.startswith("on") or (value or "").lower().startswith("javascript:"):
@@ -302,7 +302,7 @@ def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
         "Design printable GameSheets, use LiveSheets, and organize your "
         "game-resource library" in response.text
     )
-    assert "styles.css?v=67" in response.text
+    assert "styles.css?v=69" in response.text
     hero_rule = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
     assert ".hero h1 { max-width: 18ch;" in hero_rule
     assert '<p class="eyebrow">Game library</p>' not in response.text
@@ -310,12 +310,25 @@ def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
 
 def test_home_lists_compact_category_cards(web_client: TestClient) -> None:
     response = web_client.get("/")
+    with web_client.app.state.database.connect() as connection:
+        empty_id = connection.execute(
+            "SELECT id FROM game_categories WHERE name='Card Game'"
+        ).fetchone()[0]
+        board_id = connection.execute(
+            "SELECT id FROM game_categories WHERE name='Board'"
+        ).fetchone()[0]
 
     assert response.status_code == 200
     assert "Browse categories" in response.text
-    assert response.text.index("All Games") < response.text.index("Board")
-    assert "Board" in response.text
+    assert response.text.index("All Games") < response.text.index("Uncategorized")
+    assert f'/categories/{board_id}"' not in response.text
     assert "Uncategorized" in response.text
+    assert f'/categories/{empty_id}"' not in response.text
+    assert "Show empty categories" in response.text
+    shown_home = web_client.get("/?show_empty=1")
+    assert f'/categories/{empty_id}"' in shown_home.text
+    assert "Hide empty categories" in shown_home.text
+    assert f'/categories/{empty_id}"' in web_client.get("/categories?show_empty=1").text
     assert "2 games" in response.text
     assert "Empty Game" not in response.text
     all_games = web_client.get("/games")
@@ -324,6 +337,40 @@ def test_home_lists_compact_category_cards(web_client: TestClient) -> None:
     assert uncategorized.text.index("Empty Game") < uncategorized.text.index("Farkle")
     assert "0 resources" in uncategorized.text
     assert "3 resources" in uncategorized.text
+
+
+def test_categories_hide_empty_by_default_and_can_show_them(
+    web_client: TestClient,
+) -> None:
+    with web_client.app.state.database.connect() as connection:
+        empty_id = connection.execute(
+            "SELECT id FROM game_categories WHERE name='Card Game'"
+        ).fetchone()[0]
+    hidden = web_client.get("/categories")
+    assert f"/categories/{empty_id}" not in hidden.text
+    assert "Show empty categories" in hidden.text
+    assert "show_empty=1" in hidden.text
+    shown = web_client.get("/categories?show_empty=1")
+    assert f"/categories/{empty_id}" in shown.text
+    assert "Hide empty categories" in shown.text
+
+
+def test_categories_hide_empty_uncategorized_card(web_client: TestClient) -> None:
+    with web_client.app.state.database.connect() as connection:
+        category_id = connection.execute(
+            "SELECT id FROM game_categories WHERE name='Board'"
+        ).fetchone()[0]
+        connection.execute(
+            "INSERT INTO game_category_assignments(game_id,category_id) "
+            "SELECT id,? FROM games",
+            (category_id,),
+        )
+    assert "/categories/uncategorized" not in web_client.get("/").text
+    assert f"/categories/{category_id}" in web_client.get("/").text
+    assert "/categories/uncategorized" not in web_client.get("/categories").text
+    assert (
+        "/categories/uncategorized" in web_client.get("/categories?show_empty=1").text
+    )
 
 
 def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
@@ -344,8 +391,8 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     )
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
-    assert "/static/app.js?v=10" in response.text
-    assert "/static/styles.css?v=67" in response.text
+    assert "/static/app.js?v=12" in response.text
+    assert "/static/styles.css?v=69" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text
@@ -517,6 +564,8 @@ def test_operator_can_search_select_change_and_unlink_bgg_game(
     assert "Choose the correct game" in results.text
     assert "Farkle Flip" in results.text
     assert "BGG ID 822" in results.text
+    assert 'href="https://boardgamegeek.com/boardgame/822"' in results.text
+    assert "View Farkle on BoardGameGeek (opens in a new tab)" in results.text
 
     selected = web_client.post(
         f"/games/{game_id}/bgg/select",
@@ -580,6 +629,33 @@ def test_search_automatically_selects_one_unique_exact_bgg_match(
     assert association.bgg_id == 3181
 
 
+def test_game_entry_prefers_board_game_to_same_named_video_game(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    client = FakeBggClient(
+        results=(
+            BggSearchResult(9, "Farkle", None, "videogame"),
+            BggSearchResult(3181, "Farkle", 1930, "boardgame"),
+        ),
+        details=BggGame(3181, "Farkle", 1930, None, None),
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    response = web_client.post(
+        f"/games/{game_id}/bgg/find",
+        data={"query": "Farkle"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert client.lookups == [3181]
+    assert get_bgg_association(web_client.app.state.database, game_id).bgg_id == 3181
+
+
 def test_search_from_linked_game_requires_review_before_changing_match(
     web_client: TestClient,
 ) -> None:
@@ -618,7 +694,7 @@ def test_search_from_linked_game_requires_review_before_changing_match(
     assert association.bgg_id == 3181
 
 
-def test_search_requires_review_when_exact_bgg_title_is_not_unique(
+def test_search_prefers_literal_title_over_punctuation_variant(
     web_client: TestClient,
 ) -> None:
     game_id = int(_game_ids(web_client)[1])
@@ -630,17 +706,68 @@ def test_search_requires_review_when_exact_bgg_title_is_not_unique(
             BggSearchResult(3181, "Farkle", 1930),
             BggSearchResult(9999, "FARKLE!", 2024),
         ),
+        details=BggGame(3181, "Farkle", 1930, None, None),
     )
     web_client.app.state.bgg_client_factory = lambda _token: client
 
-    response = web_client.post(f"/games/{game_id}/bgg/find", data={"query": "Farkle"})
+    response = web_client.post(
+        f"/games/{game_id}/bgg/find",
+        data={"query": "Farkle"},
+        follow_redirects=False,
+    )
 
-    assert response.status_code == 200
-    assert "Choose the correct game" in response.text
-    assert "BGG ID 3181" in response.text
-    assert "BGG ID 9999" in response.text
-    assert client.lookups == []
-    assert get_bgg_association(web_client.app.state.database, game_id) is None
+    assert response.status_code == 303
+    assert client.lookups == [3181]
+    assert get_bgg_association(web_client.app.state.database, game_id).bgg_id == 3181
+
+
+def test_manual_search_uses_trailing_folder_year_as_a_tie_breaker(
+    web_client: TestClient,
+) -> None:
+    game_id = int(_game_ids(web_client)[1])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="token"
+    )
+    client = FakeBggClient(
+        results=(
+            BggSearchResult(3181, "Farkle", 1930),
+            BggSearchResult(9999, "Farkle", 2024),
+        ),
+        details=BggGame(9999, "Farkle", 2024, None, None),
+    )
+    web_client.app.state.bgg_client_factory = lambda _token: client
+
+    response = web_client.post(
+        f"/games/{game_id}/bgg/find",
+        data={"query": "Farkle (2024)"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert client.searches == ["Farkle"]
+    assert get_bgg_association(web_client.app.state.database, game_id).bgg_id == 9999
+
+
+def test_game_lists_refresh_only_while_bgg_artwork_is_pending(
+    web_client: TestClient,
+) -> None:
+    with web_client.app.state.database.connect() as connection:
+        game_id = connection.execute(
+            "SELECT id FROM games WHERE title='Empty Game'"
+        ).fetchone()[0]
+        connection.execute(
+            "INSERT INTO bgg_enrichment_queue(game_id,kind) VALUES(?,'initial')",
+            (game_id,),
+        )
+
+    assert "data-bgg-refresh" in web_client.get("/games").text
+    assert "data-bgg-refresh" in web_client.get("/categories/uncategorized").text
+    with web_client.app.state.database.connect() as connection:
+        connection.execute(
+            "UPDATE bgg_enrichment_queue SET state='done' WHERE game_id=?",
+            (game_id,),
+        )
+    assert "data-bgg-refresh" not in web_client.get("/games").text
 
 
 def test_exact_bgg_match_with_missing_details_is_not_saved(
@@ -704,7 +831,17 @@ def test_operator_can_refresh_selected_bgg_information_without_searching(
     web_client.app.state.settings = replace(
         web_client.app.state.settings, bgg_api_token="token"
     )
-    client = FakeBggClient(details=BggGame(822, "Farkle Revised", 2026, None, None))
+    client = FakeBggClient(
+        details=BggGame(
+            822,
+            "Farkle Revised",
+            2026,
+            "https://cf.geekdo-images.com/example/pic.jpg",
+            None,
+            description="A refreshed game description.",
+            categories=("Card Game",),
+        )
+    )
     web_client.app.state.bgg_client_factory = lambda _token: client
     save_bgg_association(
         web_client.app.state.database,
@@ -731,8 +868,123 @@ def test_operator_can_refresh_selected_bgg_information_without_searching(
     assert association.bgg_id == 822
     assert association.cached_name == "Farkle Revised"
     assert association.year_published == 2026
+    assert association.description == "A refreshed game description."
     page = web_client.get(response.headers["location"])
     assert "information refreshed without changing the selected game" in page.text
+    game_page = web_client.get(f"/games/{game_id}")
+    assert "Published 2026" in game_page.text
+    assert "A refreshed game description." in game_page.text
+    assert "Card Game" in game_page.text
+    assert "cf.geekdo-images.com/example/pic.jpg" not in game_page.text
+
+
+def test_bgg_artwork_is_fallback_only_without_local_art(web_client: TestClient) -> None:
+    game_id = int(_game_ids(web_client)[0])
+    save_bgg_association(
+        web_client.app.state.database,
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=BggMatchState.MANUAL,
+            source_title="Empty Game",
+            bgg_id=77,
+            image_url="https://cf.geekdo-images.com/example/cover.jpg",
+        ),
+    )
+    page = web_client.get(f"/games/{game_id}")
+    assert "cf.geekdo-images.com/example/cover.jpg" in page.text
+    assert 'referrerpolicy="no-referrer"' in page.text
+
+
+def test_rescan_queues_only_new_games_and_admin_can_preview_batch(
+    web_client: TestClient,
+) -> None:
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="test-token"
+    )
+    (web_client.app.state.settings.library_path / "New Game").mkdir()
+    assert web_client.post("/rescan", follow_redirects=False).status_code == 303
+    with web_client.app.state.database.connect() as connection:
+        queued = connection.execute(
+            "SELECT g.title,q.kind FROM bgg_enrichment_queue q "
+            "JOIN games g ON g.id=q.game_id"
+        ).fetchall()
+    assert [tuple(row) for row in queued] == [("New Game", "initial")]
+    web_client.post("/rescan")
+    with web_client.app.state.database.connect() as connection:
+        assert (
+            connection.execute("SELECT count(*) FROM bgg_enrichment_queue").fetchone()[
+                0
+            ]
+            == 1
+        )
+        connection.execute(
+            "UPDATE bgg_enrichment_queue SET state='done' WHERE kind='initial'"
+        )
+    settings = web_client.get("/settings")
+    assert "Up to 4 XML API requests" in settings.text
+    assert "at least 10 seconds to 15 seconds for request spacing" in settings.text
+    started = web_client.post("/settings/bgg/refresh-all", follow_redirects=False)
+    assert started.status_code == 303
+    assert (
+        started.headers["location"]
+        == "/settings?status=bgg-batch-started#bgg-integration"
+    )
+    settings = web_client.get(started.headers["location"])
+    assert "BGG refresh started" in settings.text
+    assert re.search(
+        r'<p class="status-banner success" role="status">\s*BGG refresh started'
+        r".*?<strong>Lookup progress:</strong>",
+        settings.text,
+        re.S,
+    )
+    assert 'class="bgg-settings-group"' in settings.text
+    assert "Settings saved successfully" not in settings.text
+    assert "data-bgg-progress" in settings.text
+    assert "Refresh in progress" in settings.text
+    with web_client.app.state.database.connect() as connection:
+        assert (
+            connection.execute(
+                "SELECT count(*) FROM bgg_enrichment_queue WHERE kind='batch'"
+            ).fetchone()[0]
+            == 3
+        )
+        assert (
+            connection.execute(
+                "SELECT count(*) FROM activity_events "
+                "WHERE action='bgg_refresh_started'"
+            ).fetchone()[0]
+            == 1
+        )
+        connection.execute(
+            "UPDATE bgg_enrichment_queue SET state='done' WHERE kind='batch'"
+        )
+    finished = web_client.get(started.headers["location"])
+    assert "Latest BGG batch finished: 3 of 3 lookups completed" in finished.text
+    assert "games linked or refreshed" in finished.text
+    assert "data-bgg-progress" not in finished.text
+    assert "Refresh all eligible games" in finished.text
+    assert "BoardGameGeek refresh started" in web_client.get("/history").text
+
+
+def test_settings_names_games_needing_manual_bgg_review(web_client: TestClient) -> None:
+    game_id = int(_game_ids(web_client)[0])
+    web_client.app.state.settings = replace(
+        web_client.app.state.settings, bgg_api_token="test-token"
+    )
+    save_bgg_association(
+        web_client.app.state.database,
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=BggMatchState.AMBIGUOUS,
+            source_title="Empty Game",
+        ),
+    )
+    page = web_client.get("/settings")
+    assert "1 game needs manual BGG selection" in page.text
+    assert f"/games/{game_id}/edit#bgg-integration" in page.text
+    assert "multiple matches" in page.text
 
 
 def test_manual_bgg_url_replaces_and_verifies_exact_id_without_searching(
@@ -1493,7 +1745,12 @@ def test_history_records_no_change_scan_and_manual_game_edit(web_client):
     )
     history = web_client.get("/history")
 
-    assert scan.headers["location"].endswith("scan=complete&changes=0")
+    assert re.fullmatch(r"/\?scan=complete&event=\d+", scan.headers["location"])
+    home = web_client.get(scan.headers["location"])
+    assert "0 games added, 0 games updated, 0 games removed" in home.text
+    assert (
+        "0 resources added, 0 resources updated, and 0 resources removed" in home.text
+    )
     assert edited.status_code == 303
     assert "Library scan completed" in history.text
     assert "0 games added" in history.text
@@ -1660,10 +1917,55 @@ def test_rescan_discovers_new_resource_without_restart(
     response = web_client.post("/rescan", follow_redirects=False)
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/?scan=complete&changes=1"
+    assert re.fullmatch(r"/\?scan=complete&event=\d+", response.headers["location"])
     refreshed = web_client.get(response.headers["location"])
-    assert "Library scan complete · 1 change" in refreshed.text
+    assert "Library scan completed" in refreshed.text
+    assert "0 games added, 0 games updated, 0 games removed" in refreshed.text
+    assert (
+        "1 resources added, 0 resources updated, and 0 resources removed"
+        in refreshed.text
+    )
+    with web_client.app.state.database.connect() as connection:
+        detail = connection.execute(
+            "SELECT detail FROM activity_events WHERE action='scan_completed' "
+            "ORDER BY id DESC LIMIT 1"
+        ).fetchone()[0]
+    assert detail in refreshed.text
+    assert detail in web_client.get("/history").text
     assert "4 resources" in web_client.get("/categories/uncategorized").text
+
+
+def test_trailing_folder_year_is_hidden_in_default_game_title_and_kept_for_bgg(
+    web_client: TestClient,
+) -> None:
+    folder = web_client.app.state.settings.library_path / "Falling (1998)"
+    folder.mkdir()
+    (folder / "Rules.pdf").write_bytes(b"rules")
+    scan = web_client.post("/rescan", follow_redirects=False)
+    assert scan.status_code == 303
+    with web_client.app.state.database.connect() as connection:
+        game_id = connection.execute(
+            "SELECT id FROM games WHERE relative_path='Falling (1998)'"
+        ).fetchone()[0]
+    save_bgg_association(
+        web_client.app.state.database,
+        BggAssociation(
+            game_id=game_id,
+            lookup_enabled=True,
+            match_state=BggMatchState.MATCHED,
+            source_title="Falling (1998)",
+            bgg_id=75,
+            cached_name="Falling",
+            year_published=1998,
+        ),
+    )
+    page = web_client.get(f"/games/{game_id}")
+    edit = web_client.get(f"/games/{game_id}/edit")
+    assert "<h1>Falling</h1>" in page.text
+    assert "Falling (1998)</h1>" not in page.text
+    assert "Published 1998" in page.text
+    assert "Folder name: <code>Falling (1998)</code>" in edit.text
+    assert 'value="Falling"' in edit.text
 
 
 def test_partial_rescan_preserves_index_and_shows_warning(
@@ -1929,7 +2231,7 @@ def test_multiple_game_categories_can_be_assigned_and_survive_rescan(
 
     assert saved.status_code == 303
     assert (
-        "Board, Card · 3 files detected"
+        "Board, Card Game · 3 files detected"
         in web_client.get(saved.headers["location"]).text
     )
     categorized_home = web_client.get("/")
@@ -1938,7 +2240,10 @@ def test_multiple_game_categories_can_be_assigned_and_survive_rescan(
     assert "Farkle" in web_client.get(f"/categories/{board_id}").text
     assert "Farkle" in web_client.get(f"/categories/{card_id}").text
     web_client.post("/rescan")
-    assert "Board, Card · 3 files detected" in web_client.get(f"/games/{game_id}").text
+    assert (
+        "Board, Card Game · 3 files detected"
+        in web_client.get(f"/games/{game_id}").text
+    )
 
 
 def test_game_edit_rejects_unknown_category(web_client: TestClient) -> None:

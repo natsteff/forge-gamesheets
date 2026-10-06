@@ -9,5 +9,8 @@
     <h1>Categories</h1>
     <p>Browse games by every category that fits.</p>
   </section>
-  {{ category_cards(game_categories, uncategorized_count, total_game_count) }}
+  {% if empty_category_count %}
+    <p class="category-visibility-toggle"><a class="secondary-button" href="{{ url_for('categories_home') }}{% if not show_empty %}?show_empty=1{% endif %}">{{ 'Hide empty categories' if show_empty else 'Show empty categories (' ~ empty_category_count ~ ')' }}</a></p>
+  {% endif %}
+  {{ category_cards(game_categories, uncategorized_count, total_game_count, show_empty=show_empty) }}
 {% endblock %}

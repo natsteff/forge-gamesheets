@@ -19,6 +19,9 @@ class BggMatchState(StrEnum):
     FAILED = "failed"
 
 
+_UNSPECIFIED = object()
+
+
 @dataclass(frozen=True, slots=True)
 class BggAssociation:
     game_id: int
@@ -34,6 +37,7 @@ class BggAssociation:
     failure_code: str | None = None
     last_lookup_at: str | None = None
     url_slug: str | None = None
+    description: str | None = None
 
     @property
     def game_url(self) -> str:
@@ -58,7 +62,8 @@ def get_bgg_association(database: Database, game_id: int) -> BggAssociation | No
             """
             SELECT game_id, lookup_enabled, match_state, bgg_id,
                    match_confidence, cached_name, year_published, image_url,
-                   thumbnail_url, source_title, failure_code, last_lookup_at, url_slug
+                   thumbnail_url, source_title, failure_code, last_lookup_at, url_slug,
+                   description
             FROM game_bgg_associations WHERE game_id = ?
             """,
             (game_id,),
@@ -66,24 +71,44 @@ def get_bgg_association(database: Database, game_id: int) -> BggAssociation | No
     return _association_from_row(row) if row is not None else None
 
 
-def save_bgg_association(database: Database, association: BggAssociation) -> bool:
+def save_bgg_association(
+    database: Database,
+    association: BggAssociation,
+    *,
+    expected: BggAssociation | None | object = _UNSPECIFIED,
+) -> bool:
     """Create or replace validated BGG state for an existing local game."""
     _validate_association(association)
     with database.connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
         if (
             connection.execute(
                 "SELECT 1 FROM games WHERE id = ?", (association.game_id,)
             ).fetchone()
             is None
         ):
+            connection.rollback()
             return False
+        if expected is not _UNSPECIFIED:
+            current_row = connection.execute(
+                """SELECT game_id, lookup_enabled, match_state, bgg_id,
+                   match_confidence, cached_name, year_published, image_url,
+                   thumbnail_url, source_title, failure_code, last_lookup_at,
+                   url_slug, description FROM game_bgg_associations WHERE game_id=?""",
+                (association.game_id,),
+            ).fetchone()
+            current = _association_from_row(current_row) if current_row else None
+            if current != expected:
+                connection.rollback()
+                return False
         connection.execute(
             """
             INSERT INTO game_bgg_associations (
                 game_id, lookup_enabled, match_state, bgg_id,
                 match_confidence, cached_name, year_published, image_url,
-                thumbnail_url, source_title, failure_code, last_lookup_at, url_slug
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                thumbnail_url, source_title, failure_code, last_lookup_at, url_slug,
+                description
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(game_id) DO UPDATE SET
                 lookup_enabled = excluded.lookup_enabled,
                 match_state = excluded.match_state,
@@ -99,6 +124,10 @@ def save_bgg_association(database: Database, association: BggAssociation) -> boo
                 url_slug = CASE WHEN excluded.bgg_id = game_bgg_associations.bgg_id
                     THEN COALESCE(excluded.url_slug, game_bgg_associations.url_slug)
                     ELSE excluded.url_slug END,
+                description = CASE WHEN excluded.bgg_id = game_bgg_associations.bgg_id
+                    THEN COALESCE(excluded.description,
+                        game_bgg_associations.description)
+                    ELSE excluded.description END,
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             """,
             (
@@ -115,8 +144,10 @@ def save_bgg_association(database: Database, association: BggAssociation) -> boo
                 association.failure_code,
                 association.last_lookup_at,
                 association.url_slug,
+                association.description,
             ),
         )
+        connection.commit()
     return True
 
 
@@ -157,6 +188,8 @@ def _validate_association(association: BggAssociation) -> None:
         1 <= association.year_published <= 9999
     ):
         raise ValueError("BGG publication year is invalid.")
+    if association.description is not None and len(association.description) > 20000:
+        raise ValueError("BGG description is too long.")
 
 
 def _association_from_row(row: sqlite3.Row) -> BggAssociation:
@@ -174,4 +207,5 @@ def _association_from_row(row: sqlite3.Row) -> BggAssociation:
         failure_code=row["failure_code"],
         last_lookup_at=row["last_lookup_at"],
         url_slug=row["url_slug"],
+        description=row["description"],
     )

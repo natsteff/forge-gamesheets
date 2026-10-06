@@ -80,6 +80,25 @@ def get_bgg_edition(database: Database, game_id: int) -> BggEdition | None:
     return BggEdition(**dict(row)) if row else None
 
 
+def get_edition_sources(
+    database: Database, game_id: int
+) -> tuple[str | None, int | None, bool]:
+    """Report provenance for stale-value warnings without exporting it as FGS data."""
+    with database.connect() as connection:
+        row = connection.execute(
+            """SELECT e.label_source,d.source_version_id,e.review_required
+               FROM game_bgg_editions e
+               LEFT JOIN game_box_dimensions d ON d.game_id=e.game_id
+               WHERE e.game_id=?""",
+            (game_id,),
+        ).fetchone()
+    return (
+        (row["label_source"], row["source_version_id"], bool(row["review_required"]))
+        if row
+        else (None, None, False)
+    )
+
+
 def write_bgg_edition(connection, game_id: int, edition: BggEdition | None):
     if edition is None:
         connection.execute("DELETE FROM game_bgg_editions WHERE game_id=?", (game_id,))
@@ -87,7 +106,15 @@ def write_bgg_edition(connection, game_id: int, edition: BggEdition | None):
         connection.execute(
             """INSERT INTO game_bgg_editions(game_id,version_id,label,parent_bgg_id)
             VALUES(?,?,?,?) ON CONFLICT(game_id) DO UPDATE SET
-            version_id=excluded.version_id,label=excluded.label,parent_bgg_id=excluded.parent_bgg_id""",
+            version_id=excluded.version_id,label=excluded.label,
+            parent_bgg_id=excluded.parent_bgg_id,label_source='manual',
+            review_required=CASE
+                WHEN game_bgg_editions.version_id != excluded.version_id AND
+                    ((excluded.label <> '' AND
+                      game_bgg_editions.label <> '') OR EXISTS (
+                        SELECT 1 FROM game_box_dimensions
+                        WHERE game_id=excluded.game_id)) THEN 1
+                ELSE 0 END""",
             (game_id, edition.version_id, edition.label, edition.parent_bgg_id),
         )
 

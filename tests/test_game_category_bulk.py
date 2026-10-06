@@ -77,3 +77,15 @@ def test_setting_defaults_off_and_does_not_retroactively_import(tmp_path):
             c.execute("SELECT count(*) FROM game_category_assignments").fetchone()[0]
             == 0
         )
+
+
+def test_folder_category_import_omits_trailing_year_from_display_override(tmp_path):
+    db = Database.in_data_directory(tmp_path)
+    db.initialize()
+    folder = "Bohnanza (1997) [Card Game]"
+    with db.connect() as connection:
+        connection.execute("UPDATE application_preferences SET folder_categories=1")
+    reconcile_library(db, ScanResult((DiscoveredGame(folder, Path(folder), ()),)))
+    with db.connect() as connection:
+        title = connection.execute("SELECT title FROM game_overrides").fetchone()[0]
+    assert title == "Bohnanza"

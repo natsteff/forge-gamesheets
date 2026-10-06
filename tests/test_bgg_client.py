@@ -15,9 +15,23 @@ from app.bgg.client import (
     BggClient,
     BggRateLimitError,
     BggResponseError,
+    BggSearchResult,
     BggUnavailableError,
     resolve_game_slug,
+    safe_bgg_image_url,
 )
+
+
+def test_search_result_page_urls_use_known_bgg_item_type():
+    assert BggSearchResult(62871, "Zombie Dice", 2010).page_url == (
+        "https://boardgamegeek.com/boardgame/62871"
+    )
+    assert BggSearchResult(87981, "Zombie Dice", None, "videogame").page_url == (
+        "https://boardgamegeek.com/videogame/87981"
+    )
+    assert BggSearchResult(7, "Unknown", None, "unsafe/path").page_url == (
+        "https://boardgamegeek.com/boardgame/7"
+    )
 
 
 class FakeResponse:
@@ -112,7 +126,7 @@ def test_search_uses_authorization_and_parses_candidates() -> None:
                 <name type='primary' value='Carcassonne'/>
                 <yearpublished value='2000'/>
               </item>
-              <item type='boardgame' id='123'>
+              <item type='videogame' id='123'>
                 <name type='primary' value='Carcassonne: Demo'/>
               </item>
             </items>"""
@@ -126,6 +140,7 @@ def test_search_uses_authorization_and_parses_candidates() -> None:
         (822, "Carcassonne", 2000),
         (123, "Carcassonne: Demo", None),
     ]
+    assert [item.item_type for item in results] == ["boardgame", "videogame"]
     assert seen["request"].get_header("Authorization") == "Bearer secret-token"
     assert "boardgamegeek.com/xmlapi2/search?" in seen["request"].full_url
     assert "query=Carcassonne" in seen["request"].full_url
@@ -139,6 +154,10 @@ def test_get_game_parses_cached_enrichment_fields() -> None:
       <yearpublished value='2000'/>
       <image>https://images.example/game.jpg</image>
       <thumbnail>https://images.example/thumb.jpg</thumbnail>
+      <description>A &lt;b&gt;river&lt;/b&gt; and roads.</description>
+      <link type='boardgamecategory' value='Tile Placement'/>
+      <link type='boardgamemechanic' value='Set Collection'/>
+      <link type='boardgamefamily' value='Family'/>
     </item></items>"""
 
     client = BggClient("token", opener=lambda *_args, **_kwargs: FakeResponse(response))
@@ -150,6 +169,99 @@ def test_get_game_parses_cached_enrichment_fields() -> None:
     assert game.year_published == 2000
     assert game.image_url == "https://images.example/game.jpg"
     assert game.thumbnail_url == "https://images.example/thumb.jpg"
+    assert game.description == "A river and roads."
+    assert game.categories == ("Tile Placement",)
+    assert game.mechanisms == ("Set Collection",)
+
+
+def test_get_games_fetches_multiple_ids_once_without_page_redirects() -> None:
+    seen = []
+
+    def opener(request, *, timeout):
+        seen.append(request.full_url)
+        return FakeResponse(
+            b"<items><item id='11'><name value='Bohnanza'/>"
+            b"<yearpublished value='1997'/></item>"
+            b"<item id='12'><name value='Another'/></item>"
+            b"<item id='999'><name value='Unexpected'/></item></items>"
+        )
+
+    games = BggClient("token", opener=opener).get_games((11, 12, 13))
+
+    assert seen == ["https://boardgamegeek.com/xmlapi2/thing?id=11%2C12%2C13"]
+    assert set(games) == {11, 12}
+    assert games[11].year_published == 1997
+    assert games[11].url_slug is None
+
+
+def test_new_game_details_batch_uses_one_xml_request_and_public_page_links():
+    seen = []
+
+    def opener(request, *, timeout):
+        seen.append(request)
+        if "/xmlapi2/" in request.full_url:
+            assert request.get_header("Authorization") == "Bearer token"
+            return FakeResponse(
+                b"<items><item id='11'><name value='Bohnanza'/></item>"
+                b"<item id='12'><name value='Another'/></item></items>"
+            )
+        assert request.get_header("Authorization") is None
+        game_id = request.full_url.rsplit("/", 1)[-1]
+        raise HTTPError(
+            request.full_url,
+            301,
+            "Moved",
+            {"Location": f"/boardgame/{game_id}/game-{game_id}"},
+            BytesIO(),
+        )
+
+    games = BggClient("token", opener=opener).get_new_games((11, 12))
+    assert ["/xmlapi2/" in request.full_url for request in seen] == [
+        True,
+        False,
+        False,
+    ]
+    assert games[11].url_slug == "game-11"
+    assert games[12].url_slug == "game-12"
+
+
+def test_get_games_rejects_oversized_or_invalid_batches() -> None:
+    client = BggClient("token", opener=lambda *_args, **_kwargs: None)
+    for ids in ((), tuple(range(1, 22)), (0,), (True,)):
+        with pytest.raises(ValueError):
+            client.get_games(ids)
+
+
+def test_get_version_matches_exact_parent_and_requires_all_three_measurements() -> None:
+    response = b"""<items><item id='822'><versions>
+      <item id='10'><name type='primary' value='English edition'/>
+        <length value='7.25'/><width value='5.5'/><depth value='2'/></item>
+      <item id='11'><name value='Other'/><length value='0'/>
+        <width value='5'/><depth value='2'/></item>
+    </versions></item></items>"""
+    client = BggClient("token", opener=lambda *_args, **_kwargs: FakeResponse(response))
+    version = client.get_version(822, 10)
+    assert version.label == "English edition"
+    assert version.dimensions_in == (7.25, 5.5, 2.0)
+    assert client.get_version(822, 11).dimensions_in is None
+    assert client.get_version(822, 12) is None
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    [
+        "http://cf.geekdo-images.com/x.jpg",
+        "https://cf.geekdo-images.com.evil.example/x.jpg",
+        "https://user@cf.geekdo-images.com/x.jpg",
+        "https://evil.example/x.jpg",
+    ],
+)
+def test_bgg_artwork_fallback_rejects_untrusted_origins(unsafe):
+    assert safe_bgg_image_url(unsafe) is None
+    assert (
+        safe_bgg_image_url("https://cf.geekdo-images.com/example/x.jpg")
+        == "https://cf.geekdo-images.com/example/x.jpg"
+    )
 
 
 def test_get_game_returns_none_for_unknown_id() -> None:
@@ -180,8 +292,8 @@ def test_search_results_are_bounded() -> None:
         (401, BggAuthenticationError),
         (403, BggAuthenticationError),
         (429, BggRateLimitError),
-        (500, BggUnavailableError),
-        (503, BggUnavailableError),
+        (500, BggRateLimitError),
+        (503, BggRateLimitError),
     ],
 )
 def test_http_failures_are_translated(status: int, expected: type[Exception]) -> None:

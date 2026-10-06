@@ -11,8 +11,9 @@ when no token is configured.
 Accepted for Phase 2. Token configuration, the isolated client, persistent
 associations, explicit exact-title matching with ambiguous-result review,
 metadata refresh, manual URL fallback, and Game/Files navigation are implemented
-for controlled testing. Automatic matching during library discovery and artwork
-fallback remain deferred.
+for controlled testing. The owner-approved pre-beta increment adds queued
+new-game matching, an Admin batch refresh, Category/Mechanism matching to existing
+local categories, optional cover fallback, and blank-only version enrichment.
 
 ## Decision
 
@@ -63,16 +64,16 @@ separate tokens where available so usage and revocation remain isolated.
 
 ## Matching policy
 
-The current Edit game entry workflow performs matching only after an Admin or
-Contributor explicitly requests it. A unique exact normalized-title match may be
-saved automatically. Multiple exact titles, partial matches, and weak results
-require explicit selection. Searches from an already linked entry always require
-explicit selection before replacing it. Refresh uses the stored BGG ID and never
-rematches.
+The Edit game entry workflow and the queued new-game scan prefer an exact
+case-insensitive title, then an exact punctuation-insensitive title. If one
+board-game result shares that title only with video-game results, the board game
+wins. Multiple board games, other type conflicts, partial matches, and weak
+results require explicit selection. Searches from an already linked entry always
+require explicit selection before replacing it. Refresh uses the stored BGG ID
+and never rematches.
 
-Automatic matching during library discovery remains a future extension. If
-approved later, it should perform the following steps for entries where lookup
-is enabled:
+Automatic matching during library discovery is limited to newly discovered
+entries where lookup is enabled. It performs these steps:
 
 1. Discover the local entry through the existing filesystem scan.
 2. Normalize its detected name for BGG search without changing the local name.

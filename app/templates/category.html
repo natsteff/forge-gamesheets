@@ -11,11 +11,12 @@
     <p>{{ games|length }} game{% if games|length != 1 %}s{% endif %}</p>
   </section>
   {% if games %}
-    <div class="game-grid">
+    <div class="game-grid"{% if games|selectattr('bgg_lookup_pending')|rejectattr('has_artwork')|rejectattr('bgg_image_url')|list %} data-bgg-refresh{% endif %}>
       {% for game in games %}
         {{ game_card(game) }}
       {% endfor %}
     </div>
+    {% if games|selectattr('bgg_image_url')|rejectattr('has_artwork')|list %}{% include "_bgg_attribution.html" %}{% endif %}
   {% else %}
     <section class="empty-state compact">
       <h2>No games here yet</h2>

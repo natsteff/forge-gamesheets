@@ -29,9 +29,10 @@
   </section>
 
   {% if scan_status == "complete" %}
-    <p class="status-banner" role="status">
-      Library scan complete · {{ scan_changes }} change{% if scan_changes != "1" %}s{% endif %}
-    </p>
+    <section class="status-banner" role="status">
+      <strong>Library scan completed</strong>
+      {% if scan_detail %}<p>{{ scan_detail }}</p>{% endif %}
+    </section>
   {% elif scan_status in ("partial", "failed") or scan_issues %}
     <section class="status-banner warning" role="alert">
       <strong>Library scan incomplete</strong>
@@ -71,11 +72,12 @@
       <h2>Search results</h2>
       <span>{{ games|length }} game{% if games|length != 1 %}s{% endif %}</span>
     </div>
-    <div class="game-grid">
+    <div class="game-grid"{% if games|selectattr('bgg_lookup_pending')|rejectattr('has_artwork')|rejectattr('bgg_image_url')|list %} data-bgg-refresh{% endif %}>
       {% for game in games %}
         {{ game_card(game) }}
       {% endfor %}
     </div>
+    {% if games|selectattr('bgg_image_url')|rejectattr('has_artwork')|list %}{% include "_bgg_attribution.html" %}{% endif %}
   {% elif query %}
     <section class="empty-state compact">
       <h2>No matches found</h2>
@@ -87,7 +89,10 @@
       <h2>Browse categories</h2>
       <a class="text-link" href="{{ url_for('categories_home') }}">View all categories</a>
     </div>
-    {{ category_cards(game_categories, uncategorized_count, total_game_count) }}
+    {% if empty_category_count %}
+      <p class="category-visibility-toggle"><a class="secondary-button" href="{{ url_for('library_home') }}{% if not show_empty %}?show_empty=1{% endif %}">{{ 'Hide empty categories' if show_empty else 'Show empty categories (' ~ empty_category_count ~ ')' }}</a></p>
+    {% endif %}
+    {{ category_cards(game_categories, uncategorized_count, total_game_count, show_empty=show_empty) }}
   {% else %}
     <section class="empty-state">
       <span class="empty-icon" aria-hidden="true">+</span>

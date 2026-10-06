@@ -15,8 +15,8 @@
       {% if game.has_override %}
       <div class="detected-metadata">
         <h2>Detected from folder</h2>
-        <p>{{ game.detected_title }}</p>
-        <button class="secondary-button" type="submit" form="reset-game-title">Reset to folder name</button>
+        <p>{{ game.default_title }}</p>
+        <button class="secondary-button" type="submit" form="reset-game-title">Reset to folder-derived title</button>
       </div>
       {% endif %}
 
@@ -128,6 +128,8 @@
       <p class="status-banner warning" role="status">That BoardGameGeek entry is no longer available.</p>
     {% elif bgg_error == "not-linked" %}
       <p class="status-banner warning" role="status">Select a BoardGameGeek game before refreshing its information.</p>
+    {% elif bgg_error == "association-changed" %}
+      <p class="status-banner warning" role="status">The BGG association changed while the request was running. Reload and review it before trying again.</p>
     {% elif bgg_error == "not-configured" %}
       <p class="status-banner warning" role="status">Add a BoardGameGeek application token to enable matching. Local games and PDFs continue to work without it.</p>
     {% elif bgg_error %}
@@ -167,8 +169,8 @@
           <form class="bgg-candidate" action="{{ url_for('game_bgg_select', game_id=game.id) }}" method="post">
             <input type="hidden" name="bgg_id" value="{{ candidate.id }}">
             <span>
-              <strong>{{ candidate.name }}</strong>
-              <small>BGG ID {{ candidate.id }}{% if candidate.year_published %} · {{ candidate.year_published }}{% endif %}</small>
+              <a class="bgg-candidate-title" href="{{ candidate.page_url }}" target="_blank" rel="noopener noreferrer" aria-label="View {{ candidate.name }} on BoardGameGeek (opens in a new tab)">{{ candidate.name }}</a>
+              <small>BGG ID {{ candidate.id }}{% if candidate.year_published %} · {{ candidate.year_published }}{% endif %}{% if candidate.item_type == 'videogame' %} · Video game{% elif candidate.item_type == 'boardgameexpansion' %} · Expansion{% endif %}</small>
             </span>
             <button class="secondary-button" type="submit">Select</button>
           </form>
@@ -193,18 +195,19 @@
     </details>
 
     <h3>Your edition</h3>
-    <p>Optional manual reference, available without an API token. FORGE GameSheets does not fetch this page, verify that the edition belongs to this game, or change your box dimensions.</p>
-    {% if bgg_status == "edition-saved" %}<p class="status-banner" role="status">Your edition was saved.</p>{% elif bgg_status == "edition-removed" %}<p class="status-banner" role="status">Your edition reference was removed. Box dimensions are unchanged.</p>{% endif %}
+    <p>Enter the exact BGG version URL or ID yourself. With a configured BGG token and a verified game link, saving can fill a blank edition label and an entirely empty set of box dimensions from that version. Existing values are never overwritten. Without a token, this remains a manual reference.</p>
+    {% if bgg_status == "edition-saved" %}<p class="status-banner" role="status">Your edition was saved.</p>{% elif bgg_status == "edition-saved-bgg-unavailable" %}<p class="status-banner warning" role="status">Your edition was saved, but BGG details were unavailable. Existing values are unchanged.</p>{% elif bgg_status == "edition-saved-no-details" %}<p class="status-banner warning" role="status">Your edition was saved, but this version was not found under the linked BGG game. Check the URL.</p>{% elif bgg_status == "edition-saved-review-previous" %}<p class="status-banner warning" role="status">Your new version was saved. Review the existing label and dimensions; they were not replaced and may describe the previous version.</p>{% elif bgg_status == "edition-removed" %}<p class="status-banner" role="status">Your edition reference was removed. Box dimensions are unchanged.</p>{% endif %}
     {% if bgg_edition %}
-      <p><strong>{{ bgg_edition.label or 'BGG version ' ~ bgg_edition.version_id }}</strong> · Manually selected; not API-verified.</p>
+      <p><strong>{{ bgg_edition.label or 'BGG version ' ~ bgg_edition.version_id }}</strong> · Manually selected{% if bgg_edition_sources[0] == 'bgg' %}; label from BGG{% endif %}.</p>
       {% if bgg_edition.parent_bgg_id != (bgg_association.bgg_id if bgg_association else none) %}<p class="status-banner warning" role="status">The BGG game association has changed since this edition was selected. Review the edition, then save it again or remove it.</p>{% endif %}
+      {% if bgg_edition_sources[2] %}<p class="status-banner warning" role="status">The version changed while a label or dimensions were already present. Review them; save this version again to confirm them.</p>{% endif %}
+      {% if bgg_edition_sources[1] and bgg_edition_sources[1] != bgg_edition.version_id %}<p class="status-banner warning" role="status">The box dimensions came from a previously selected BGG version. Review them before relying on this edition.</p>{% endif %}
     {% endif %}
     {% if bgg_association and bgg_association.bgg_id %}
       {% if bgg_association.versions_url %}<a class="secondary-button" href="{{ bgg_association.versions_url }}" target="_blank" rel="noopener noreferrer">Find your edition on BGG</a>{% else %}
-        <p class="edit-source">The BGG game-name segment has not been saved. Open the game on BGG and select Versions, or resolve its page link below.</p>
+        <p class="edit-source">The BGG game-name segment has not been saved. Opening Versions will resolve the canonical page link first.</p>
         <div class="bgg-action-row">
-          <a class="secondary-button" href="{{ bgg_association.game_url }}" target="_blank" rel="noopener noreferrer">Open BGG to select Versions</a>
-          <form action="{{ url_for('game_bgg_resolve_url', game_id=game.id) }}" method="post"><button class="secondary-button" type="submit">Resolve BGG page link</button></form>
+          <form action="{{ url_for('game_bgg_resolve_url', game_id=game.id) }}?open=versions" method="post" target="_blank" rel="noopener noreferrer"><button class="secondary-button" type="submit">Open BGG to select Versions</button></form>
         </div>
       {% endif %}
     {% else %}<p>Link the BGG game above to get a direct link to its Versions page.</p>{% endif %}
