@@ -14,6 +14,8 @@ recognition, but imperfect filenames remain accessible under Other. PDFs
 directly in the library root are ignored. Use an ordinary `Unsorted/` game
 folder for documents awaiting organization. After adding, moving, or removing
 files, select **Rescan library**. Scans do not rename or modify source files.
+After a scan, the home page shows the same added, updated, and removed game
+and resource counts recorded in Activity history.
 
 PDFs retain their browser viewing, printing, preview, and Reprint actions.
 FGS files appear in the usual resource categories and can be downloaded or
@@ -47,6 +49,18 @@ its starter records. See [Links behavior](LINKS.md).
 
 BoardGameGeek associations can be entered manually without an API token.
 Optional API enrichment requires an operator-supplied, BGG-approved token.
+For automatic matching, a folder named `Bohnanza (1997)` searches BGG for
+`Bohnanza` and uses `1997` only to break a tie between exact-title results.
+Only a trailing standalone `(YYYY)` is recognized; the folder and displayed
+title are separate: the folder remains `Bohnanza (1997)`, while its default
+display title is `Bohnanza`. Manually edited display titles are preserved.
+This title behavior does not require a BGG token. A year is a hint, not a
+required match, because BGG may list the original publication year rather than
+a particular edition's year.
+Newly discovered games are searched individually, then details for automatic
+matches are fetched in groups of up to 20. This applies to initial scans and
+later rescans that discover many new folders. A rescan does not re-query
+already-known games; use Admin **Refresh all eligible games** for that.
 Physical edition references and box dimensions are separate optional game
 metadata; neither changes an FGS sheet's layout. See
 [manual BGG links](BGG_MANUAL_LINKS.md) and [BGG API setup](BGG_API.md).

@@ -30,48 +30,59 @@ def record_activity(
     detail: str | None = None,
     game_id: int | None = None,
     resource_id: int | None = None,
-) -> None:
+) -> int:
     """Record one concise event without retaining submitted field values."""
     with database.connect() as connection:
-        connection.execute(
+        cursor = connection.execute(
             "INSERT INTO activity_events "
             "(action,summary,detail,game_id,resource_id) VALUES (?,?,?,?,?)",
             (action, summary, detail, game_id, resource_id),
         )
+    return cursor.lastrowid
 
 
 def record_scan(
     database: Database, summary=None, *, issue_count: int = 0, failed: bool = False
-) -> None:
+) -> int:
     """Record exactly one aggregate event for a library scan."""
     if failed:
-        record_activity(
+        return record_activity(
             database,
             "scan_failed",
             "Library scan failed",
             detail="The library could not be read.",
         )
-        return
     if summary is None:
-        record_activity(
+        return record_activity(
             database,
             "scan_partial",
             "Library scan completed with issues",
             detail=f"No index changes were applied. {issue_count} issues reported.",
         )
-        return
     counts = (
         f"{summary.games_added} games added, {summary.games_updated} games updated, "
         f"{summary.games_removed} games removed; {summary.resources_added} resources "
         f"added, {summary.resources_updated} resources updated, and "
         f"{summary.resources_removed} resources removed."
     )
-    record_activity(
+    return record_activity(
         database,
         "scan_completed",
         "Library scan completed",
         detail=counts,
     )
+
+
+def get_scan_detail(database: Database, event_id: int) -> str | None:
+    """Read only a completed scan's recorded result for its redirect notice."""
+    if not 1 <= event_id <= 2**63 - 1:
+        return None
+    with database.connect() as connection:
+        row = connection.execute(
+            "SELECT detail FROM activity_events WHERE id=? AND action='scan_completed'",
+            (event_id,),
+        ).fetchone()
+    return row["detail"] if row else None
 
 
 def list_activity(

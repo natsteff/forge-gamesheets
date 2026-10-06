@@ -50,9 +50,16 @@ available. BGG failures never stop local library operation.
 
 Admins and Contributors open **Edit game entry → BoardGameGeek integration** and
 choose **Find BoardGameGeek match**. FORGE GameSheets searches for the entered title and
-automatically saves a result only when exactly one returned title is an exact
-match after conservative normalization. Multiple exact titles, partial matches,
-and other ambiguous results remain unlinked until the user selects a candidate.
+automatically saves a result only when one returned title is an exact match
+after conservative normalization and any year tie-break. Unresolved duplicate
+titles, partial matches, and other ambiguous results remain unlinked until the
+user selects a candidate.
+For a newly discovered folder ending in a standalone `(YYYY)`, the title is
+searched without that suffix and the year breaks ties between otherwise exact
+matches; it never forces a mismatched or uncertain result. Automatically
+matched new games share detail requests in groups of up to 20, while each
+new game still needs its own search. Pending details survive a restart
+and a failed detail batch can be retried without repeating successful searches.
 When a game is already linked, every different-match search requires an explicit
 selection so an existing association is never replaced silently.
 

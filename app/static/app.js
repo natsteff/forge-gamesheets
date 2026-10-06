@@ -160,6 +160,24 @@ if (document.querySelector("[data-live-refresh]")) {
   }, 5000);
 }
 
+if (document.querySelector("[data-bgg-refresh]")) {
+  window.setTimeout(() => window.location.reload(), 10000);
+}
+
+if (document.querySelector("[data-bgg-progress]")) {
+  const refreshBggProgress = () => {
+    const active = document.activeElement;
+    if (document.visibilityState === "visible" &&
+        (!active || !active.closest("form")) &&
+        !document.querySelector(".bgg-settings details[open]")) {
+      window.location.reload();
+    } else {
+      window.setTimeout(refreshBggProgress, 10000);
+    }
+  };
+  window.setTimeout(refreshBggProgress, 10000);
+}
+
 const liveSheetSetup = document.querySelector("[data-livesheet-setup]");
 if (liveSheetSetup) {
   const fields = [...liveSheetSetup.querySelectorAll("[data-individual-field]")];

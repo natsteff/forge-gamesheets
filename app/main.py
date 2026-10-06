@@ -1,15 +1,19 @@
 """HTTP application entry point."""
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
+import anyio
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.access import AccessControl, RedactSharingLinks
 from app.activity import record_scan
+from app.bgg.client import BggClient
+from app.bgg.jobs import RequestPacer, enqueue_initial, process_next, resume_interrupted
 from app.build_info import BuildInfo
 from app.config import Settings
 from app.database import Database
@@ -39,6 +43,10 @@ def create_app(
         validated = configured.validated()
         database = Database.in_data_directory(validated.data_path)
         database.initialize()
+        with database.connect() as connection:
+            before_game_ids = {
+                row[0] for row in connection.execute("SELECT id FROM games")
+            }
         interrupt_active_jobs(database)
         scan_result = scan_library(validated.library_path)
         application.state.scan_issues = scan_result.issues
@@ -46,6 +54,12 @@ def create_app(
             application.state.last_reconciliation = reconcile_scan(
                 database, scan_result
             )
+            if validated.bgg_api_token:
+                with database.connect() as connection:
+                    after_game_ids = {
+                        row[0] for row in connection.execute("SELECT id FROM games")
+                    }
+                enqueue_initial(database, after_game_ids - before_game_ids)
             record_scan(database, application.state.last_reconciliation)
             cleanup_managed_files(database, validated.data_path)
         except ReconciliationError:
@@ -53,10 +67,29 @@ def create_app(
             record_scan(database, issue_count=len(scan_result.issues))
         application.state.settings = validated
         application.state.database = database
+        application.state.bgg_request_pacer = (
+            RequestPacer() if validated.bgg_api_token else None
+        )
         application.state.sheet_designer_store = FileDraftStore(
             validated.data_path / "sheet-designer"
         )
-        yield
+        worker = None
+        if validated.bgg_api_token:
+            resume_interrupted(database)
+            worker = asyncio.create_task(
+                _run_bgg_queue(
+                    database,
+                    validated.bgg_api_token,
+                    application.state.bgg_request_pacer,
+                )
+            )
+        try:
+            yield
+        finally:
+            if worker is not None:
+                worker.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker
 
     identity = build_info or BuildInfo.from_environment()
     application = FastAPI(
@@ -125,3 +158,12 @@ def create_app(
 
 
 app = create_app()
+
+
+async def _run_bgg_queue(database: Database, token: str, pacer: RequestPacer) -> None:
+    client = BggClient(token, request_pacer=pacer)
+    while True:
+        worked = await anyio.to_thread.run_sync(process_next, database, client)
+        await asyncio.sleep(
+            60.0 if worked == "rate-limited" else 0.5 if worked else 2.0
+        )

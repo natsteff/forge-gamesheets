@@ -234,16 +234,38 @@ MIGRATIONS = (
             """
             INSERT INTO game_categories (name) VALUES
                 ('Board'),
-                ('Card'),
-                ('Children'),
+                ('Family'),
                 ('Dice'),
                 ('Educational'),
-                ('Party'),
-                ('Print-and-Play'),
-                ('Roleplaying'),
+                ('Party Game'),
+                ('Print & Play'),
                 ('Strategy'),
                 ('Trivia'),
-                ('Video')
+                ('Video'),
+                ('Yard'),
+                ('Other'),
+                ('Abstract Strategy'),
+                ('Bluffing'),
+                ('Card Game'),
+                ("Children's Game"),
+                ('Deduction'),
+                ('Humor'),
+                ('Mature / Adult'),
+                ('Memory'),
+                ('Puzzle'),
+                ('Territory Building'),
+                ('Word Game'),
+                ('Cooperative Game'),
+                ('Dice Rolling'),
+                ('Hand Management'),
+                ('Hidden Roles'),
+                ('Push Your Luck'),
+                ('Role Playing'),
+                ('Set Collection'),
+                ('Take That'),
+                ('Team-Based Game'),
+                ('Tile Placement'),
+                ('Worker Placement')
             """,
             """
             ALTER TABLE games
@@ -783,6 +805,37 @@ MIGRATIONS += (
             label TEXT NOT NULL DEFAULT '',
             parent_bgg_id INTEGER CHECK(parent_bgg_id BETWEEN 1 AND 9999999999)
         )""",
+        ),
+    ),
+    Migration(
+        version=33,
+        name="add_bgg_description_and_edition_provenance",
+        statements=(
+            "ALTER TABLE game_bgg_associations ADD COLUMN description TEXT",
+            "ALTER TABLE game_bgg_editions ADD COLUMN label_source TEXT "
+            "NOT NULL DEFAULT 'manual' CHECK(label_source IN ('manual','bgg'))",
+            "ALTER TABLE game_bgg_editions ADD COLUMN review_required INTEGER "
+            "NOT NULL DEFAULT 0 CHECK(review_required IN (0,1))",
+            "ALTER TABLE game_box_dimensions ADD COLUMN source_version_id INTEGER",
+            """CREATE TABLE bgg_enrichment_queue (
+                game_id INTEGER PRIMARY KEY REFERENCES games(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL CHECK(kind IN ('initial','batch')),
+                state TEXT NOT NULL DEFAULT 'queued'
+                    CHECK(state IN ('queued','active','done','failed')),
+                attempts INTEGER NOT NULL DEFAULT 0,
+                error_code TEXT,
+                updated_at TEXT NOT NULL DEFAULT
+                    (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )""",
+        ),
+    ),
+    Migration(
+        version=34,
+        name="stage_bgg_detail_batches",
+        statements=(
+            "ALTER TABLE bgg_enrichment_queue ADD COLUMN candidate_bgg_id INTEGER "
+            "CHECK(candidate_bgg_id IS NULL OR candidate_bgg_id > 0)",
+            "ALTER TABLE bgg_enrichment_queue ADD COLUMN candidate_source_title TEXT",
         ),
     ),
 )

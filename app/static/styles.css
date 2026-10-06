@@ -390,6 +390,7 @@ input[type="checkbox"] {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
 }
+.category-visibility-toggle { margin: 0 0 1rem; }
 .category-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -503,6 +504,7 @@ input[type="checkbox"] {
 .resource-sections { display: grid; gap: 2rem; }
 .gamesheet-resources { margin-bottom: 2rem; }
 .resource-section h2 { margin-bottom: 0.75rem; }
+.bgg-description { white-space: pre-line; max-width: 72ch; }
 .other-files-detected { margin-top: 2rem; }
 .other-files-detected p { color: var(--muted); }
 .other-files-detected ul {
@@ -705,12 +707,25 @@ input[type="checkbox"] {
 .bgg-action-row .danger-button { margin-top: 0; }
 .bgg-editor h2,
 .bgg-settings h2 { margin-bottom: 0.35rem; }
+.bgg-settings-group { margin-top: 1.5rem; }
+.bgg-settings-group + .bgg-settings-group { padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.bgg-settings-group h3 { margin: 0 0 0.75rem; font-family: Georgia, "Times New Roman", serif; font-size: 1.18rem; line-height: 1.2; }
+.bgg-settings-status { margin: 0; color: var(--status-success-text); font-weight: 750; }
+.bgg-settings-group .settings-note { margin: 0.75rem 0 0; font-size: 0.93rem; line-height: 1.55; }
+.bgg-settings-group .status-banner { margin: 0 0 1.25rem; }
+.bgg-settings-group details { margin-top: 1rem; padding: 0.8rem 1rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--paper); }
+.bgg-settings-group details summary { color: var(--forge-dark); font-weight: 750; cursor: pointer; }
+.bgg-settings-group details ul { margin-bottom: 0; padding-left: 1.4rem; }
+.bgg-settings-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
+.bgg-settings-actions form { margin: 0; }
 .bgg-attribution { display: block; width: fit-content; margin: 0 0 1rem; }
 .bgg-attribution img { display: block; width: 184px; height: auto; }
 .bgg-connection-test { margin-top: 1rem; }
 .bgg-candidates { display: grid; gap: 0.65rem; margin-top: 1.25rem; }
 .bgg-candidate { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem; border: 1px solid var(--line); border-radius: 0.7rem; }
 .bgg-candidate span { display: grid; gap: 0.2rem; }
+.bgg-candidate-title { color: var(--forge-dark); font-weight: 750; text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+.bgg-candidate-title:hover { text-decoration-thickness: 2px; }
 .bgg-candidate small { color: var(--muted); }
 .bgg-manual-fallback { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .bgg-manual-fallback summary { color: var(--forge-dark); font-weight: 750; cursor: pointer; }

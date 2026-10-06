@@ -65,7 +65,7 @@ def write_box_dimensions(connection, game_id, dimensions):
             """INSERT INTO game_box_dimensions(game_id,length,width,depth,unit)
                VALUES (?,?,?,?,?) ON CONFLICT(game_id) DO UPDATE SET
                length=excluded.length,width=excluded.width,depth=excluded.depth,
-               unit=excluded.unit""",
+               unit=excluded.unit,source_version_id=NULL""",
             (
                 game_id,
                 dimensions.length,

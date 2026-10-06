@@ -166,12 +166,40 @@ Remaining release work is distinct from completed feature work:
 The moving GitHub `main` image is identified as a beta build. This label does
 not create a fixed, versioned prerelease or waive the wider-release checks.
 
-- **Deferred by owner:** Refresh documentation screenshots for recent features.
+**Owner-approved order before the wider, fixed beta prerelease:**
+
+1. Improve BGG enrichment: retrieve fallback cover artwork, description and
+   publication year; match exact BGG Category and Mechanism labels to existing
+   local categories. Do not use BGG Type or store player count. Newly scanned
+   games may gain matching categories only when uncategorized; later scans leave
+   categories alone. Admin refresh is additive. After an explicit BGG version
+   URL/ID is entered, fill blank edition label and complete blank dimensions
+   when the approved API supplies them. Preserve local artwork, manual metadata,
+   and explicit category choices; remote failures never block local use.
+2. Revisit LiveSheets on mobile. Investigate and fix the current resizing,
+   zooming, scrolling, and interaction problems, then validate usability on real
+   mobile devices as well as automated viewport tests.
+3. After those features stabilize, review and streamline the README, current
+   guides, FGS specifications, screenshots, and release documentation. Develop
+   a GitHub Wiki overview/getting-started path that links to detailed guides
+   instead of duplicating them.
+4. Finally, perform the full release-focused security review of the resulting
+   candidate under `docs/SECURITY_PLAN.md`, including the maintainer-led,
+   AI-assisted OWASP ASVS assessment, dependency/container findings, remediation,
+   and explicit treatment of remaining risks before release approval.
+
+These are the owner's current pre-beta priorities, not permission to implement
+later-phase features beyond this scope. The existing clean-install,
+backup/restore, upgrade, Studio browser-export, offline-BGG, and versioned-release
+checks still apply before the wider prerelease.
+
+- **Deferred until the documentation pass above:** Refresh screenshots for
+  recent features.
 - **Future testing:** No-internet resilience, including graceful BGG failure.
 - **Outstanding verification:** An actual browser-driven Studio PDF download
   check; automated shared preview/PDF tests have passed.
 - **Before a wider versioned prerelease:** Clean-install, backup/restore and
-  upgrade walkthrough, scoped security checkpoint, release notes/tester guide.
+  upgrade walkthrough, full release security review, release notes/tester guide.
   Do not repeat already completed owner checks merely to advance another feature.
 
 This is the authoritative near-term order. Detailed owner testing may identify
@@ -197,7 +225,8 @@ for the next approved feature.
 6. **Completed for the published update:** Automated release regression,
    dependency/container gates and owner validation. Deferred screenshots and
    outstanding broader release verification are listed separately above.
-7. **Future wider release:** Finish the wider-release checklist, select and
+7. **Future wider release:** Complete the owner-approved BGG and mobile
+   LiveSheets work above, finish the wider-release checklist, select and
    publish a versioned prerelease, then triage external beta feedback.
 8. **Completed:** Establish the application-independent FGS v1 specification,
    compatibility policy, schema, prototype migration, and initial conformance
@@ -466,11 +495,12 @@ rather than delaying feature progress beforehand.
   compatibility, security, or later-phase enhancement.
 - **Confirmed:** Prioritize data safety, path safety, failed startup, broken
   upgrades, and inaccessible documents ahead of cosmetic improvements.
-- **Confirmed:** Keep fixes small and tested; do not expand beyond the approved
-  Phase 1.5 workflow or pull Phase 2 features into beta stabilization.
+- **Confirmed:** Keep fixes small and tested; do not expand beyond the
+  owner-approved pre-beta BGG enrichment and mobile LiveSheets work above or
+  pull other later-phase features into beta stabilization.
 - **Proposed:** Use the external beta results to decide whether another beta is
-  needed before declaring the Phase 1.5 release stable and beginning the BGG
-  integration.
+  needed before declaring the release stable. Initial BGG integration is already
+  complete; the owner-approved enrichment increment above precedes this beta.
 
 ## 7. Phase 1.5 — FORGE GameSheets Mark and QR reprints
 
@@ -498,12 +528,24 @@ configuration, unavailable game-page controls are hidden, and Settings shows
 configuration status without claiming approval or verified working access.
 FGS documents do not require a BGG ID.
 
-**Future resilience testing — not a current completion blocker:** The owner has
-not manually verified FORGE GameSheets with BGG unavailable. Test the existing installation
+**Current owner-approved pre-beta increment:** Extend the existing BGG integration
+with description, publication year and cover fallback; add exact existing-name
+matching against BGG Category and Mechanism, never Type. Provide the agreed
+33 new-install category defaults while leaving existing installations intact
+unless an Admin explicitly adds missing defaults. Initial scan enrichment only
+categorizes an uncategorized game; an Admin refresh is additive. Explicitly
+selected BGG version URLs/IDs may fill blank label and box dimensions from the
+approved API, never overwrite existing values, and work manually without a token.
+Do not add player counts or a version picklist. Pace durable batch processing,
+make failures visible, and keep local use independent of BGG availability.
+
+**Offline resilience check before the wider prerelease, not a blocker for
+implementing enrichment:** The owner has not manually verified FORGE GameSheets
+with BGG unavailable. Test the existing installation
 with outbound internet access disconnected (while retaining local access) and
 confirm local library browsing, existing PDFs, Designer/PDF export and cached
 metadata remain usable. BGG-dependent actions should fail gracefully. Record
-this as future testing, not as an already verified offline guarantee.
+the result rather than claiming an already verified offline guarantee.
 
 BoardGameGeek (BGG) is the primary approved external reference and enrichment
 source. A local FORGE GameSheets game remains the primary object, and normal library use

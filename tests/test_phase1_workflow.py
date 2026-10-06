@@ -89,7 +89,7 @@ def test_phase1_state_persists_across_restart_and_rescan(tmp_path: Path) -> None
         rescan = restarted.post("/rescan", follow_redirects=False)
         refreshed = restarted.get(f"/games/{game_id}")
 
-        assert rescan.headers["location"] == "/?scan=complete&changes=1"
+        assert re.fullmatch(r"/\?scan=complete&event=\d+", rescan.headers["location"])
         assert "2 files detected" in refreshed.text
         assert "House Rules" in refreshed.text
 

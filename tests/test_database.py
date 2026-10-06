@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from app.database import DATABASE_FILENAME, Database, MigrationError
+from app.library.game_categories import DEFAULT_GAME_CATEGORIES
 
 
 @pytest.fixture
@@ -54,6 +55,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         "game_resource_links",
         "game_box_dimensions",
         "game_bgg_editions",
+        "bgg_enrichment_queue",
         "generated_reprints",
         "activity_events",
         "livesheet_sessions",
@@ -98,20 +100,11 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (30, "add_livesheet_trackers"),
         (31, "add_game_box_dimensions"),
         (32, "add_game_bgg_editions"),
+        (33, "add_bgg_description_and_edition_provenance"),
+        (34, "stage_bgg_detail_batches"),
     ]
-    assert [row["name"] for row in categories] == [
-        "Board",
-        "Card",
-        "Children",
-        "Dice",
-        "Educational",
-        "Party",
-        "Print-and-Play",
-        "Roleplaying",
-        "Strategy",
-        "Trivia",
-        "Video",
-    ]
+    assert {row["name"] for row in categories} == set(DEFAULT_GAME_CATEGORIES)
+    assert len(categories) == 33
     assert tuple(preferences) == (
         "Collect. Create. Print. Play. Or Go Live with LiveSheets.",
         6,
@@ -128,7 +121,33 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 32
+    assert count == 34
+
+
+def test_detail_batch_migration_preserves_existing_bgg_queue(tmp_path, monkeypatch):
+    import app.database as database_module
+
+    database = Database.in_data_directory(tmp_path)
+    migrations = database_module.MIGRATIONS
+    with monkeypatch.context() as patch:
+        patch.setattr(database_module, "MIGRATIONS", migrations[:-1])
+        database.initialize()
+    with database.connect() as connection:
+        connection.execute(
+            "INSERT INTO games(relative_path,title) VALUES('Example','Example')"
+        )
+        connection.execute(
+            "INSERT INTO bgg_enrichment_queue(game_id,kind) VALUES(1,'initial')"
+        )
+
+    database.initialize()
+
+    with database.connect() as connection:
+        row = connection.execute(
+            "SELECT kind,state,candidate_bgg_id,candidate_source_title "
+            "FROM bgg_enrichment_queue WHERE game_id=1"
+        ).fetchone()
+    assert tuple(row) == ("initial", "queued", None, None)
 
 
 def test_tagline_migration_preserves_custom_footer(database: Database) -> None:

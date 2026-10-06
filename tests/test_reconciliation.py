@@ -10,6 +10,7 @@ from app.library.reconciliation import (
     ReconciliationSummary,
     reconcile_scan,
 )
+from app.library.repository import get_game, list_games, save_game_title_override
 from app.library.scanner import ScanIssue, ScanResult, scan_library
 
 
@@ -59,6 +60,47 @@ def test_initial_reconciliation_indexes_games_and_resources(
             5,
         ),
     ]
+
+
+def test_trailing_folder_year_is_omitted_from_default_title_but_kept_as_source(
+    tmp_path: Path, database: Database
+) -> None:
+    library = tmp_path / "library"
+    folder = library / "Falling (1998)"
+    folder.mkdir(parents=True)
+    (folder / "Falling (1998) - Rules.pdf").write_bytes(b"rules")
+
+    reconcile_scan(database, scan_library(library))
+
+    game = get_game(database, 1)
+    assert game.title == "Falling"
+    assert game.default_title == "Falling"
+    assert game.detected_title == "Falling (1998)"
+    assert [item.title for item in list_games(database)] == ["Falling"]
+    assert [item.title for item in list_games(database, "Falling (1998)")] == [
+        "Falling"
+    ]
+    with database.connect() as connection:
+        row = connection.execute("SELECT relative_path,title FROM games").fetchone()
+    assert tuple(row) == ("Falling (1998)", "Falling")
+
+
+def test_rescan_corrects_old_default_title_without_overwriting_manual_title(
+    tmp_path: Path, database: Database
+) -> None:
+    library = tmp_path / "library"
+    (library / "Falling (1998)").mkdir(parents=True)
+    reconcile_scan(database, scan_library(library))
+    with database.connect() as connection:
+        connection.execute("UPDATE games SET title='Falling (1998)' WHERE id=1")
+
+    assert reconcile_scan(database, scan_library(library)).games_updated == 1
+    assert get_game(database, 1).title == "Falling"
+    save_game_title_override(database, 1, title="My Falling Collection (1998)")
+    assert reconcile_scan(database, scan_library(library)) == ReconciliationSummary()
+    game = get_game(database, 1)
+    assert game.title == "My Falling Collection (1998)"
+    assert game.default_title == "Falling"
 
 
 def test_unchanged_reconciliation_preserves_rows(

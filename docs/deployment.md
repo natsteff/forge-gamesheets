@@ -113,6 +113,20 @@ for manual BGG URLs or website search. Keep it only in the untracked `.env` file
 never commit it or include it in screenshots, logs, or support reports. See
 [BoardGameGeek API setup](BGG_API.md).
 
+With a token configured, newly discovered game folders are queued for BGG
+matching after startup or **Rescan library**. A trailing standalone four-digit
+year in parentheses, such as `Bohnanza (1997)`, is removed from the BGG search
+term and, for matching, used only to distinguish otherwise identical title
+matches. The folder is not renamed; its default displayed title omits the year.
+A manually edited display title is preserved. This title behavior also works
+without a BGG token.
+Each new title still requires its own search; automatically matched IDs share BGG detail
+requests in groups of up to 20. This also applies when many folders are added
+to an existing installation. Existing games are not re-queried by a normal
+rescan; Admin **Refresh all eligible games** handles them separately. BGG
+requests are paced, so a large import may continue in the background for
+several minutes or longer.
+
 Host paths may be absolute:
 
 ```ini

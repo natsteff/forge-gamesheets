@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 
+from app.bgg.client import safe_bgg_image_url
 from app.database import Database
 from app.library.box_dimensions import BoxDimensions, write_box_dimensions
 from app.library.filename_parser import ResourceCategory
@@ -16,6 +17,8 @@ class GameSummary:
     title: str
     resource_count: int
     has_artwork: bool
+    bgg_image_url: str | None = None
+    bgg_lookup_pending: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +71,7 @@ class GameDetail:
     id: int
     title: str
     detected_title: str
+    default_title: str
     has_override: bool
     has_artwork: bool
     has_uploaded_artwork: bool
@@ -94,6 +98,7 @@ def list_games(database: Database, query: str | None = None) -> tuple[GameSummar
         where_clause = """
             WHERE COALESCE(game_overrides.title, games.title)
                       LIKE ? ESCAPE '\\' COLLATE NOCASE
+               OR games.relative_path LIKE ? ESCAPE '\\' COLLATE NOCASE
                OR EXISTS (
                     SELECT 1 FROM resources AS matching_resources
                     LEFT JOIN resource_overrides AS matching_overrides
@@ -103,7 +108,7 @@ def list_games(database: Database, query: str | None = None) -> tuple[GameSummar
                           LIKE ? ESCAPE '\\' COLLATE NOCASE
                )
         """
-        parameters = (pattern, pattern)
+        parameters = (pattern, pattern, pattern)
 
     with database.connect() as connection:
         rows = connection.execute(
@@ -112,11 +117,16 @@ def list_games(database: Database, query: str | None = None) -> tuple[GameSummar
                    COALESCE(game_overrides.title, games.title) AS title,
                    COUNT(resources.id) AS resource_count,
                    (game_artwork_overrides.game_id IS NOT NULL OR
-                    games.artwork_relative_path IS NOT NULL) AS has_artwork
+                    games.artwork_relative_path IS NOT NULL) AS has_artwork,
+                   bgg.image_url AS bgg_image_url,
+                   bgg.thumbnail_url AS bgg_thumbnail_url,
+                   (bgg_queue.state IN ('queued', 'active')) AS bgg_lookup_pending
             FROM games
             LEFT JOIN game_overrides ON game_overrides.game_id = games.id
             LEFT JOIN game_artwork_overrides
               ON game_artwork_overrides.game_id = games.id
+            LEFT JOIN game_bgg_associations bgg ON bgg.game_id = games.id
+            LEFT JOIN bgg_enrichment_queue bgg_queue ON bgg_queue.game_id = games.id
             LEFT JOIN resources ON resources.game_id = games.id
             {where_clause}
             GROUP BY games.id
@@ -130,6 +140,10 @@ def list_games(database: Database, query: str | None = None) -> tuple[GameSummar
             title=row["title"],
             resource_count=row["resource_count"],
             has_artwork=bool(row["has_artwork"]),
+            bgg_image_url=safe_bgg_image_url(
+                row["bgg_image_url"] or row["bgg_thumbnail_url"]
+            ),
+            bgg_lookup_pending=bool(row["bgg_lookup_pending"]),
         )
         for row in rows
     )
@@ -241,7 +255,8 @@ def get_game(database: Database, game_id: int) -> GameDetail | None:
             """
             SELECT games.id,
                    COALESCE(game_overrides.title, games.title) AS title,
-                   games.title AS detected_title,
+                   games.relative_path AS detected_title,
+                   games.title AS default_title,
                    game_overrides.game_id IS NOT NULL AS has_override,
                    (game_artwork_overrides.game_id IS NOT NULL OR
                     games.artwork_relative_path IS NOT NULL) AS has_artwork,
@@ -300,6 +315,7 @@ def get_game(database: Database, game_id: int) -> GameDetail | None:
         id=game["id"],
         title=game["title"],
         detected_title=game["detected_title"],
+        default_title=game["default_title"],
         has_override=bool(game["has_override"]),
         has_artwork=bool(game["has_artwork"]),
         has_uploaded_artwork=bool(game["has_uploaded_artwork"]),

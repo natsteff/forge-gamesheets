@@ -13,7 +13,12 @@ from app.bgg.client import (
     BggSearchResult,
     BggUnavailableError,
 )
-from app.bgg.matching import LocalGameMissingError, enrich_game, normalize_game_name
+from app.bgg.matching import (
+    LocalGameMissingError,
+    enrich_game,
+    normalize_game_name,
+    title_and_year_hint,
+)
 from app.bgg.repository import (
     BggAssociation,
     BggMatchState,
@@ -69,6 +74,61 @@ def test_normalize_game_name_is_comparison_only() -> None:
     assert normalize_game_name("Ticket-to-Ride") == "ticket to ride"
 
 
+@pytest.mark.parametrize(
+    ("folder", "expected"),
+    [
+        ("Bohnanza (1997)", ("Bohnanza", 1997)),
+        ("Bohnanza (1997) Extra", ("Bohnanza (1997) Extra", None)),
+        ("Bohnanza (97)", ("Bohnanza (97)", None)),
+        ("Bohnanza(1997)", ("Bohnanza(1997)", None)),
+        ("Bohnanza (1997, 2012)", ("Bohnanza (1997, 2012)", None)),
+    ],
+)
+def test_only_trailing_standalone_four_digit_year_is_a_hint(folder, expected):
+    assert title_and_year_hint(folder) == expected
+
+
+def test_folder_year_breaks_exact_title_tie_without_changing_source_title(
+    game_database: tuple[Database, int],
+) -> None:
+    database, game_id = game_database
+    client = FakeClient(
+        results=(
+            BggSearchResult(1, "Carcassonne", 2000, "boardgame"),
+            BggSearchResult(2, "Carcassonne", 2025, "boardgame"),
+            BggSearchResult(3, "Carcassonne", 2025, "videogame"),
+        ),
+        details=BggGame(2, "Carcassonne", 2025, None, None),
+    )
+    association = enrich_game(
+        database,
+        client,
+        game_id=game_id,
+        source_title="Carcassonne (2025)",
+    )
+    assert client.searches == ["Carcassonne"]
+    assert client.lookups == [2]
+    assert association.bgg_id == 2
+    assert association.source_title == "Carcassonne (2025)"
+
+
+def test_folder_year_is_not_required_for_a_unique_exact_match(
+    game_database: tuple[Database, int],
+) -> None:
+    database, game_id = game_database
+    client = FakeClient(
+        results=(BggSearchResult(1, "Carcassonne", 2000),),
+        details=BggGame(1, "Carcassonne", 2000, None, None),
+    )
+    association = enrich_game(
+        database,
+        client,
+        game_id=game_id,
+        source_title="Carcassonne (2025)",
+    )
+    assert association.bgg_id == 1
+
+
 def test_unique_normalized_exact_match_is_linked_and_enriched(
     game_database: tuple[Database, int],
 ) -> None:
@@ -106,6 +166,51 @@ def test_unique_normalized_exact_match_is_linked_and_enriched(
     assert client.lookups == [822]
 
 
+@pytest.mark.parametrize("title", ["Bohnanza", "Camel Up"])
+def test_literal_match_wins_over_punctuation_variant(
+    game_database: tuple[Database, int], title: str
+) -> None:
+    database, game_id = game_database
+    client = FakeClient(
+        results=(
+            BggSearchResult(11, f"{title}+", 2022),
+            BggSearchResult(22, title, 2014),
+            BggSearchResult(33, f"{title} Cards", 2016),
+        ),
+        details=BggGame(22, title, 2014, None, None),
+    )
+
+    association = enrich_game(
+        database, client, game_id=game_id, source_title=title, clock=lambda: NOW
+    )
+
+    assert association.match_state is BggMatchState.MATCHED
+    assert association.bgg_id == 22
+    assert client.lookups == [22]
+
+
+@pytest.mark.parametrize("title", ["Bohnanza", "Camel Up"])
+def test_exact_board_game_wins_over_identically_named_video_game(
+    game_database: tuple[Database, int], title: str
+) -> None:
+    database, game_id = game_database
+    client = FakeClient(
+        results=(
+            BggSearchResult(99, title, None, "videogame"),
+            BggSearchResult(11, title, 2014, "boardgame"),
+        ),
+        details=BggGame(11, title, 2014, None, None),
+    )
+
+    association = enrich_game(
+        database, client, game_id=game_id, source_title=title, clock=lambda: NOW
+    )
+
+    assert association.match_state is BggMatchState.MATCHED
+    assert association.bgg_id == 11
+    assert client.lookups == [11]
+
+
 def test_uncertain_or_duplicate_results_require_manual_review(
     game_database: tuple[Database, int],
 ) -> None:
@@ -114,6 +219,7 @@ def test_uncertain_or_duplicate_results_require_manual_review(
         results=(
             BggSearchResult(1, "Carcassonne", 2000),
             BggSearchResult(2, "Carcassonne", 2025),
+            BggSearchResult(4, "Carcassonne", None, "videogame"),
             BggSearchResult(3, "Carcassonne Junior", 2009),
         )
     )
