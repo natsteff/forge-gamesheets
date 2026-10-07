@@ -387,18 +387,17 @@ input[type="checkbox"] {
 .game-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 .page-shell:has(.game-letter-jump) { padding-right: 2.5rem; }
 .game-letter-jump {
+  --visible-header-height: 8rem;
   position: fixed;
   z-index: 20;
-  top: 50%;
+  top: calc(var(--visible-header-height) + 0.75rem);
   right: max(0.25rem, calc((100vw - 1100px) / 2 - 3rem));
   display: flex;
   flex-direction: column;
   width: 2rem;
-  height: calc(100vh - 1.5rem);
-  height: calc(100dvh - 1.5rem);
-  max-height: calc(100vh - 1.5rem);
+  height: max(0px, calc(100vh - var(--visible-header-height) - 1.5rem));
+  height: max(0px, calc(100dvh - var(--visible-header-height) - 1.5rem));
   overflow-y: auto;
-  transform: translateY(-50%);
   border: 1px solid var(--line);
   border-radius: 0.7rem;
   background: var(--surface);
@@ -988,7 +987,6 @@ input[type="checkbox"] {
     padding: 0.3rem;
     overflow-x: auto;
     overflow-y: hidden;
-    transform: none;
   }
   .game-letter-jump a,
   .game-letter-jump span { flex: 0 0 auto; min-width: 1.7rem; min-height: 2rem; }

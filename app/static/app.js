@@ -20,6 +20,26 @@ if (bulkForm) {
 const siteHeader = document.querySelector(".site-header");
 const menuToggle = document.querySelector("#menu-toggle");
 const primaryNavigation = document.querySelector("#primary-navigation");
+const gameLetterJump = document.querySelector(".game-letter-jump");
+
+if (siteHeader && gameLetterJump) {
+  let updateQueued = false;
+  const updateVisibleHeaderHeight = () => {
+    if (updateQueued) return;
+    updateQueued = true;
+    window.requestAnimationFrame(() => {
+      const visibleHeight = Math.max(0, siteHeader.getBoundingClientRect().bottom);
+      gameLetterJump.style.setProperty("--visible-header-height", `${visibleHeight}px`);
+      updateQueued = false;
+    });
+  };
+  window.addEventListener("scroll", updateVisibleHeaderHeight, { passive: true });
+  window.addEventListener("resize", updateVisibleHeaderHeight);
+  if (window.ResizeObserver) {
+    new ResizeObserver(updateVisibleHeaderHeight).observe(siteHeader);
+  }
+  updateVisibleHeaderHeight();
+}
 
 if (siteHeader && menuToggle && primaryNavigation) {
   const mobileNavigation = window.matchMedia("(max-width: 850px)");

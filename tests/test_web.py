@@ -41,7 +41,7 @@ class _ExecutableMarkupProbe(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=12"):
+        if tag == "script" and not attributes.get("src", "").endswith("app.js?v=13"):
             self.unsafe.append(tag)
         for name, value in attrs:
             if name.startswith("on") or (value or "").lower().startswith("javascript:"):
@@ -311,7 +311,7 @@ def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
         "Design printable GameSheets, use LiveSheets, and organize your "
         "game-resource library" in response.text
     )
-    assert "styles.css?v=73" in response.text
+    assert "styles.css?v=74" in response.text
     hero_rule = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
     assert ".hero h1 { max-width: 18ch;" in hero_rule
     assert '<p class="eyebrow">Game library</p>' not in response.text
@@ -356,11 +356,18 @@ def test_home_and_all_games_show_full_grid_with_letter_jumps(
         assert page.index("7 Wonders") < page.index("Empty Game")
 
     styles = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
-    assert "height: calc(100dvh - 1.5rem);" in styles
+    assert (
+        "height: max(0px, calc(100dvh - var(--visible-header-height) - 1.5rem));"
+        in styles
+    )
+    assert "top: calc(var(--visible-header-height) + 0.75rem);" in styles
     assert "flex: 1 0 1.45rem;" in styles
     mobile_styles = styles.split("@media (max-width: 680px) {", 1)[1]
     assert "width: 100%;\n    height: auto;\n    max-height: none;" in mobile_styles
     assert "flex: 0 0 auto;" in mobile_styles
+    script = (Path(__file__).parents[1] / "app/static/app.js").read_text()
+    assert "siteHeader.getBoundingClientRect().bottom" in script
+    assert 'window.addEventListener("scroll", updateVisibleHeaderHeight' in script
 
     uncategorized = web_client.get("/categories/uncategorized")
     assert uncategorized.text.index("7 Wonders") < uncategorized.text.index(
@@ -423,8 +430,8 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     )
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
-    assert "/static/app.js?v=12" in response.text
-    assert "/static/styles.css?v=73" in response.text
+    assert "/static/app.js?v=13" in response.text
+    assert "/static/styles.css?v=74" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text
