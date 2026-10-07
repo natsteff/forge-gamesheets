@@ -173,6 +173,16 @@ def test_get_game_parses_cached_enrichment_fields() -> None:
     assert game.categories == ("Tile Placement",)
     assert game.mechanisms == ("Set Collection",)
 
+    disabled = BggClient(
+        "token",
+        opener=lambda *_args, **_kwargs: FakeResponse(response),
+        category_enabled=lambda: False,
+    ).get_game(822)
+    assert disabled.name == "Carcassonne"
+    assert disabled.description == "A river and roads."
+    assert disabled.categories == ()
+    assert disabled.mechanisms == ()
+
 
 def test_get_games_fetches_multiple_ids_once_without_page_redirects() -> None:
     seen = []
@@ -192,6 +202,27 @@ def test_get_games_fetches_multiple_ids_once_without_page_redirects() -> None:
     assert set(games) == {11, 12}
     assert games[11].year_published == 1997
     assert games[11].url_slug is None
+
+
+def test_batch_skips_category_parsing_when_disabled() -> None:
+    checks = []
+    response = (
+        b"<items><item id='11'><name value='Bohnanza'/>"
+        b"<link type='boardgamecategory' value='Card Game'/></item>"
+        b"<item id='12'><name value='Another'/>"
+        b"<link type='boardgamemechanic' value='Set Collection'/></item></items>"
+    )
+    client = BggClient(
+        "token",
+        opener=lambda *_args, **_kwargs: FakeResponse(response),
+        category_enabled=lambda: checks.append(True) or False,
+    )
+
+    games = client.get_games((11, 12))
+
+    assert checks == [True]
+    assert games[11].categories == ()
+    assert games[12].mechanisms == ()
 
 
 def test_new_game_details_batch_uses_one_xml_request_and_public_page_links():

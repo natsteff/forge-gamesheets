@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
+from hashlib import sha256
 
 from app.database import Database
 from app.library.filename_parser import parse_resource_filename
@@ -13,6 +14,18 @@ from app.library.scanner import ScanResult
 
 class ReconciliationError(RuntimeError):
     """Raised when a scan is unsafe to apply to the current index."""
+
+
+class DeletionReviewRequired(ReconciliationError):
+    """Large disappearance must be explicitly reviewed before reconciliation."""
+
+    def __init__(self, games: set[str], resources: set[str]) -> None:
+        self.games = tuple(sorted(games))
+        self.resources = tuple(sorted(resources))
+        self.fingerprint = sha256(
+            repr((self.games, self.resources)).encode("utf-8")
+        ).hexdigest()
+        super().__init__("A large part of the library appears to be missing.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,8 +40,13 @@ class ReconciliationSummary:
     resources_removed: int = 0
 
 
-def reconcile_scan(database: Database, scan: ScanResult) -> ReconciliationSummary:
-    """Apply one complete scan atomically, removing entries no longer present."""
+def reconcile_scan(
+    database: Database,
+    scan: ScanResult,
+    *,
+    confirm_removals: str | None = None,
+) -> ReconciliationSummary:
+    """Apply a complete scan; large deletions require an exact review token."""
     if scan.issues:
         raise ReconciliationError(
             "Cannot reconcile an incomplete scan that contains filesystem issues."
@@ -37,12 +55,55 @@ def reconcile_scan(database: Database, scan: ScanResult) -> ReconciliationSummar
     with database.connect() as connection:
         try:
             connection.execute("BEGIN IMMEDIATE")
+            missing_games, missing_resources, game_count, resource_count = (
+                _missing_paths(connection, scan)
+            )
+            if _needs_deletion_review(
+                missing_games, missing_resources, game_count, resource_count
+            ):
+                review = DeletionReviewRequired(missing_games, missing_resources)
+                if confirm_removals != review.fingerprint:
+                    raise review
             summary = _reconcile(connection, scan)
             connection.commit()
         except Exception:
             connection.rollback()
             raise
     return summary
+
+
+def _missing_paths(
+    connection: sqlite3.Connection, scan: ScanResult
+) -> tuple[set[str], set[str], int, int]:
+    scanned_games = {game.relative_path.as_posix() for game in scan.games}
+    scanned_resources = {
+        resource.relative_path.as_posix()
+        for game in scan.games
+        for resource in game.resources
+    }
+    indexed_games = {
+        row[0] for row in connection.execute("SELECT relative_path FROM games")
+    }
+    indexed_resources = {
+        row[0] for row in connection.execute("SELECT relative_path FROM resources")
+    }
+    return (
+        indexed_games - scanned_games,
+        indexed_resources - scanned_resources,
+        len(indexed_games),
+        len(indexed_resources),
+    )
+
+
+def _needs_deletion_review(
+    games: set[str], resources: set[str], game_count: int, resource_count: int
+) -> bool:
+    # Compare games and files independently so one disappearing game cannot be
+    # hidden by a large number of indexed resources (or vice versa).
+    return bool(
+        (game_count and len(games) * 10 >= game_count)
+        or (resource_count and len(resources) * 10 >= resource_count)
+    )
 
 
 def _reconcile(

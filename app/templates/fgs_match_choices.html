@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Choose {{ sheet_title }} · FORGE GameSheets{% endblock %}
+
+{% block content %}
+  <a class="back-link" href="{{ url_for('game_detail', game_id=resource.game_id) }}#resource-{{ resource.id }}">← Back to game</a>
+  <section class="fgs-match-choices">
+    <p class="eyebrow">Matching saved GameSheets</p>
+    <h1>{{ sheet_title }}</h1>
+    <p>These saved sheets have the same title and FGS content as the library file. They are separate Designer copies; choose the one you want to open. No new copy will be created.</p>
+    <div class="resource-list">
+      {% for choice in choices %}
+        <article class="resource-row">
+          <div class="resource-copy">
+            <strong>{{ sheet_title }}{% if choice.current %} · Currently open{% endif %}</strong>
+            <small>Saved {{ choice.modified }} · Draft {{ choice.id }}</small>
+          </div>
+          <div class="resource-actions">
+            <form method="post" action="{{ url_for('resource_open_selected_fgs', resource_id=resource.id) }}">
+              <input type="hidden" name="workspace_id" value="{{ choice.id }}">
+              <button class="resource-action" type="submit">Open this saved sheet</button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    <p><a class="text-link" href="{{ url_for('resource_fgs_preview', resource_id=resource.id) }}">Preview the library file instead</a></p>
+  </section>
+{% endblock %}

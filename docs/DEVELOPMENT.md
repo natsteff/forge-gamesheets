@@ -83,9 +83,10 @@ Handle unavailable PDF previews
 
 ## Release preparation
 
-Follow [PHASE1_RELEASE_CHECKLIST.md](PHASE1_RELEASE_CHECKLIST.md). Public-history
-consolidation, GitHub publication, and beta tagging happen only after the local
-history has been backed up and verified separately.
+Follow the current [beta release checklist](PHASE1_5_RELEASE_CHECKLIST.md),
+including its security and documentation gates, before GitHub publication or
+beta tagging. The [Phase 1 checklist](PHASE1_RELEASE_CHECKLIST.md) remains a
+historical record, not the current release gate.
 
 Published container builds receive both their channel/release tag and an
 immutable `sha-<revision>` tag. A historical GitHub Actions rerun may publish

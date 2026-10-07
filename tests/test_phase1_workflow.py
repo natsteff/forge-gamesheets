@@ -72,7 +72,8 @@ def test_phase1_state_persists_across_restart_and_rescan(tmp_path: Path) -> None
         pinned = restarted.get("/pinned")
         history = restarted.get("/history")
 
-        assert "Board" in home.text
+        assert "Friday Farkle" in home.text
+        assert "Browse categories" in home.text
         assert "Friday Farkle" in restarted.get(f"/categories/{board_id}").text
         assert "House Rules" in game.text
         assert "Friday" in game.text

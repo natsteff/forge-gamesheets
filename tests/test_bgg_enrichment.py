@@ -88,6 +88,42 @@ def test_exact_category_and_mechanism_match_respects_existing_assignment(tmp_pat
     assert _category_names(database) == {"Card Game", "Hidden Roles", "Party Game"}
 
 
+def test_bgg_categories_can_be_disabled_without_removing_existing_assignments(tmp_path):
+    database = _database(tmp_path)
+    game = BggGame(77, "Example", 2020, None, None, categories=("Card Game",))
+    assert apply_bgg_categories(database, 1, game, mode="additive") == ("Card Game",)
+    with database.connect() as connection:
+        connection.execute(
+            "UPDATE application_preferences SET bgg_categories=0 WHERE id=1"
+        )
+    changed = replace(game, categories=("Party Game",))
+    assert apply_bgg_categories(database, 1, changed, mode="additive") == ()
+    assert _category_names(database) == {"Card Game"}
+
+
+def test_disabled_bgg_categories_are_not_assigned_by_background_refresh(tmp_path):
+    database = _database(tmp_path)
+    with database.connect() as connection:
+        connection.execute(
+            "UPDATE application_preferences SET bgg_categories=0 WHERE id=1"
+        )
+    save_bgg_association(
+        database, BggAssociation(1, True, BggMatchState.MANUAL, "Example", bgg_id=77)
+    )
+
+    class Client:
+        def get_games(self, bgg_ids):
+            assert bgg_ids == (77,)
+            return {
+                77: BggGame(77, "Example", 2020, None, None, categories=("Card Game",))
+            }
+
+    assert enqueue_batch(database) == 1
+    assert process_next(database, Client()) == "done"
+    assert _category_names(database) == set()
+    assert get_bgg_association(database, 1).year_published == 2020
+
+
 def test_suggested_categories_are_opt_in_for_existing_installation(tmp_path):
     database = _database(tmp_path)
     with database.connect() as connection:

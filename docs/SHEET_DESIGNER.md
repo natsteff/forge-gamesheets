@@ -20,9 +20,10 @@ list item on the preview to select its section and focus the source field. A
 score-row label focuses the corresponding line in **Score rows**. This is
 navigation to the editor, not direct editing on the printed sheet.
 
-FGS 1.3 trackers support checkboxes, numbered boxes, segmented bars, and
-current/maximum values. Paper patterns include ruled, square, dot, hex, music,
-tablature, coordinate, and blank game-board layouts. Paper is printable
+Trackers, introduced in FGS 1.3 and supported in 1.4, include checkboxes,
+numbered boxes, segmented bars, and current/maximum values. Paper patterns
+include ruled, square, dot, hex, music, tablature, coordinate, and blank
+game-board layouts. Paper is printable
 content, not a digital ink canvas. See [FGS format and version
 history](FGS_FORMAT.md) for the formal content and rendering rules.
 

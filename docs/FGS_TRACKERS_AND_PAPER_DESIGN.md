@@ -1,10 +1,11 @@
 # Trackers and reusable paper — editor and delivery design
 
-Status: **Original design rationale; implemented subset available locally for review.**
+Status: **Historical design rationale.** The implemented FGS 1.3 capabilities
+remain supported in 1.4; proposals below are not a current feature list.
 
-See [FGS 1.3](FGS_V1_3_SPECIFICATION.md) for the actual supported local contract.
-Both local editors implement the new content. Docker Test and hosted Studio
-remain unchanged until publication is approved. Personal health logs are deferred.
+See [FGS 1.3](FGS_V1_3_SPECIFICATION.md) and the
+[current format index](FGS_FORMAT.md) for supported behavior. Personal health
+logs remain outside this scope.
 
 ## Editor experience shared by FORGE GameSheets and Studio
 

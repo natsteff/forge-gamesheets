@@ -147,6 +147,74 @@ class FileDraftStore:
         documents.sort(key=lambda item: (item["title"].casefold(), item["id"]))
         return {"current_id": current_id, "documents": documents}
 
+    def matching_document_ids(self, source_document: dict) -> tuple[str, ...]:
+        """Find exact-title, exact-content drafts without changing stored files."""
+        if not isinstance(source_document, dict):
+            return ()
+        title = source_document.get("title")
+        if not isinstance(title, str) or not title.strip():
+            return ()
+        title = title.strip()
+        if self.drafts.is_symlink() or not self.drafts.is_dir():
+            return ()
+        matches: list[str] = []
+        source: dict | None = None
+        for path in sorted(self.drafts.glob("*.fgs")):
+            if path.is_symlink() or not path.is_file():
+                continue
+            try:
+                self._document_path(path.stem)
+                with path.open("rb") as stream:
+                    payload = stream.read(MAX_DOCUMENT_BYTES + 1)
+                if len(payload) > MAX_DOCUMENT_BYTES:
+                    continue
+                candidate = json.loads(payload.decode("utf-8"))
+                if (
+                    not isinstance(candidate, dict)
+                    or candidate.get("title") != title
+                ):
+                    continue
+                if source is None:
+                    source = normalize_document(source_document)
+                if migrate_document(candidate) == source:
+                    matches.append(path.stem)
+            except (OSError, UnicodeError, ValueError, TypeError, RecursionError):
+                continue
+        return tuple(matches)
+
+    def matching_document_choices(self, source_document: dict) -> tuple[dict, ...]:
+        """Describe identical saved sheets for a read-only user choice."""
+        try:
+            current_id = (
+                self.current_pointer.read_text(encoding="utf-8").strip()
+                if not self.current_pointer.is_symlink()
+                else None
+            )
+        except OSError:
+            current_id = None
+        choices = []
+        for workspace_id in self.matching_document_ids(source_document):
+            path = self._document_path(workspace_id)
+            try:
+                if path.is_symlink():
+                    continue
+                modified = datetime.fromtimestamp(path.stat().st_mtime, UTC)
+            except OSError:
+                continue
+            choices.append(
+                {
+                    "id": workspace_id,
+                    "modified": modified.strftime("%b %d, %Y · %H:%M UTC"),
+                    "modified_timestamp": modified.timestamp(),
+                    "current": workspace_id == current_id,
+                }
+            )
+        choices.sort(
+            key=lambda choice: (choice["modified_timestamp"], choice["id"]),
+            reverse=True,
+        )
+        return tuple(choices)
+
     def list_livesheet_documents(self) -> list[dict]:
         """Return saved sheets explicitly enabled for interactive scoring."""
         ready = []

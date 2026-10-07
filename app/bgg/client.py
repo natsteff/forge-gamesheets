@@ -157,6 +157,7 @@ class BggClient:
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     opener: Opener = _open_api_request
     request_pacer: Callable[[], None] | None = field(default=None, repr=False)
+    category_enabled: Callable[[], bool] | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not self.token.strip():
@@ -195,7 +196,12 @@ class BggClient:
         item = root.find("item")
         if item is None:
             return None
-        game = _parse_game(item)
+        game = _parse_game(
+            item,
+            include_categories=self.category_enabled()
+            if self.category_enabled is not None
+            else True,
+        )
         if game is None:
             raise BggResponseError("BoardGameGeek returned incomplete game data.")
         return replace(game, url_slug=resolve_game_slug(game.id, opener=self.opener))
@@ -219,7 +225,13 @@ class BggClient:
             max_response_bytes=MAX_BATCH_RESPONSE_BYTES,
         )
         requested = set(bgg_ids)
-        games = (_parse_game(item) for item in root.findall("item"))
+        include_categories = (
+            self.category_enabled() if self.category_enabled is not None else True
+        )
+        games = (
+            _parse_game(item, include_categories=include_categories)
+            for item in root.findall("item")
+        )
         return {game.id: game for game in games if game and game.id in requested}
 
     def get_new_games(self, bgg_ids: tuple[int, ...]) -> dict[int, BggGame]:
@@ -314,7 +326,9 @@ def _attribute(item: ElementTree.Element, child_name: str) -> str | None:
     return child.get("value") if child is not None else None
 
 
-def _parse_game(item: ElementTree.Element) -> BggGame | None:
+def _parse_game(
+    item: ElementTree.Element, *, include_categories: bool = True
+) -> BggGame | None:
     bgg_id = _positive_int(item.get("id"))
     name = _value(_primary_name(item))
     if bgg_id is None or name is None:
@@ -326,8 +340,12 @@ def _parse_game(item: ElementTree.Element) -> BggGame | None:
         image_url=_text(item.find("image")),
         thumbnail_url=_text(item.find("thumbnail")),
         description=_plain_description(_text(item.find("description"))),
-        categories=_linked_names(item, "boardgamecategory"),
-        mechanisms=_linked_names(item, "boardgamemechanic"),
+        categories=_linked_names(item, "boardgamecategory")
+        if include_categories
+        else (),
+        mechanisms=_linked_names(item, "boardgamemechanic")
+        if include_categories
+        else (),
     )
 
 

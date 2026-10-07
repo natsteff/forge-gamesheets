@@ -3,7 +3,7 @@
 The canonical, browser-and-Node page renderer for FGS GameSheets, maintained as
 a source package in FORGE GameSheets. It is not a replacement for the FGS
 document specification or the
-local-review Page Rendering Profile in FORGE GameSheets at
+current Page Rendering Profile in FORGE GameSheets at
 `docs/FGS_PAGE_RENDERING_PROFILE_1_3.md` (`fgs-page-1.3.1`).
 
 FGS 1.3 adds bounded resource trackers and generated reusable paper/music

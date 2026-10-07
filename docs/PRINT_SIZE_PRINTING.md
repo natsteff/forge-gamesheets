@@ -3,12 +3,13 @@
 **Finished size** sets the physical size of one designed sheet. Poker Card is 2.5 × 3.5 in;
 Bridge Card is 2.25 × 3.5 in. **Page** selects the Letter or A4 base for Full
 and Half Page. The **Orientation** control turns preset sizes, while Custom
-Width and Height determine custom orientation directly. FGS 1.4 saves selected
-finished size and last-used print-sheet settings in `.fgs` after successful
-print-sheet export, while allowing later changes.
-Design a separate sheet for each
-purpose—for example, a full-page rules sheet, half-page score sheet, and poker
-reference card can all belong to the same game.
+Width and Height determine custom orientation directly. FGS 1.4 saves the
+finished-size selection in `.fgs` when you change it. It saves the last-used
+print-sheet settings only after a successful print-sheet export; both remain
+editable afterward.
+
+Design a separate sheet for each purpose—for example, a full-page rules sheet,
+half-page score sheet, and poker reference card can all belong to the same game.
 
 Full Page still uses its original one-page layout and overflow warning. Other
 sizes compose content for the selected width, wrap headings and text, and then

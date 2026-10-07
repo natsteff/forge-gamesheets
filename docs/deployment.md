@@ -456,9 +456,25 @@ on the client or use the LAN IP address.
 4. Select **Rescan library** and review any scan warning shown by FORGE GameSheets.
 5. Check `docker compose logs app` for permission and parsing errors.
 
-An unavailable NAS mount may look like an empty directory. Restore the host
-mount before rescanning so temporary storage failure is not mistaken for an
-intentional library change.
+Automatic rescanning is off by default after startup. Settings offers
+**Automatic local-change detection only**, plus 15-minute, 30-minute, 1-hour,
+8-hour and 24-hour options. The local-only option automatically scans when a
+filesystem event arrives, with event scans spaced at least 30 seconds apart,
+but has no scheduled fallback. Local disks normally report events; some NAS
+shares do not. Timed options use event detection and ensure a scan even if no
+event is received. Each
+scan still checks the library's file metadata, so choose a longer interval for
+large or slow network libraries. Only newly discovered games enter the optional
+BGG initial lookup queue; a routine rescan does not refresh every existing game.
+
+An unavailable NAS mount may look like an empty directory. Before applying any
+index changes, FORGE checks for missing games and resources. If either count
+reaches 10% of its indexed total, no changes from that scan are applied and
+FORGE asks for manual review. Restore and verify the host mount before confirming any
+removals. Confirmation performs a fresh scan and rejects a changed missing set.
+FORGE never deletes source library files during a scan. Smaller removals are
+applied automatically, so keep normal backups of both library and application
+data and ensure the mount remains healthy.
 
 ### Container exits immediately
 

@@ -15,12 +15,24 @@
 </section>
 <section class="settings-section">
   <h2>Library scanning</h2>
-  <form action="{{ url_for('settings_scanning') }}" method="post">
+  <form class="settings-form scan-settings-form" action="{{ url_for('settings_scanning') }}" method="post">
     <label class="checkbox-option">
       <input type="checkbox" name="folder_categories" {% if application_preferences(request).folder_categories %}checked{% endif %}>
       <span><strong>Import game categories from folder names</strong><small>Use a trailing list such as Yahtzee [Dice, Children]. Missing categories are created automatically. A trailing standalone year such as (1998) is omitted from the default display title; other parentheses remain. Category import applies only to newly discovered games on the next scan; existing assignments are unchanged.</small></span>
     </label>
-    <button class="primary-button" type="submit">Save scanning preference</button>
+    <div class="metadata-form">
+      <label for="auto-rescan-mode">Auto Rescan Mode</label>
+      <select id="auto-rescan-mode" name="auto_rescan_mode" aria-describedby="auto-rescan-help">
+        {% for mode, label in [('manual', 'Disabled (Manual ONLY)'), ('local', 'Automatic local-change detection only'), ('15', '15 minutes'), ('30', '30 minutes'), ('60', '1 hour'), ('480', '8 hours'), ('1440', '24 hours')] %}
+          <option value="{{ mode }}"{% if application_preferences(request).auto_rescan_mode == mode %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <small id="auto-rescan-help">Disabled means scans at startup and when you select Rescan library. Local-change detection only automatically scans when a filesystem event arrives, but has no scheduled fallback; some NAS mounts never send events. Timed options use both event detection and a scheduled scan if no event arrives. Event scans are spaced at least 30 seconds apart.</small>
+    </div>
+    <p class="settings-note">Before applying any index changes, every scan checks how many indexed games and resources appear missing. If either reaches 10%, none of that scan's changes are applied; check the library mount and review the removals manually. Scans never delete source files.</p>
+    <div class="scan-settings-actions">
+      <button class="primary-button" type="submit">Save scanning preference</button>
+    </div>
   </form>
   {% if request.query_params.get('status') == 'scanning-saved' %}<p class="status-banner success" role="status">Scanning preference saved.</p>{% endif %}
 </section>
@@ -153,14 +165,25 @@
       {% endfor %}
     </div>
     <p class="settings-note"><strong>Uncategorized</strong> is automatic and cannot be renamed or deleted.</p>
-    <p class="settings-note">For optional BGG auto-categorization, use category names that match BGG Categories or Mechanisms. Existing categories are never renamed or removed by BGG.</p>
-    <form action="{{ url_for('settings_categories_add_defaults') }}" method="post"><button class="secondary-button" type="submit">Add missing suggested categories</button></form>
+    <p class="settings-note">If enabled, for optional BGG auto-categorization, use category names that match BGG Categories or Mechanisms. Existing categories are never renamed or removed by BGG.</p>
+    <form class="suggested-categories-form" action="{{ url_for('settings_categories_add_defaults') }}" method="post"><button class="secondary-button" type="submit">Add missing suggested categories</button></form>
   </section>
 
   <section class="settings-section bgg-settings" id="bgg-integration"{% if bgg_batch.queued %} data-bgg-progress{% endif %}>
     <p class="eyebrow">Optional integration</p>
     <h2>BoardGameGeek integration</h2>
     {% include "_bgg_attribution.html" %}
+    <div class="bgg-settings-group">
+      <h3>Game categories</h3>
+      <form action="{{ url_for('settings_bgg_categories') }}" method="post">
+        <label class="checkbox-option">
+          <input type="checkbox" name="bgg_categories" {% if preferences.bgg_categories %}checked{% endif %}>
+          <span><strong>Assign game categories from BoardGameGeek</strong><small>When enabled, BGG matching and refreshes assign to games only existing FORGE GameSheets categories whose names exactly match BGG Categories or Mechanisms. This does not create new category options. Turning it off leaves existing assignments unchanged. Folder-name category import is a separate setting.</small></span>
+        </label>
+        <button class="primary-button" type="submit">Save BGG category preference</button>
+      </form>
+      {% if status == 'bgg-categories-saved' %}<p class="status-banner success" role="status">BGG category preference saved.</p>{% endif %}
+    </div>
     {% if bgg_configured %}
       <div class="bgg-settings-group">
         <h3>Connection</h3>
@@ -180,7 +203,7 @@
         {% endif %}
         <strong>Lookup progress:</strong> {{ bgg_batch.queued }} waiting or in progress, {{ bgg_batch.done }} completed, {{ bgg_batch.failed }} failed. Completed includes games that could not be matched automatically. {% if bgg_batch.queued %}This page refreshes every 10 seconds while work is active. {% endif %}Requests are paced and unfinished work resumes after restart.
       </p>
-      <p class="settings-note">{{ bgg_batch.linked_refreshes }} linked games can refresh in {{ bgg_batch.linked_batches }} BGG ID batch{% if bgg_batch.linked_batches != 1 %}es{% endif %} of up to 20 games; {{ bgg_batch.match_candidates }} unlinked games need individual title searches, then automatically matched IDs are fetched in batches of up to 20. Up to {{ bgg_batch.estimated_requests }} XML API requests before retries. Resolving a newly matched game's page link may make an additional public BGG request. Only exact Category and Mechanism names already in FORGE GameSheets are added; your existing categories and local artwork stay unchanged.</p>
+      <p class="settings-note">{{ bgg_batch.linked_refreshes }} linked games can refresh in {{ bgg_batch.linked_batches }} BGG ID batch{% if bgg_batch.linked_batches != 1 %}es{% endif %} of up to 20 games; {{ bgg_batch.match_candidates }} unlinked games need individual title searches, then automatically matched IDs are fetched in batches of up to 20. Up to {{ bgg_batch.estimated_requests }} XML API requests before retries. Resolving a newly matched game's page link may make an additional public BGG request. {% if preferences.bgg_categories %}Only existing FORGE GameSheets categories with exact BGG Category or Mechanism names are assigned to games;{% else %}BGG category assignment is off;{% endif %} your existing categories and local artwork stay unchanged.</p>
       <p class="settings-note">To respect <a href="https://boardgamegeek.com/wiki/page/BGG_XML_API2" target="_blank" rel="noopener">BGG's XML API throttling guidance</a>, FORGE waits at least 5 seconds between API requests. {% if not bgg_batch.queued and bgg_batch.estimated_requests %}For this library, allow at least {{ bgg_batch.estimated_pacing }} for request spacing, plus BGG response time; it may take longer. Starting a new full refresh repeats the lookups.{% endif %}</p>
       {% if bgg_batch.ambiguous or bgg_batch.unmatched %}
         <details>

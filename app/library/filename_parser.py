@@ -18,6 +18,7 @@ class ResourceCategory(StrEnum):
     ANSWER_SHEET = "answer_sheet"
     TOURNAMENT = "tournament"
     SETUP = "setup"
+    FGS_GAMESHEET = "fgs_gamesheet"
     OTHER = "other"
 
 
@@ -90,6 +91,13 @@ def parse_resource_filename(game_name: str, filename: str | Path) -> ParsedFilen
     display_title = _remove_game_prefix(cleaned_stem, cleaned_game_name)
     if not display_title:
         display_title = cleaned_stem or original_stem or "Untitled"
+
+    if Path(filename).suffix.casefold() == ".fgs":
+        return ParsedFilename(
+            display_title=display_title,
+            category=ResourceCategory.FGS_GAMESHEET,
+            variant=None,
+        )
 
     for category, pattern in _CATEGORY_PATTERNS:
         match = pattern.search(display_title)

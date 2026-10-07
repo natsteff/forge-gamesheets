@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+import threading
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
@@ -11,16 +13,22 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.access import AccessControl, RedactSharingLinks
-from app.activity import record_scan
+from app.activity import record_activity, record_scan
 from app.bgg.client import BggClient
 from app.bgg.jobs import RequestPacer, enqueue_initial, process_next, resume_interrupted
 from app.build_info import BuildInfo
 from app.config import Settings
 from app.database import Database
+from app.library.auto_rescan import event_rescans, periodic_rescans
 from app.library.cache import cleanup_managed_files
-from app.library.reconciliation import ReconciliationError, reconcile_scan
+from app.library.reconciliation import (
+    DeletionReviewRequired,
+    ReconciliationError,
+    reconcile_scan,
+)
 from app.library.reprint_maintenance import interrupt_active_jobs
-from app.library.scanner import scan_library
+from app.library.scanner import LibraryScanError, ScanIssue, scan_library
+from app.preferences import get_preferences
 from app.security import (
     AllowedHosts,
     BrowserSecurityHeaders,
@@ -43,14 +51,20 @@ def create_app(
         validated = configured.validated()
         database = Database.in_data_directory(validated.data_path)
         database.initialize()
+        application.state.settings = validated
+        application.state.database = database
+        application.state.scan_lock = threading.Lock()
+        application.state.auto_scan_notice = False
+        application.state.auto_scan_review_fingerprint = None
         with database.connect() as connection:
             before_game_ids = {
                 row[0] for row in connection.execute("SELECT id FROM games")
             }
         interrupt_active_jobs(database)
-        scan_result = scan_library(validated.library_path)
-        application.state.scan_issues = scan_result.issues
+        application.state.scan_issues = ()
         try:
+            scan_result = scan_library(validated.library_path)
+            application.state.scan_issues = scan_result.issues
             application.state.last_reconciliation = reconcile_scan(
                 database, scan_result
             )
@@ -62,11 +76,29 @@ def create_app(
                 enqueue_initial(database, after_game_ids - before_game_ids)
             record_scan(database, application.state.last_reconciliation)
             cleanup_managed_files(database, validated.data_path)
+        except DeletionReviewRequired as review:
+            application.state.last_reconciliation = None
+            application.state.auto_scan_notice = True
+            application.state.auto_scan_review_fingerprint = review.fingerprint
+            record_activity(
+                database,
+                "scan_review_required",
+                "Startup library scan needs review",
+                detail=(
+                    "The index was preserved. Check the library mount and "
+                    "rescan manually."
+                ),
+            )
         except ReconciliationError:
             application.state.last_reconciliation = None
             record_scan(database, issue_count=len(scan_result.issues))
-        application.state.settings = validated
-        application.state.database = database
+        except LibraryScanError:
+            application.state.last_reconciliation = None
+            application.state.scan_issues = (
+                ScanIssue(Path("Library root"), "The library could not be read."),
+            )
+            record_scan(database, failed=True)
+        application.state.last_auto_scan_at = time.monotonic()
         application.state.bgg_request_pacer = (
             RequestPacer() if validated.bgg_api_token else None
         )
@@ -83,9 +115,18 @@ def create_app(
                     application.state.bgg_request_pacer,
                 )
             )
+        scan_workers = (
+            asyncio.create_task(periodic_rescans(application)),
+            asyncio.create_task(event_rescans(application)),
+        )
         try:
             yield
         finally:
+            for scan_worker in scan_workers:
+                scan_worker.cancel()
+            for scan_worker in scan_workers:
+                with suppress(asyncio.CancelledError):
+                    await scan_worker
             if worker is not None:
                 worker.cancel()
                 with suppress(asyncio.CancelledError):
@@ -161,7 +202,11 @@ app = create_app()
 
 
 async def _run_bgg_queue(database: Database, token: str, pacer: RequestPacer) -> None:
-    client = BggClient(token, request_pacer=pacer)
+    client = BggClient(
+        token,
+        request_pacer=pacer,
+        category_enabled=lambda: get_preferences(database).bgg_categories,
+    )
     while True:
         worked = await anyio.to_thread.run_sync(process_next, database, client)
         await asyncio.sleep(

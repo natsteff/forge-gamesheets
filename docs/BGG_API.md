@@ -40,28 +40,44 @@ Designer, external title search, and manually saved BGG URLs remain available.
 
 ## Request and data boundaries
 
-FORGE GameSheets uses only the documented BGG XML API2 over HTTPS at
-`boardgamegeek.com`. Requests are initiated by explicit enrichment actions and
-use an `Authorization: Bearer` header. FORGE GameSheets caches selected identifiers and
-useful response metadata locally so ordinary use does not depend on BGG being
-available. BGG failures never stop local library operation.
+Token-bearing metadata requests use the documented BGG XML API2 over HTTPS at
+`boardgamegeek.com` with an `Authorization: Bearer` header. With a token
+configured, newly discovered games are queued for background matching after a
+startup, manual, or automatic library scan; the scan itself does not wait for
+BGG. Admins can also start a full refresh, and Admins and Contributors can
+request lookups for individual games. Existing linked games are not refreshed
+merely because the library is scanned. FORGE GameSheets caches selected
+identifiers, cover-image links, description, publication year, and other useful
+response metadata locally so ordinary use does not depend on BGG being
+available. BGG failures never stop local library operation. Canonical game-page
+link resolution is a separate, token-free public request described below.
 
 ## Matching workflow
 
-Admins and Contributors open **Edit game entry → BoardGameGeek integration** and
-choose **Find BoardGameGeek match**. FORGE GameSheets searches for the entered title and
-automatically saves a result only when one returned title is an exact match
-after conservative normalization and any year tie-break. Unresolved duplicate
-titles, partial matches, and other ambiguous results remain unlinked until the
-user selects a candidate.
+For an individual game, Admins and Contributors open **Edit game entry →
+BoardGameGeek integration** and choose **Find BoardGameGeek match**. FORGE
+GameSheets searches for the entered title and automatically saves a result only
+when one returned title is an exact match after conservative normalization and
+any year tie-break. Unresolved duplicate titles, partial matches, and other
+ambiguous results remain unlinked until the user selects a candidate.
 For a newly discovered folder ending in a standalone `(YYYY)`, the title is
 searched without that suffix and the year breaks ties between otherwise exact
-matches; it never forces a mismatched or uncertain result. Automatically
-matched new games share detail requests in groups of up to 20, while each
-new game still needs its own search. Pending details survive a restart
-and a failed detail batch can be retried without repeating successful searches.
+matches; it never forces a mismatched or uncertain result. New games discovered
+by a scan are matched in the background when a token is configured. Each
+unlinked game needs its own title search; automatically matched IDs then share
+detail requests in groups of up to 20. Pending work survives a restart, and
+failed detail requests can be retried without repeating successful searches.
 When a game is already linked, every different-match search requires an explicit
 selection so an existing association is never replaced silently.
+
+In **Settings → BoardGameGeek integration**, an Admin can choose **Refresh all
+eligible games**. Linked games refresh by BGG ID in batches of up to 20;
+unlinked games need individual title searches before their matched IDs can be
+fetched in batches. Games with BGG lookup disabled are skipped. The Settings
+page estimates the requests and shows lookup progress, games needing manual
+selection, and failed requests that can be retried. The background worker waits
+at least five seconds between XML API requests. Starting a new full refresh
+repeats the lookups.
 
 The manual URL fallback is the authoritative override when title search cannot
 find the intended entry. With a token configured, FORGE GameSheets looks up the exact ID in
@@ -69,18 +85,38 @@ the supplied URL without running another title search. It replaces the current
 association only after that ID is verified; a missing entry or temporary API
 failure leaves the existing association unchanged.
 
-A linked entry offers Game and Files shortcuts, metadata refresh, a different
-match search, and association removal. Refresh looks up the already selected BGG
-ID and cannot silently switch the association. These explicit actions do not run
-during a library scan. The browser returns to the integration section after an
-action so results and errors remain visible.
+A linked entry offers Game, Files, and Versions shortcuts, metadata refresh, a
+different-match search, and association removal. Refresh looks up the already
+selected BGG ID and cannot silently switch the association. Individual refresh
+and different-match actions do not run merely because the library is scanned.
+The browser returns to the integration section after an action so results and
+errors remain visible.
+
+**Assign game categories from BoardGameGeek** in Settings defaults to enabled.
+It assigns only existing FORGE GameSheets categories whose names match BGG
+Category or Mechanism names; it never creates, renames, or removes category
+options. Initial matching assigns these only to uncategorized new games; a
+later BGG refresh can add matching assignments without removing existing or
+manually assigned categories. An Admin can turn the option off without
+disabling title matching, descriptions, or artwork. Existing assignments remain
+unchanged. BGG includes category links in the game-details response, so turning
+the option off does not reduce the number of API requests.
+
+Under **Your edition**, a user can save a specific BGG version URL or numeric
+ID. This remains a manual reference without a token. With a token and an
+API-verified game association, saving a version can fill a blank edition label
+and an entirely empty set of box dimensions when BGG provides them. It never
+overwrites existing labels or dimensions; review them if the selected game or
+version changes.
+
 Successful metadata lookups also attempt a separate unauthenticated inspection
 of the main game's canonical redirect to capture its URL slug. This bounded
-request never forwards the API token, follows redirects or reads HTML. If it
+request never forwards the API token, follows redirects, or reads HTML. If it
 fails, API metadata can still be saved; missing-slug Files/Versions links fall
 back to the main game page. Refresh repairs older associations when resolution
 succeeds. An explicit **Resolve BGG page link** action is also available without
-an API token. No page view or library scan makes these requests.
+an API token. Page views and library scans do not directly make these requests;
+background metadata lookups queued for newly scanned games may make them later.
 
 Do not use private or undocumented BGG APIs. API-derived data must not be used
 to train an AI or language model. A commercial deployment must obtain whatever

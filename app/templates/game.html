@@ -96,6 +96,7 @@
                 </span>
                 <div class="resource-copy">
                   <strong>{{ resource.title }}</strong>
+                  {% if resource.id in fgs_sheet_titles %}<small>Sheet title: {{ fgs_sheet_titles[resource.id] }}</small>{% endif %}
                   {% if resource.variant %}<small>{{ resource.variant }}</small>{% endif %}
                   {% if resource.id in unavailable_resource_ids %}
                     <small class="resource-warning" role="status">File unavailable · Rescan the library</small>
@@ -140,7 +141,7 @@
                     <a class="resource-action" href="{{ url_for('resource_view', resource_id=resource.id) }}" target="_blank" rel="noopener">View image</a>
                     <a class="resource-action" href="{{ url_for('resource_download', resource_id=resource.id) }}">Download</a>
                     {% elif resource.provider == 'fgs' %}
-                    {% if request.state.can_contribute %}<form method="post" action="{{ url_for('resource_open_in_designer', resource_id=resource.id) }}"><button class="resource-action" type="submit">Open copy in Sheet Designer</button></form>{% endif %}
+                    {% if resource.id in fgs_matching_ids %}<a class="resource-action" href="{{ url_for('resource_open_matching_fgs', resource_id=resource.id) }}">{% if fgs_matching_ids[resource.id]|length == 1 %}Open matching FGS in Sheet Designer{% else %}Choose from {{ fgs_matching_ids[resource.id]|length }} matching FGS sheets{% endif %}</a>{% else %}<a class="resource-action" href="{{ url_for('resource_fgs_preview', resource_id=resource.id) }}">Preview/Open FGS</a>{% endif %}
                     <a class="resource-action" href="{{ url_for('resource_download', resource_id=resource.id) }}">Download FGS</a>
                     {% else %}
                     <a class="resource-action" href="{{ url_for('resource_download', resource_id=resource.id) }}">Download</a>

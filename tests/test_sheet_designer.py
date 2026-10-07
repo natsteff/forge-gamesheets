@@ -410,6 +410,45 @@ def test_import_creates_a_new_workspace_without_overwriting_current(tmp_path: Pa
     assert store.load_document(imported_item["id"])["id"] == imported["id"]
 
 
+def test_matching_drafts_require_exact_title_and_content_without_writes(
+    tmp_path: Path,
+):
+    store = FileDraftStore(tmp_path / "designer")
+    source = json.loads(
+        (Path(__file__).parent / "fixtures/fgs/v1-valid-minimal.fgs").read_text()
+    )
+    assert store.matching_document_ids(source) == ()
+    assert not store.drafts.exists()
+
+    store.import_document(source)
+    matching_id = store.list_documents()["current_id"]
+    changed = json.loads(json.dumps(source))
+    changed["rows"][0]["blocks"][0]["title"] = "Different heading"
+    store.import_document(changed)
+    same_name_different_id = store.list_documents()["current_id"]
+    assert same_name_different_id != matching_id
+    before = {path.name: path.read_bytes() for path in store.drafts.glob("*.fgs")}
+    pointer = store.current_pointer.read_bytes()
+
+    assert store.matching_document_ids(source) == (matching_id,)
+    assert store.matching_document_ids({"title": "No matching title"}) == ()
+    assert store.matching_document_ids({**source, "id": "different-sheet-id"}) == ()
+    assert (
+        {path.name: path.read_bytes() for path in store.drafts.glob("*.fgs")}
+        == before
+    )
+    assert store.current_pointer.read_bytes() == pointer
+
+    store.import_document(source)
+    assert len(store.matching_document_ids(source)) == 2
+    choices = store.matching_document_choices(source)
+    assert len(choices) == 2
+    assert sum(choice["current"] for choice in choices) == 1
+    assert {choice["id"] for choice in choices} == set(
+        store.matching_document_ids(source)
+    )
+
+
 def test_fgs_conformance_fixtures():
     fixtures = Path(__file__).parent / "fixtures" / "fgs"
     valid = json.loads((fixtures / "v1-valid-minimal.fgs").read_text())

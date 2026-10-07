@@ -1,8 +1,9 @@
 # FGS 1.4 specification
 
-Status: Implemented locally; publication is verified separately.
+Status: Current FGS file version. Implemented in FORGE GameSheets and FGS Studio;
+each application's publication is verified separately.
 
-FGS 1.4 extends [FGS 1.3](FGS_V1_3_SPECIFICATION.md) without changing sheet content or the [FGS 1.3 Page Rendering Profile](FGS_PAGE_RENDERING_PROFILE_1_3.md). It adds optional, portable print defaults. Readers accept versions 1.0–1.4; older files remain valid. These fields require `format_version: "1.4"` and are omitted unless selected. Unknown ordinary properties remain invalid. The structural schema is [fgs-v1.4.schema.json](schemas/fgs-v1.4.schema.json).
+FGS 1.4 extends [FGS 1.3](FGS_V1_3_SPECIFICATION.md) without changing sheet content or [Page Rendering Profile 1.3.1](FGS_PAGE_RENDERING_PROFILE_1_3.md). It adds optional, portable print defaults. Readers accept versions 1.0–1.4; older files remain valid. These fields require `format_version: "1.4"` and are omitted unless selected. Unknown ordinary properties remain invalid. The structural schema is [fgs-v1.4.schema.json](schemas/fgs-v1.4.schema.json).
 
 `page.size` (`letter` or `a4`) and `page.orientation` (`portrait` or `landscape`) were already stored in earlier FGS versions. FGS 1.4 adds optional `page.finished_size`:
 

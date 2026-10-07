@@ -8,6 +8,13 @@ confirmation page listing the selected games, category choices, and impact.
 Confirm and apply performs the change; Cancel makes no changes. The result reports
 changed games and keeps filters.
 
+Admins can turn off **Settings → BoardGameGeek integration → Add categories from
+BoardGameGeek**. This default-on setting affects new-game enrichment, batch
+refreshes, and individual BGG matching or refreshes. Turning it off does not
+remove existing assignments or affect manual category editing. It is separate
+from folder-name category import. The BGG game-details request still runs for
+other metadata, so disabling categories does not remove an API request.
+
 Admins can enable Settings → Library scanning → Import game categories from
 folder names. It defaults off, persists in the database, and takes effect on the
 next scan without a restart. It applies only to newly discovered games.

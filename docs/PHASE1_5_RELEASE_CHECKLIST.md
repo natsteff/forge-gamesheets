@@ -78,6 +78,11 @@ Record the final test count in the release notes.
 - [ ] No fixed critical container vulnerability passes the blocking scan.
 - [ ] Review high findings and unfixed critical findings rather than treating a
   non-blocking result as evidence that they are harmless.
+- [ ] Review the Node and Undici versions recorded for both image variants against
+  current [Node.js security releases](https://nodejs.org/en/blog/vulnerability/).
+  Record the versions, any applicable advisories, and the decision to update or
+  accept each finding. The container scan does not inventory the copied Node
+  executable, and the build's minimum-version check covers only earlier advisories.
 - [ ] Record the workflow run and scanner results with the release candidate.
 - [ ] Complete or refresh the applicable OWASP ASVS self-assessment. Record that
   the release uses automated and maintainer-led, AI-assisted review and is not

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Preview {{ sheet_title }} · FORGE GameSheets{% endblock %}
+
+{% block content %}
+  <a class="back-link" href="{{ url_for('game_detail', game_id=resource.game_id) }}#resource-{{ resource.id }}">← Back to game</a>
+  <section class="fgs-source-preview-page">
+    <p class="eyebrow">Library FGS source</p>
+    <h1>{{ sheet_title }}</h1>
+    <p>This is a read-only preview of the file in your game library. No Sheet Designer copy has been created.</p>
+    <div class="resource-actions">
+      <a class="resource-action" href="{{ url_for('resource_download', resource_id=resource.id) }}">Download FGS</a>
+      {% if request.state.can_contribute %}
+        <form method="post" action="{{ url_for('resource_open_in_designer', resource_id=resource.id) }}">
+          <button class="resource-action" type="submit">Import a new copy into Sheet Designer</button>
+        </form>
+      {% endif %}
+    </div>
+    <img class="fgs-source-preview-image" src="{{ url_for('resource_fgs_preview_image', resource_id=resource.id) }}" alt="Preview of {{ sheet_title }}">
+  </section>
+{% endblock %}

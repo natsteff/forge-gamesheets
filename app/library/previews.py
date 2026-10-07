@@ -122,7 +122,9 @@ def cached_resource_preview(
     return destination
 
 
-def render_pdf_preview(source: Path, temporary: Path) -> None:
+def render_pdf_preview(
+    source: Path, temporary: Path, *, preview_size: tuple[int, int] = PREVIEW_SIZE
+) -> None:
     """Render the first page of a trusted PDF into a bounded WebP preview."""
     try:
         with pymupdf.open(source) as document:
@@ -139,11 +141,11 @@ def render_pdf_preview(source: Path, temporary: Path) -> None:
                 )
             pixmap = page.get_pixmap(matrix=pymupdf.Matrix(1.5, 1.5), alpha=False)
             with Image.open(BytesIO(pixmap.tobytes("png"))) as rendered:
-                contained = ImageOps.contain(rendered.convert("RGB"), PREVIEW_SIZE)
-                preview = Image.new("RGB", PREVIEW_SIZE, "white")
+                contained = ImageOps.contain(rendered.convert("RGB"), preview_size)
+                preview = Image.new("RGB", preview_size, "white")
                 offset = (
-                    (PREVIEW_SIZE[0] - contained.width) // 2,
-                    (PREVIEW_SIZE[1] - contained.height) // 2,
+                    (preview_size[0] - contained.width) // 2,
+                    (preview_size[1] - contained.height) // 2,
                 )
                 preview.paste(contained, offset)
                 with processing_budget.bounded_output(

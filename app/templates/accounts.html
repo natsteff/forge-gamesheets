@@ -28,7 +28,7 @@
     <section class="settings-section">
       <h2>{{ user.username }}</h2>
       <p>Account #{{ user.id }} · {% if user.enabled %}Enabled{% else %}Disabled{% endif %}</p>
-      <form class="metadata-form settings-form" action="{{ url_for('accounts_update', user_id=user.id) }}" method="post">
+      <form class="metadata-form settings-form account-update-form" action="{{ url_for('accounts_update', user_id=user.id) }}" method="post">
         <label for="role-{{ user.id }}">Role</label>
         <select id="role-{{ user.id }}" name="role">{% for role in ['reader', 'contributor', 'admin'] %}<option value="{{ role }}"{% if role == user.role %} selected{% endif %}>{{ role|title }}</option>{% endfor %}</select>
         <label class="checkbox-option">

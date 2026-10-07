@@ -1,6 +1,7 @@
 # FGS Page Rendering Profile 1.3.1
 
-Status: Implemented and owner-reviewed. Publication is verified separately.
+Status: Current rendering profile, implemented and owner-reviewed. Publication
+of each consuming application is verified separately.
 Profile ID: `fgs-page-1.3.1`. Extends [Profile 1.2](FGS_PAGE_RENDERING_PROFILE_1_2.md)
 and accepts FGS 1.0–1.4. FGS 1.4 adds print defaults without changing this
 profile's geometry. Fonts, 36-point margins,

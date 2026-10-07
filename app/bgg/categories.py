@@ -10,11 +10,18 @@ def apply_bgg_categories(
     """Assign existing exact-name categories, never creating or removing any."""
     if mode not in {"empty-only", "additive"}:
         raise ValueError("Invalid BGG category mode.")
-    terms = {name.casefold() for name in (*game.categories, *game.mechanisms)}
-    if not terms:
-        return ()
     with database.connect() as connection:
         connection.execute("BEGIN IMMEDIATE")
+        enabled = connection.execute(
+            "SELECT bgg_categories FROM application_preferences WHERE id=1"
+        ).fetchone()
+        if enabled is None or not enabled[0]:
+            connection.rollback()
+            return ()
+        terms = {name.casefold() for name in (*game.categories, *game.mechanisms)}
+        if not terms:
+            connection.rollback()
+            return ()
         if not connection.execute(
             "SELECT 1 FROM games WHERE id=?", (game_id,)
         ).fetchone():

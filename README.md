@@ -110,7 +110,9 @@ The published container also has an optional Designer-only mode; see the
 
 The [FGS format index](docs/FGS_FORMAT.md) links the cumulative 1.0–1.4
 specifications, JSON Schemas, rendering profiles, and renderer source. The 1.4
-additions document alone is not the entire specification.
+additions document alone is not the entire specification. FGS 1.4 still uses
+[Page Rendering Profile 1.3.1](docs/FGS_PAGE_RENDERING_PROFILE_1_3.md); file
+format and rendering profile versions are separate.
 
 ## Current boundaries
 

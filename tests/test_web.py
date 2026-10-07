@@ -1,6 +1,8 @@
 """Tests for the first server-rendered library pages."""
 
+import json
 import re
+import shutil
 from dataclasses import replace
 from html.parser import HTMLParser
 from io import BytesIO
@@ -130,6 +132,13 @@ def test_reprint_maintenance_explains_operations_and_requires_base_url(web_clien
     assert "Unavailable sources are skipped and reported" in page.text
     assert "Scan the library first" in page.text
     assert "Source PDFs are never changed" in page.text
+    styles = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
+    assert (
+        ".maintenance-options { display: grid; gap: 0.8rem; margin-bottom: 1.25rem; }"
+        in styles
+    )
+    assert ".game-grid + .bgg-attribution { margin-top: 1.5rem; }" in styles
+    assert ".account-update-form { margin-bottom: 1.25rem; }" in styles
     assert (
         web_client.post(
             "/settings/reprints/start", data={"operation": "create_missing"}
@@ -302,39 +311,55 @@ def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
         "Design printable GameSheets, use LiveSheets, and organize your "
         "game-resource library" in response.text
     )
-    assert "styles.css?v=69" in response.text
+    assert "styles.css?v=72" in response.text
     hero_rule = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
     assert ".hero h1 { max-width: 18ch;" in hero_rule
     assert '<p class="eyebrow">Game library</p>' not in response.text
 
 
-def test_home_lists_compact_category_cards(web_client: TestClient) -> None:
+def test_home_and_all_games_show_full_grid_with_letter_jumps(
+    web_client: TestClient, tmp_path: Path
+) -> None:
     response = web_client.get("/")
-    with web_client.app.state.database.connect() as connection:
-        empty_id = connection.execute(
-            "SELECT id FROM game_categories WHERE name='Card Game'"
-        ).fetchone()[0]
-        board_id = connection.execute(
-            "SELECT id FROM game_categories WHERE name='Board'"
-        ).fetchone()[0]
-
     assert response.status_code == 200
+    assert "All Games" in response.text
     assert "Browse categories" in response.text
-    assert response.text.index("All Games") < response.text.index("Uncategorized")
-    assert f'/categories/{board_id}"' not in response.text
-    assert "Uncategorized" in response.text
-    assert f'/categories/{empty_id}"' not in response.text
-    assert "Show empty categories" in response.text
-    shown_home = web_client.get("/?show_empty=1")
-    assert f'/categories/{empty_id}"' in shown_home.text
-    assert "Hide empty categories" in shown_home.text
-    assert f'/categories/{empty_id}"' in web_client.get("/categories?show_empty=1").text
-    assert "2 games" in response.text
-    assert "Empty Game" not in response.text
+    assert "Empty Game" in response.text
+    assert "Farkle" in response.text
+    assert "Show empty categories" not in response.text
     all_games = web_client.get("/games")
     assert all_games.text.index("Empty Game") < all_games.text.index("Farkle")
+    for page in (response.text, all_games.text):
+        assert 'aria-label="Jump to game title initial"' not in page
+        assert 'id="game-letter-E"' not in page
+
+    for number in range(47):
+        (tmp_path / "library" / f"Game {number:02}").mkdir()
+    assert web_client.post("/rescan").status_code == 200
+    for path in ("/", "/games"):
+        assert 'aria-label="Jump to game title initial"' not in web_client.get(
+            path
+        ).text
+
+    (tmp_path / "library" / "7 Wonders").mkdir()
+    assert web_client.post("/rescan").status_code == 200
+    for path in ("/", "/games"):
+        page = web_client.get(path).text
+        assert 'aria-label="Jump to game title initial"' in page
+        assert 'href="#game-letter-E"' in page
+        assert 'href="#game-letter-F"' in page
+        assert 'id="game-letter-E"' in page
+        assert 'id="game-letter-F"' in page
+        assert '<span aria-hidden="true">A</span>' in page
+        assert 'href="#game-letter-other"' in page
+        assert 'id="game-letter-other"' in page
+        assert page.index("7 Wonders") < page.index("Empty Game")
+
     uncategorized = web_client.get("/categories/uncategorized")
-    assert uncategorized.text.index("Empty Game") < uncategorized.text.index("Farkle")
+    assert uncategorized.text.index("7 Wonders") < uncategorized.text.index(
+        "Empty Game"
+    )
+    assert 'aria-label="Jump to game title initial"' not in uncategorized.text
     assert "0 resources" in uncategorized.text
     assert "3 resources" in uncategorized.text
 
@@ -366,7 +391,7 @@ def test_categories_hide_empty_uncategorized_card(web_client: TestClient) -> Non
             (category_id,),
         )
     assert "/categories/uncategorized" not in web_client.get("/").text
-    assert f"/categories/{category_id}" in web_client.get("/").text
+    assert f"/categories/{category_id}" not in web_client.get("/").text
     assert "/categories/uncategorized" not in web_client.get("/categories").text
     assert (
         "/categories/uncategorized" in web_client.get("/categories?show_empty=1").text
@@ -392,7 +417,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=12" in response.text
-    assert "/static/styles.css?v=69" in response.text
+    assert "/static/styles.css?v=72" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text
@@ -510,6 +535,39 @@ def test_settings_bgg_test_preserves_token_free_and_rejected_states(
     page = web_client.get(rejected.headers["location"])
     assert "rejected the configured token" in page.text
     assert "rejected-secret" not in page.text
+
+
+def test_settings_can_disable_bgg_categories_without_changing_folder_import(
+    web_client: TestClient,
+) -> None:
+    initial = web_client.get("/settings")
+    assert 'name="bgg_categories" checked' in initial.text
+    assert "If enabled, for optional BGG auto-categorization" in initial.text
+    assert "Assign game categories from BoardGameGeek" in initial.text
+    assert "This does not create new category options." in initial.text
+    assert 'class="suggested-categories-form"' in initial.text
+
+    saved = web_client.post("/settings/bgg/categories", follow_redirects=False)
+    assert saved.status_code == 303
+    assert saved.headers["location"].endswith("#bgg-integration")
+    with web_client.app.state.database.connect() as connection:
+        row = connection.execute(
+            "SELECT bgg_categories,folder_categories FROM application_preferences "
+            "WHERE id=1"
+        ).fetchone()
+    assert tuple(row) == (0, 0)
+    disabled = web_client.get(saved.headers["location"])
+    assert 'name="bgg_categories" checked' not in disabled.text
+    assert "BGG category preference saved" in disabled.text
+
+    web_client.post("/settings/bgg/categories", data={"bgg_categories": "on"})
+    with web_client.app.state.database.connect() as connection:
+        assert (
+            connection.execute(
+                "SELECT bgg_categories FROM application_preferences WHERE id=1"
+            ).fetchone()[0]
+            == 1
+        )
 
 
 @pytest.mark.parametrize("action", ["find", "select", "retry", "unlink", "lookup"])
@@ -1304,6 +1362,7 @@ def test_non_pdf_resources_are_categorized_and_other_files_listed_last(
     assert indexed["archive.zip"]["provider"] == "other"
     assert ".hidden.txt" not in indexed
 
+    drafts_before_detail = web_client.app.state.sheet_designer_store.list_documents()
     page = web_client.get("/games/2").text
     assert page.index("<h2>Other</h2>") < page.index("<h2>Other Files Detected</h2>")
     other_section = page.split("<h2>Other Files Detected</h2>", 1)[1]
@@ -1311,6 +1370,15 @@ def test_non_pdf_resources_are_categorized_and_other_files_listed_last(
     assert "resource-action" not in other_section
     assert "Image (png)" in page
     assert "Document (docx)" in page
+    assert "<h2>FGS GameSheets</h2>" in page
+    assert page.index("<h2>FGS GameSheets</h2>") < page.index("<h2>Other</h2>")
+    assert "Sheet title: Minimal Score Sheet" in page
+    assert "Preview/Open FGS" in page
+    assert "Open matching FGS in Sheet Designer" not in page
+    assert (
+        web_client.app.state.sheet_designer_store.list_documents()
+        == drafts_before_detail
+    )
     for name in ("Farkle - Photo.png", "Farkle - Rules.docx", "Farkle - Records.fgs"):
         row = page.split(f'id="resource-{indexed[name]["id"]}"', 1)[1].split(
             "</article>", 1
@@ -1363,6 +1431,42 @@ def test_non_pdf_resources_are_categorized_and_other_files_listed_last(
     assert web_client.get(f"/resources/{other_id}/download").status_code == 404
     assert web_client.post(f"/resources/{other_id}/favorite").status_code == 404
     fgs_id = indexed["Farkle - Records.fgs"]["id"]
+    drafts_before_detail = web_client.app.state.sheet_designer_store.list_documents()
+    moved = web_client.post(
+        f"/resources/{fgs_id}/edit",
+        data={"title": "Records", "category": "rules", "variant": ""},
+        follow_redirects=False,
+    )
+    assert moved.status_code == 303
+    web_client.post("/rescan")
+    moved_page = web_client.get("/games/2").text
+    moved_row = moved_page.split(f'id="resource-{fgs_id}"', 1)[1].split(
+        "</article>", 1
+    )[0]
+    assert "Sheet title: Minimal Score Sheet" in moved_row
+    rules_section = moved_page.split("<h2>Rules</h2>", 1)[1].split("</section>", 1)[0]
+    assert f'id="resource-{fgs_id}"' in rules_section
+    assert "<h2>FGS GameSheets</h2>" not in moved_page
+    assert (
+        web_client.app.state.sheet_designer_store.list_documents()
+        == drafts_before_detail
+    )
+    assert web_client.post(f"/resources/{fgs_id}/reset").status_code == 200
+    assert "<h2>FGS GameSheets</h2>" in web_client.get("/games/2").text
+    preview_page = web_client.get(f"/resources/{fgs_id}/fgs-preview")
+    assert preview_page.status_code == 200
+    assert "read-only preview" in preview_page.text
+    assert "Import a new copy into Sheet Designer" in preview_page.text
+    assert preview_page.text.index("Download FGS") < preview_page.text.index(
+        'class="fgs-source-preview-image"'
+    )
+    assert preview_page.text.index(
+        "Import a new copy into Sheet Designer"
+    ) < preview_page.text.index('class="fgs-source-preview-image"')
+    assert (
+        web_client.app.state.sheet_designer_store.list_documents()
+        == drafts_before_detail
+    )
     before = fgs_path.read_bytes()
     opened = web_client.post(
         f"/resources/{fgs_id}/open-in-designer", follow_redirects=False
@@ -1372,6 +1476,19 @@ def test_non_pdf_resources_are_categorized_and_other_files_listed_last(
     assert (
         web_client.app.state.sheet_designer_store.load()["title"]
         == "Minimal Score Sheet"
+    )
+    match_page = web_client.get("/games/2").text
+    assert "Open matching FGS in Sheet Designer" in match_page
+    assert "Preview/Open FGS" not in match_page
+    drafts_after_import = web_client.app.state.sheet_designer_store.list_documents()
+    opened_match = web_client.get(
+        f"/resources/{fgs_id}/open-matching-fgs", follow_redirects=False
+    )
+    assert opened_match.status_code == 303
+    assert opened_match.headers["location"] == "/sheet-designer?resume=1"
+    assert (
+        web_client.app.state.sheet_designer_store.list_documents()
+        == drafts_after_import
     )
     assert fgs_path.read_bytes() == before
 
@@ -1414,9 +1531,143 @@ def test_invalid_library_fgs_cannot_be_imported(
             "SELECT id FROM resources WHERE relative_path=?", ("Farkle/bad.fgs",)
         ).fetchone()[0]
     before = web_client.app.state.sheet_designer_store.list_documents()
+    page = web_client.get("/games/2").text
+    assert "<h2>FGS GameSheets</h2>" in page
+    assert "Sheet title:" not in page
+    assert web_client.app.state.sheet_designer_store.list_documents() == before
     result = web_client.post(f"/resources/{resource_id}/open-in-designer")
     assert result.status_code == 422
     assert web_client.app.state.sheet_designer_store.list_documents() == before
+
+
+def test_fgs_match_action_previews_changed_content_and_chooses_duplicate(
+    web_client: TestClient, tmp_path: Path
+) -> None:
+    source = json.loads(
+        (Path(__file__).parent / "fixtures/fgs/v1-valid-minimal.fgs").read_text()
+    )
+    library_fgs = tmp_path / "library" / "Farkle" / "sheet.fgs"
+    library_fgs.write_text(json.dumps(source))
+    web_client.post("/rescan")
+    with web_client.app.state.database.connect() as connection:
+        resource_id = connection.execute(
+            "SELECT id FROM resources WHERE relative_path='Farkle/sheet.fgs'"
+        ).fetchone()[0]
+    store = web_client.app.state.sheet_designer_store
+    store.import_document(source)
+    assert "Open matching FGS in Sheet Designer" in web_client.get("/games/2").text
+
+    changed = json.loads(json.dumps(source))
+    changed["rows"][0]["blocks"][0]["title"] = "Changed score table"
+    library_fgs.write_text(json.dumps(changed))
+    assert "Preview/Open FGS" in web_client.get("/games/2").text
+    fallback = web_client.get(
+        f"/resources/{resource_id}/open-matching-fgs", follow_redirects=False
+    )
+    assert fallback.headers["location"] == f"/resources/{resource_id}/fgs-preview"
+
+    library_fgs.write_text(json.dumps(source))
+    store.import_document(source)
+    before = store.list_documents()
+    page = web_client.get("/games/2").text
+    assert "Choose from 2 matching FGS sheets" in page
+    assert "Open matching FGS in Sheet Designer" not in page
+    assert "Preview/Open FGS" not in page
+    chooser = web_client.get(
+        f"/resources/{resource_id}/open-matching-fgs", follow_redirects=False
+    )
+    assert chooser.status_code == 200
+    assert "same title and FGS content" in chooser.text
+    assert chooser.text.count("Open this saved sheet") == 2
+    assert store.list_documents() == before
+
+    selected_id = store.matching_document_ids(source)[0]
+    library_fgs.write_text(json.dumps(changed))
+    stale = web_client.post(
+        f"/resources/{resource_id}/open-matching-fgs",
+        data={"workspace_id": selected_id},
+        follow_redirects=False,
+    )
+    assert stale.headers["location"] == f"/resources/{resource_id}/open-matching-fgs"
+    assert store.list_documents() == before
+
+    library_fgs.write_text(json.dumps(source))
+    selected = web_client.post(
+        f"/resources/{resource_id}/open-matching-fgs",
+        data={"workspace_id": selected_id},
+        follow_redirects=False,
+    )
+    assert selected.headers["location"] == "/sheet-designer?resume=1"
+    after = store.list_documents()
+    assert after["current_id"] == selected_id
+    assert after["documents"] == before["documents"]
+
+
+def test_fgs_preview_image_is_read_only(
+    web_client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = Path(__file__).parent / "fixtures/fgs/v1-valid-minimal.fgs"
+    (tmp_path / "library" / "Farkle" / "sheet.fgs").write_bytes(source.read_bytes())
+    web_client.post("/rescan")
+    with web_client.app.state.database.connect() as connection:
+        resource_id = connection.execute(
+            "SELECT id FROM resources WHERE relative_path='Farkle/sheet.fgs'"
+        ).fetchone()[0]
+
+    def fake_render_pdf(document: dict, output: Path) -> Path:
+        assert document["title"] == "Minimal Score Sheet"
+        with fitz.open() as pdf:
+            page = pdf.new_page()
+            page.insert_text((72, 72), document["title"])
+            pdf.save(output)
+        return output
+
+    monkeypatch.setattr("app.web.render_pdf", fake_render_pdf)
+    store = web_client.app.state.sheet_designer_store
+    before = store.list_documents()
+    preview = web_client.get(f"/resources/{resource_id}/fgs-preview.webp")
+    assert preview.status_code == 200
+    assert preview.headers["content-type"] == "image/webp"
+    assert preview.content.startswith(b"RIFF")
+    assert preview.content[8:12] == b"WEBP"
+    with Image.open(BytesIO(preview.content)) as rendered:
+        assert rendered.size == (850, 1100)
+    assert store.list_documents() == before
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node renderer unavailable")
+def test_fgs_preview_uses_shared_renderer(
+    web_client: TestClient, tmp_path: Path
+) -> None:
+    source = Path(__file__).parent / "fixtures/fgs/v1-valid-minimal.fgs"
+    (tmp_path / "library" / "Farkle" / "sheet.fgs").write_bytes(source.read_bytes())
+    web_client.post("/rescan")
+    with web_client.app.state.database.connect() as connection:
+        resource_id = connection.execute(
+            "SELECT id FROM resources WHERE relative_path='Farkle/sheet.fgs'"
+        ).fetchone()[0]
+    before = web_client.app.state.sheet_designer_store.list_documents()
+
+    preview = web_client.get(f"/resources/{resource_id}/fgs-preview.webp")
+
+    assert preview.status_code == 200
+    with Image.open(BytesIO(preview.content)) as rendered:
+        assert rendered.size == (850, 1100)
+    assert web_client.app.state.sheet_designer_store.list_documents() == before
+
+
+def test_library_fgs_sheet_title_is_escaped(
+    web_client: TestClient, tmp_path: Path
+) -> None:
+    source = Path(__file__).parent / "fixtures/fgs/v1-valid-minimal.fgs"
+    title = "<script>alert(1)</script>"
+    library_fgs = tmp_path / "library" / "Farkle" / "sheet.fgs"
+    library_fgs.write_text(source.read_text().replace("Minimal Score Sheet", title))
+    web_client.post("/rescan")
+
+    page = web_client.get("/games/2").text
+    assert "Sheet title: &lt;script&gt;alert(1)&lt;/script&gt;" in page
+    assert f"Sheet title: {title}" not in page
 
 
 def test_unknown_game_returns_not_found(web_client: TestClient) -> None:
@@ -2235,8 +2486,8 @@ def test_multiple_game_categories_can_be_assigned_and_survive_rescan(
         in web_client.get(saved.headers["location"]).text
     )
     categorized_home = web_client.get("/")
-    assert "Farkle" not in categorized_home.text
-    assert "1 game" in categorized_home.text
+    assert "Farkle" in categorized_home.text
+    assert "Browse categories" in categorized_home.text
     assert "Farkle" in web_client.get(f"/categories/{board_id}").text
     assert "Farkle" in web_client.get(f"/categories/{card_id}").text
     web_client.post("/rescan")

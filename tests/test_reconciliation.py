@@ -6,6 +6,7 @@ import pytest
 
 from app.database import Database
 from app.library.reconciliation import (
+    DeletionReviewRequired,
     ReconciliationError,
     ReconciliationSummary,
     reconcile_scan,
@@ -151,7 +152,11 @@ def test_reconciliation_removes_missing_resources_and_games(
     (library / "Farkle" / "Farkle - Rules.pdf").unlink()
     (second_game / "Rules.pdf").unlink()
     second_game.rmdir()
-    summary = reconcile_scan(database, scan_library(library))
+    with pytest.raises(DeletionReviewRequired) as pending:
+        reconcile_scan(database, scan_library(library))
+    summary = reconcile_scan(
+        database, scan_library(library), confirm_removals=pending.value.fingerprint
+    )
 
     assert summary == ReconciliationSummary(games_removed=1, resources_removed=2)
     with database.connect() as connection:
@@ -169,7 +174,11 @@ def test_empty_successful_scan_clears_index(library: Path, database: Database) -
         path.unlink()
     (library / "Farkle").rmdir()
 
-    summary = reconcile_scan(database, scan_library(library))
+    with pytest.raises(DeletionReviewRequired) as pending:
+        reconcile_scan(database, scan_library(library))
+    summary = reconcile_scan(
+        database, scan_library(library), confirm_removals=pending.value.fingerprint
+    )
 
     assert summary == ReconciliationSummary(games_removed=1, resources_removed=2)
 

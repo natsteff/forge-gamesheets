@@ -111,6 +111,10 @@ def test_grouped_navigation_users_visibility(secured, role):
         assert "Choose your crew" in accounts_page
         assert "<h1>User Accounts</h1>" in accounts_page
         assert 'class="checkbox-option"' in accounts_page
+        assert (
+            'class="metadata-form settings-form account-update-form"'
+            in accounts_page
+        )
 
 
 def test_bulk_category_page_and_confirmation(secured):
@@ -196,6 +200,7 @@ def test_bulk_category_page_and_confirmation(secured):
         client.post("/settings/scanning", data={"folder_categories": "on"}).status_code
         == 403
     )
+    assert client.post("/settings/bgg/categories").status_code == 403
 
 
 def test_manual_bgg_without_token(secured):

@@ -838,6 +838,33 @@ MIGRATIONS += (
             "ALTER TABLE bgg_enrichment_queue ADD COLUMN candidate_source_title TEXT",
         ),
     ),
+    Migration(
+        version=35,
+        name="add_bgg_category_enrichment_setting",
+        statements=(
+            "ALTER TABLE application_preferences ADD COLUMN bgg_categories "
+            "INTEGER NOT NULL DEFAULT 1 CHECK(bgg_categories IN (0,1))",
+        ),
+    ),
+    Migration(
+        version=36,
+        name="add_auto_rescan_frequency",
+        statements=(
+            "ALTER TABLE application_preferences ADD COLUMN auto_rescan_minutes "
+            "INTEGER NOT NULL DEFAULT 0 "
+            "CHECK(auto_rescan_minutes IN (0,15,30,60,480,1440))",
+        ),
+    ),
+    Migration(
+        version=37,
+        name="add_local_event_scan_setting",
+        statements=(
+            "ALTER TABLE application_preferences ADD COLUMN local_event_scans "
+            "INTEGER NOT NULL DEFAULT 0 CHECK(local_event_scans IN (0,1))",
+            "UPDATE application_preferences SET local_event_scans=1 "
+            "WHERE auto_rescan_minutes>0",
+        ),
+    ),
 )
 
 

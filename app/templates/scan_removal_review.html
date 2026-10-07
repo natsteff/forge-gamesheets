@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Review library removals · FORGE GameSheets{% endblock %}
+
+{% block content %}
+<section class="page-intro compact-intro">
+  <p class="eyebrow">Library safety</p>
+  <h1>Review missing library items</h1>
+  <p>This scan found {{ review.games|length }} missing games and {{ review.resources|length }} missing resources—at least 10% of the current index. Check that your library or NAS mount is available before continuing. No source files will be deleted.</p>
+</section>
+<section class="settings-section">
+  <h2>Items that would leave the index</h2>
+  {% if review.games %}
+    <h3>Games</h3>
+    <ul>{% for path in review.games %}<li><code>{{ path }}</code></li>{% endfor %}</ul>
+  {% endif %}
+  {% if review.resources %}
+    <h3>Resources</h3>
+    <ul>{% for path in review.resources %}<li><code>{{ path }}</code></li>{% endfor %}</ul>
+  {% endif %}
+  <p>Confirming scans the library again. If the missing items change, you will be asked to review the new list.</p>
+  <form action="{{ url_for('library_rescan') }}" method="post">
+    <input type="hidden" name="confirm_removals" value="{{ review.fingerprint }}">
+    <button class="primary-button" type="submit">Confirm index removals</button>
+    <a class="secondary-button" href="{{ url_for('library_home') }}">Cancel and keep index</a>
+  </form>
+</section>
+{% endblock %}

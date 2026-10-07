@@ -1,5 +1,5 @@
-{% macro game_card(game) %}
-  <a class="game-card" href="{{ url_for('game_detail', game_id=game.id) }}">
+{% macro game_card(game, letter_anchor=None) %}
+  <a class="game-card"{% if letter_anchor %} id="game-letter-{{ 'other' if letter_anchor == '#' else letter_anchor }}"{% endif %} href="{{ url_for('game_detail', game_id=game.id) }}">
     {% if game.has_artwork %}
       <img class="game-artwork" src="{{ url_for('game_artwork', game_id=game.id) }}" alt="">
     {% elif game.bgg_image_url %}

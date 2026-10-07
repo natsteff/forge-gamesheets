@@ -1,6 +1,8 @@
 # Decision 007: shared FGS print renderer
 
-Status: locally implemented for verification; not yet published.
+Status: Accepted and implemented. This record describes the original Profile
+1.0 decision; the [format index](../FGS_FORMAT.md) identifies the current
+rendering profile.
 
 FGS 1.0 specifies a portable semantic document. It intentionally did not
 promise identical-looking pages. Separate HTML, Python/PyMuPDF, and Studio
@@ -22,6 +24,6 @@ to page and section titles as well as section rules, while retaining neutral
 table text. This avoids falsely claiming that all FGS 1.0 readers
 produce identical PDFs. Pixel screenshots serve as regression evidence, not
 layout coordinates. A future FGS minor version may pin a page rendering profile in a
-document; FGS 1.0 files do not yet do so. The package, container build,
-headless browser path, and full Unicode fallback require further verification
-before publication or a general conformance claim.
+document; FGS 1.0 files do not yet do so. Subsequent implementation and
+release verification are recorded in the [project plan](../../PROJECT_PLAN.md).
+Full Unicode fallback remains a separate gap before a general conformance claim.

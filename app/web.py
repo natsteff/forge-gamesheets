@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
+from string import ascii_uppercase
+from tempfile import TemporaryDirectory
 from urllib.parse import urlencode, urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from app import accounts
@@ -50,6 +53,7 @@ from app.bgg.repository import (
 )
 from app.bgg.version_enrichment import fill_blank_version_details
 from app.database import Database
+from app.library import processing_budget
 from app.library.artwork import (
     MAX_ARTWORK_BYTES,
     cached_game_artwork,
@@ -75,11 +79,17 @@ from app.library.previews import (
     PreviewUnavailable,
     cached_image_preview,
     cached_resource_preview,
+    render_pdf_preview,
 )
 from app.library.qr_access import requires_sign_in, set_requires_sign_in
-from app.library.reconciliation import ReconciliationError, reconcile_scan
+from app.library.reconciliation import (
+    DeletionReviewRequired,
+    ReconciliationError,
+    reconcile_scan,
+)
 from app.library.repository import (
     GameDetail,
+    GameSummary,
     IndexedResource,
     create_game_category,
     delete_game_category,
@@ -124,6 +134,7 @@ from app.library.resource_types import (
 )
 from app.library.scanner import LibraryScanError, ScanIssue, scan_library
 from app.preferences import (
+    AUTO_RESCAN_MINUTES,
     DEFAULT_FOOTER_TEXT,
     MAX_FOOTER_LENGTH,
     MAX_RECENT_LIMIT,
@@ -131,7 +142,19 @@ from app.preferences import (
     get_preferences,
     save_preferences,
 )
-from app.sheet_designer.model import MAX_DOCUMENT_BYTES, DocumentValidationError
+from app.sheet_designer.model import (
+    FORMAT_NAME,
+    MAX_DOCUMENT_BYTES,
+    SUPPORTED_VERSIONS,
+    DocumentValidationError,
+    normalize_document,
+)
+from app.sheet_designer.shared_rendering import (
+    MAX_PDF_BYTES,
+    PageOverflowError,
+    RendererUnavailableError,
+    render_pdf,
+)
 from app.sheet_game_associations import list_associated_sheets
 
 router = APIRouter()
@@ -144,6 +167,7 @@ _CATEGORY_ORDER = (
     ResourceCategory.ANSWER_SHEET,
     ResourceCategory.TOURNAMENT,
     ResourceCategory.SETUP,
+    ResourceCategory.FGS_GAMESHEET,
     ResourceCategory.OTHER,
 )
 
@@ -154,6 +178,7 @@ _CATEGORY_LABELS = {
     ResourceCategory.ANSWER_SHEET: "Answer Sheets",
     ResourceCategory.TOURNAMENT: "Tournament Materials",
     ResourceCategory.SETUP: "Setup",
+    ResourceCategory.FGS_GAMESHEET: "FGS GameSheets",
     ResourceCategory.OTHER: "Other",
 }
 
@@ -180,13 +205,30 @@ def _has_ready_livesheets(request: Request) -> bool:
 templates.env.globals["has_ready_livesheets"] = _has_ready_livesheets
 
 
+def _game_letter_navigation(
+    games: tuple[GameSummary, ...],
+) -> tuple[tuple[tuple[str, bool], ...], dict[int, str]]:
+    """Index title initials only when the library is large enough to need jumps."""
+    if len(games) < 50:
+        return (), {}
+    anchors: dict[int, str] = {}
+    available: set[str] = set()
+    for game in games:
+        initial = game.title.strip()[:1].upper()
+        letter = initial if len(initial) == 1 and initial in ascii_uppercase else "#"
+        if letter not in available:
+            available.add(letter)
+            anchors[game.id] = letter
+    links = tuple((letter, letter in available) for letter in ("#", *ascii_uppercase))
+    return links, anchors
+
+
 @router.get("/", response_class=HTMLResponse, name="library_home")
 def library_home(request: Request) -> HTMLResponse:
     query = request.query_params.get("q", "").strip()[:200]
     games = list_games(_database(request), query or None)
     pinned = () if query else list_pinned_resources(_database(request))
-    categories = list_game_categories(_database(request))
-    uncategorized_count = len(list_games_in_category(_database(request), None))
+    letter_links, letter_anchors = _game_letter_navigation(games if not query else ())
     scan_detail = None
     if request.query_params.get("scan") == "complete":
         try:
@@ -200,16 +242,13 @@ def library_home(request: Request) -> HTMLResponse:
         context={
             "games": games,
             "pinned": pinned,
-            "game_categories": categories,
-            "total_game_count": len(games),
-            "uncategorized_count": uncategorized_count,
-            "show_empty": request.query_params.get("show_empty") == "1",
-            "empty_category_count": sum(not item.game_count for item in categories)
-            + (not uncategorized_count),
+            "letter_links": letter_links,
+            "letter_anchors": letter_anchors,
             "query": query,
             "scan_status": request.query_params.get("scan"),
             "scan_detail": scan_detail,
             "scan_issues": request.app.state.scan_issues,
+            "auto_scan_notice": request.app.state.auto_scan_notice,
         },
     )
 
@@ -379,10 +418,21 @@ async def assign_categories_apply(request: Request):
 @router.post("/settings/scanning", name="settings_scanning")
 async def settings_scanning(request: Request):
     form = await request.form()
+    mode = str(form.get("auto_rescan_mode", ""))
+    if mode not in {"manual", "local", "15", "30", "60", "480", "1440"}:
+        raise HTTPException(422, "Invalid auto rescan mode")
+    frequency = int(mode) if mode not in {"manual", "local"} else 0
+    if frequency not in AUTO_RESCAN_MINUTES:
+        raise HTTPException(422, "Invalid auto rescan frequency")
     with _database(request).connect() as connection:
         connection.execute(
-            "UPDATE application_preferences SET folder_categories=? WHERE id=1",
-            (int(form.get("folder_categories") == "on"),),
+            "UPDATE application_preferences SET folder_categories=?, "
+            "auto_rescan_minutes=?, local_event_scans=? WHERE id=1",
+            (
+                int(form.get("folder_categories") == "on"),
+                frequency,
+                int(mode != "manual"),
+            ),
         )
     return RedirectResponse("/settings?status=scanning-saved", 303)
 
@@ -410,13 +460,17 @@ def categories_home(request: Request) -> HTMLResponse:
 @router.get("/games", response_class=HTMLResponse, name="all_games")
 def all_games(request: Request) -> HTMLResponse:
     """Show every indexed game in one alphabetical list."""
+    games = list_games(_database(request))
+    letter_links, letter_anchors = _game_letter_navigation(games)
     return templates.TemplateResponse(
         request=request,
         name="category.html",
         context={
             "category_name": "All Games",
-            "games": list_games(_database(request)),
+            "games": games,
             "page_descriptor": "Complete library",
+            "letter_links": letter_links,
+            "letter_anchors": letter_anchors,
         },
     )
 
@@ -579,6 +633,23 @@ def settings_bgg_refresh_all(request: Request) -> RedirectResponse:
 
 
 @router.post(
+    "/settings/bgg/categories",
+    response_class=RedirectResponse,
+    name="settings_bgg_categories",
+)
+async def settings_bgg_categories(request: Request) -> RedirectResponse:
+    """Control only BGG-driven category assignment, not manual categories."""
+    form = await request.form()
+    with _database(request).connect() as connection:
+        connection.execute(
+            "UPDATE application_preferences SET bgg_categories=?,"
+            "updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=1",
+            (int(form.get("bgg_categories") == "on"),),
+        )
+    return _settings_redirect(status="bgg-categories-saved", anchor="bgg-integration")
+
+
+@router.post(
     "/settings/bgg/retry-failed",
     response_class=RedirectResponse,
     name="settings_bgg_retry_failed",
@@ -691,27 +762,44 @@ def settings_category_delete(request: Request, category_id: int) -> RedirectResp
 
 
 @router.post("/rescan", response_class=RedirectResponse, name="library_rescan")
-def library_rescan(request: Request) -> RedirectResponse:
+def library_rescan(
+    request: Request, confirm_removals: str | None = Form(None)
+) -> Response:
     """Synchronize the SQLite index with the current filesystem library."""
     settings = request.app.state.settings
-    with _database(request).connect() as connection:
-        before_game_ids = {row[0] for row in connection.execute("SELECT id FROM games")}
-    try:
-        scan_result = scan_library(settings.library_path)
-        summary = reconcile_scan(_database(request), scan_result)
-    except ReconciliationError:
-        request.app.state.scan_issues = scan_result.issues
-        record_scan(_database(request), issue_count=len(scan_result.issues))
-        query = urlencode({"scan": "partial", "issues": len(scan_result.issues)})
-        return RedirectResponse(url=f"/?{query}", status_code=303)
-    except LibraryScanError:
-        request.app.state.scan_issues = (
-            ScanIssue(Path("Library root"), "The library could not be read."),
-        )
-        record_scan(_database(request), failed=True)
-        return RedirectResponse(url="/?scan=failed&issues=1", status_code=303)
+    with request.app.state.scan_lock:
+        with _database(request).connect() as connection:
+            before_game_ids = {
+                row[0] for row in connection.execute("SELECT id FROM games")
+            }
+        try:
+            scan_result = scan_library(settings.library_path)
+            summary = reconcile_scan(
+                _database(request), scan_result, confirm_removals=confirm_removals
+            )
+        except DeletionReviewRequired as review:
+            request.app.state.auto_scan_notice = True
+            return templates.TemplateResponse(
+                request=request,
+                name="scan_removal_review.html",
+                context={"review": review},
+            )
+        except ReconciliationError:
+            request.app.state.scan_issues = scan_result.issues
+            record_scan(_database(request), issue_count=len(scan_result.issues))
+            query = urlencode({"scan": "partial", "issues": len(scan_result.issues)})
+            return RedirectResponse(url=f"/?{query}", status_code=303)
+        except LibraryScanError:
+            request.app.state.scan_issues = (
+                ScanIssue(Path("Library root"), "The library could not be read."),
+            )
+            record_scan(_database(request), failed=True)
+            return RedirectResponse(url="/?scan=failed&issues=1", status_code=303)
+        request.app.state.last_auto_scan_at = time.monotonic()
 
     request.app.state.scan_issues = ()
+    request.app.state.auto_scan_notice = False
+    request.app.state.auto_scan_review_fingerprint = None
     request.app.state.last_reconciliation = summary
     if settings.bgg_api_token:
         with _database(request).connect() as connection:
@@ -919,6 +1007,49 @@ def resource_reset(request: Request, resource_id: int) -> RedirectResponse:
     )
 
 
+def _fgs_source_data(library_path: Path, resource: IndexedResource) -> dict:
+    """Read bounded library FGS JSON without saving a Designer draft."""
+    path = resolve_resource_file(library_path, resource.relative_path, "fgs")
+    with path.open("rb") as source:
+        payload = source.read(MAX_DOCUMENT_BYTES + 1)
+    if len(payload) > MAX_DOCUMENT_BYTES:
+        raise DocumentValidationError("FGS file exceeds the import limit")
+    source = json.loads(payload.decode("utf-8"))
+    if not isinstance(source, dict):
+        raise DocumentValidationError("FGS document must be an object")
+    return source
+
+
+def _fgs_source_title(source: dict) -> str | None:
+    """Use only a plausible top-level title for the cheap name-first pass."""
+    title = source.get("title")
+    if (
+        source.get("format") != FORMAT_NAME
+        or source.get("format_version") not in SUPPORTED_VERSIONS
+        or not isinstance(title, str)
+        or not 1 <= len(title.strip()) <= 160
+    ):
+        return None
+    return title.strip()
+
+
+def _fgs_resource_document(
+    request: Request, resource_id: int
+) -> tuple[IndexedResource, dict]:
+    resource = get_resource(_database(request), resource_id)
+    if resource is None or resource.provider != "fgs":
+        raise HTTPException(404, "FGS file not found")
+    try:
+        document = normalize_document(
+            _fgs_source_data(request.app.state.settings.library_path, resource)
+        )
+    except (ResourceFileMissing, UnsafeResourcePath, OSError) as error:
+        raise HTTPException(410, "FGS file is unavailable") from error
+    except (UnicodeError, ValueError, TypeError, RecursionError) as error:
+        raise HTTPException(422, "FGS file is invalid") from error
+    return resource, document
+
+
 @router.get("/games/{game_id}", response_class=HTMLResponse, name="game_detail")
 def game_detail(request: Request, game_id: int) -> HTMLResponse:
     game = get_game(_database(request), game_id)
@@ -947,6 +1078,36 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
         except (ResourceFileMissing, UnsafeResourcePath):
             unavailable_resource_ids.add(resource.id)
 
+    fgs_sheet_titles: dict[int, str] = {}
+    fgs_matching_ids: dict[int, tuple[str, ...]] = {}
+    for resource in game.resources:
+        if resource.provider != "fgs" or resource.id in unavailable_resource_ids:
+            continue
+        try:
+            source = _fgs_source_data(
+                request.app.state.settings.library_path, resource
+            )
+        except (
+            ResourceFileMissing,
+            UnsafeResourcePath,
+            OSError,
+            UnicodeError,
+            ValueError,
+            TypeError,
+            RecursionError,
+        ):
+            continue
+        title = _fgs_source_title(source)
+        if title is None:
+            continue
+        fgs_sheet_titles[resource.id] = title
+        if request.state.can_contribute:
+            matches = request.app.state.sheet_designer_store.matching_document_ids(
+                source
+            )
+            if matches:
+                fgs_matching_ids[resource.id] = matches
+
     return templates.TemplateResponse(
         request=request,
         name="game.html",
@@ -973,6 +1134,8 @@ def game_detail(request: Request, game_id: int) -> HTMLResponse:
                 for resource in game.resources
                 if resource.provider in {"fgs", "image", "document"}
             },
+            "fgs_sheet_titles": fgs_sheet_titles,
+            "fgs_matching_ids": fgs_matching_ids,
             "bgg_association": get_bgg_association(_database(request), game.id),
             "bgg_image_url": safe_bgg_image_url(
                 (association := get_bgg_association(_database(request), game.id))
@@ -1941,6 +2104,119 @@ def resource_open_in_designer(request: Request, resource_id: int) -> RedirectRes
     return RedirectResponse("/sheet-designer?resume=1", status_code=303)
 
 
+@router.get(
+    "/resources/{resource_id}/fgs-preview",
+    response_class=HTMLResponse,
+    name="resource_fgs_preview",
+)
+def resource_fgs_preview(request: Request, resource_id: int) -> HTMLResponse:
+    """Show a library FGS without importing it into Sheet Designer."""
+    resource, document = _fgs_resource_document(request, resource_id)
+    return templates.TemplateResponse(
+        request=request,
+        name="fgs_preview.html",
+        context={"resource": resource, "sheet_title": document["title"]},
+    )
+
+
+@router.get(
+    "/resources/{resource_id}/fgs-preview.webp",
+    response_class=Response,
+    name="resource_fgs_preview_image",
+)
+def resource_fgs_preview_image(request: Request, resource_id: int) -> Response:
+    """Render a bounded, temporary image of the library FGS source."""
+    _, document = _fgs_resource_document(request, resource_id)
+    data_path = request.app.state.settings.data_path
+    try:
+        with processing_budget.rendering_slot(data_path):
+            processing_budget.check_storage_budget(
+                data_path, MAX_PDF_BYTES + processing_budget.MAX_PREVIEW_BYTES
+            )
+            with TemporaryDirectory(prefix=".fgs-preview-", dir=data_path) as work:
+                pdf = Path(work) / "sheet.pdf"
+                image = Path(work) / "sheet.webp"
+                render_pdf(document, pdf)
+                render_pdf_preview(pdf, image, preview_size=(850, 1100))
+                payload = image.read_bytes()
+    except PageOverflowError as error:
+        raise HTTPException(422, "FGS sheet does not fit the preview page") from error
+    except (
+        RendererUnavailableError,
+        PreviewUnavailable,
+        processing_budget.ProcessingBudgetError,
+        OSError,
+        ValueError,
+    ) as error:
+        raise HTTPException(503, "FGS preview is unavailable") from error
+    return Response(
+        payload,
+        media_type="image/webp",
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
+
+@router.get(
+    "/resources/{resource_id}/open-matching-fgs",
+    response_class=HTMLResponse,
+    name="resource_open_matching_fgs",
+)
+def resource_open_matching_fgs(
+    request: Request, resource_id: int
+) -> Response:
+    """Open one identical sheet or ask which separate copy to open."""
+    resource, document = _fgs_resource_document(request, resource_id)
+    store = request.app.state.sheet_designer_store
+    choices = store.matching_document_choices(document)
+    if not choices:
+        return RedirectResponse(
+            url=f"/resources/{resource_id}/fgs-preview", status_code=303
+        )
+    if len(choices) > 1:
+        return templates.TemplateResponse(
+            request=request,
+            name="fgs_match_choices.html",
+            context={
+                "resource": resource,
+                "sheet_title": document["title"],
+                "choices": choices,
+            },
+        )
+    try:
+        store.open(choices[0]["id"])
+    except ValueError:
+        return RedirectResponse(
+            url=f"/resources/{resource_id}/fgs-preview", status_code=303
+        )
+    return RedirectResponse("/sheet-designer?resume=1", status_code=303)
+
+
+@router.post(
+    "/resources/{resource_id}/open-matching-fgs",
+    response_class=RedirectResponse,
+    name="resource_open_selected_fgs",
+)
+async def resource_open_selected_fgs(
+    request: Request, resource_id: int
+) -> RedirectResponse:
+    """Recheck the chosen saved copy before changing the active Designer sheet."""
+    form = await request.form()
+    selected_id = str(form.get("workspace_id", ""))
+    _, document = _fgs_resource_document(request, resource_id)
+    store = request.app.state.sheet_designer_store
+    if selected_id not in store.matching_document_ids(document):
+        return RedirectResponse(
+            url=f"/resources/{resource_id}/open-matching-fgs", status_code=303
+        )
+    try:
+        store.open(selected_id)
+    except ValueError:
+        return RedirectResponse(
+            url=f"/resources/{resource_id}/open-matching-fgs", status_code=303
+        )
+    return RedirectResponse("/sheet-designer?resume=1", status_code=303)
+
+
 def _database(request: Request) -> Database:
     return request.app.state.database
 
@@ -2108,7 +2384,11 @@ def _bgg_client(request: Request) -> BggClient | None:
         return None
     factory = getattr(request.app.state, "bgg_client_factory", BggClient)
     if factory is BggClient:
-        return BggClient(token, request_pacer=request.app.state.bgg_request_pacer)
+        return BggClient(
+            token,
+            request_pacer=request.app.state.bgg_request_pacer,
+            category_enabled=lambda: get_preferences(_database(request)).bgg_categories,
+        )
     return factory(token)
 
 

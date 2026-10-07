@@ -37,7 +37,8 @@ def test_initialize_creates_current_schema(database: Database) -> None:
             "SELECT name FROM game_categories ORDER BY name"
         ).fetchall()
         preferences = connection.execute(
-            "SELECT footer_text, recent_limit, timezone_name "
+            "SELECT footer_text, recent_limit, timezone_name, bgg_categories, "
+            "auto_rescan_minutes, local_event_scans "
             "FROM application_preferences"
         ).fetchone()
 
@@ -102,13 +103,20 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (32, "add_game_bgg_editions"),
         (33, "add_bgg_description_and_edition_provenance"),
         (34, "stage_bgg_detail_batches"),
+        (35, "add_bgg_category_enrichment_setting"),
+        (36, "add_auto_rescan_frequency"),
+        (37, "add_local_event_scan_setting"),
     ]
+    assert preferences["bgg_categories"] == 1
     assert {row["name"] for row in categories} == set(DEFAULT_GAME_CATEGORIES)
     assert len(categories) == 33
     assert tuple(preferences) == (
         "Collect. Create. Print. Play. Or Go Live with LiveSheets.",
         6,
         "UTC",
+        1,
+        0,
+        0,
     )
 
 
@@ -121,7 +129,31 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 34
+    assert count == 37
+
+
+def test_local_event_migration_preserves_existing_timed_setting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import app.database as database_module
+
+    database = Database.in_data_directory(tmp_path)
+    with monkeypatch.context() as patch:
+        patch.setattr(database_module, "MIGRATIONS", database_module.MIGRATIONS[:-1])
+        database.initialize()
+    with database.connect() as connection:
+        connection.execute(
+            "UPDATE application_preferences SET auto_rescan_minutes=30 WHERE id=1"
+        )
+
+    database.initialize()
+
+    with database.connect() as connection:
+        row = connection.execute(
+            "SELECT auto_rescan_minutes, local_event_scans "
+            "FROM application_preferences WHERE id=1"
+        ).fetchone()
+    assert tuple(row) == (30, 1)
 
 
 def test_detail_batch_migration_preserves_existing_bgg_queue(tmp_path, monkeypatch):

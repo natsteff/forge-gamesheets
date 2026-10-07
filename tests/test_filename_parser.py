@@ -130,3 +130,9 @@ def test_filename_equal_to_game_name_remains_available_as_other() -> None:
     parsed = parse_resource_filename("Azul", "Azul.pdf")
 
     assert parsed == ParsedFilename("Azul", ResourceCategory.OTHER, None)
+
+
+def test_fgs_source_defaults_to_gamesheets_category_regardless_of_filename() -> None:
+    assert parse_resource_filename("Farkle", "Farkle - Rules.FGS") == ParsedFilename(
+        "Rules", ResourceCategory.FGS_GAMESHEET, None
+    )

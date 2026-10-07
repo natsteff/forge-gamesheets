@@ -10,6 +10,7 @@ from app.database import Database
 DEFAULT_FOOTER_TEXT = "Collect. Create. Print. Play. Or Go Live with LiveSheets."
 MAX_FOOTER_LENGTH = 120
 MAX_RECENT_LIMIT = 15
+AUTO_RESCAN_MINUTES = (0, 15, 30, 60, 480, 1440)
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,6 +19,15 @@ class ApplicationPreferences:
     recent_limit: int
     timezone_name: str
     folder_categories: bool = False
+    bgg_categories: bool = True
+    auto_rescan_minutes: int = 0
+    local_event_scans: bool = False
+
+    @property
+    def auto_rescan_mode(self) -> str:
+        if not self.local_event_scans:
+            return "manual"
+        return str(self.auto_rescan_minutes) if self.auto_rescan_minutes else "local"
 
 
 def get_preferences(database: Database) -> ApplicationPreferences:
@@ -25,7 +35,8 @@ def get_preferences(database: Database) -> ApplicationPreferences:
     with database.connect() as connection:
         row = connection.execute(
             """
-            SELECT footer_text, recent_limit, timezone_name, folder_categories
+            SELECT footer_text, recent_limit, timezone_name, folder_categories,
+                   bgg_categories, auto_rescan_minutes, local_event_scans
             FROM application_preferences WHERE id = 1
             """
         ).fetchone()
@@ -36,6 +47,9 @@ def get_preferences(database: Database) -> ApplicationPreferences:
         recent_limit=row["recent_limit"],
         timezone_name=row["timezone_name"],
         folder_categories=bool(row["folder_categories"]),
+        bgg_categories=bool(row["bgg_categories"]),
+        auto_rescan_minutes=row["auto_rescan_minutes"],
+        local_event_scans=bool(row["local_event_scans"]),
     )
 
 

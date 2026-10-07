@@ -1,0 +1,11 @@
+{% if letter_links %}
+  <nav class="game-letter-jump" aria-label="Jump to game title initial">
+    {% for letter, available in letter_links %}
+      {% if available %}
+        <a href="#game-letter-{{ 'other' if letter == '#' else letter }}" aria-label="Jump to {{ 'other titles' if letter == '#' else 'titles starting with ' ~ letter }}">{{ letter }}</a>
+      {% else %}
+        <span aria-hidden="true">{{ letter }}</span>
+      {% endif %}
+    {% endfor %}
+  </nav>
+{% endif %}

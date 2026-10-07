@@ -97,6 +97,22 @@ def test_documentation_review_is_release_requirement():
         assert "DOCUMENTATION_REVIEW.md" in (ROOT / filename).read_text()
 
 
+def test_current_format_and_library_guides_distinguish_versions_and_year_hints():
+    readme = (ROOT / "README.md").read_text()
+    format_guide = (ROOT / "docs/FGS_FORMAT.md").read_text()
+    library_guide = (ROOT / "docs/LIBRARY_GUIDE.md").read_text()
+    printing_guide = (ROOT / "docs/PRINT_SIZE_PRINTING.md").read_text()
+    development_guide = (ROOT / "docs/DEVELOPMENT.md").read_text()
+
+    assert "FGS 1.4 still uses" in readme
+    assert "current file version is **1.4**" in format_guide
+    assert "Page Rendering Profile 1.3.1" in format_guide
+    assert "Falling (1998)" in library_guide
+    assert "only to break a tie between exact-title results" in library_guide
+    assert "print-sheet settings only after a successful" in printing_guide
+    assert "PHASE1_5_RELEASE_CHECKLIST.md" in development_guide
+
+
 def test_project_plan_retains_bulk_reprint_maintenance_design():
     plan = (ROOT / "PROJECT_PLAN.md").read_text()
     decision = (
