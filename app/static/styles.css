@@ -394,6 +394,8 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   width: 2rem;
+  height: calc(100vh - 1.5rem);
+  height: calc(100dvh - 1.5rem);
   max-height: calc(100vh - 1.5rem);
   overflow-y: auto;
   transform: translateY(-50%);
@@ -405,6 +407,7 @@ input[type="checkbox"] {
 .game-letter-jump a,
 .game-letter-jump span {
   display: grid;
+  flex: 1 0 1.45rem;
   min-height: 1.45rem;
   place-items: center;
   font-size: 0.72rem;
@@ -979,6 +982,7 @@ input[type="checkbox"] {
     flex-direction: row;
     gap: 0.15rem;
     width: 100%;
+    height: auto;
     max-height: none;
     margin-bottom: 1rem;
     padding: 0.3rem;
@@ -987,7 +991,7 @@ input[type="checkbox"] {
     transform: none;
   }
   .game-letter-jump a,
-  .game-letter-jump span { min-width: 1.7rem; min-height: 2rem; }
+  .game-letter-jump span { flex: 0 0 auto; min-width: 1.7rem; min-height: 2rem; }
   .game-card[id^="game-letter-"] { scroll-margin-top: 4rem; }
   .hero { margin-bottom: 2.5rem; }
   .game-grid { grid-template-columns: 1fr; }

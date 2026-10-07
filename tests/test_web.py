@@ -311,7 +311,7 @@ def test_empty_library_shows_getting_started_state(tmp_path: Path) -> None:
         "Design printable GameSheets, use LiveSheets, and organize your "
         "game-resource library" in response.text
     )
-    assert "styles.css?v=72" in response.text
+    assert "styles.css?v=73" in response.text
     hero_rule = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
     assert ".hero h1 { max-width: 18ch;" in hero_rule
     assert '<p class="eyebrow">Game library</p>' not in response.text
@@ -354,6 +354,13 @@ def test_home_and_all_games_show_full_grid_with_letter_jumps(
         assert 'href="#game-letter-other"' in page
         assert 'id="game-letter-other"' in page
         assert page.index("7 Wonders") < page.index("Empty Game")
+
+    styles = (Path(__file__).parents[1] / "app/static/styles.css").read_text()
+    assert "height: calc(100dvh - 1.5rem);" in styles
+    assert "flex: 1 0 1.45rem;" in styles
+    mobile_styles = styles.split("@media (max-width: 680px) {", 1)[1]
+    assert "width: 100%;\n    height: auto;\n    max-height: none;" in mobile_styles
+    assert "flex: 0 0 auto;" in mobile_styles
 
     uncategorized = web_client.get("/categories/uncategorized")
     assert uncategorized.text.index("7 Wonders") < uncategorized.text.index(
@@ -417,7 +424,7 @@ def test_game_page_groups_resources_by_category(web_client: TestClient) -> None:
     assert "opens in a new tab" in response.text
     assert "Hide previews" in response.text
     assert "/static/app.js?v=12" in response.text
-    assert "/static/styles.css?v=72" in response.text
+    assert "/static/styles.css?v=73" in response.text
     assert 'id="menu-toggle"' in response.text
     assert 'class="menu-toggle-label">Menu</span>' in response.text
     assert 'aria-expanded="false"' in response.text
