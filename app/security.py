@@ -14,7 +14,7 @@ from app.config import ConfigurationError, normalize_host
 CONTENT_SECURITY_POLICY = (
     "default-src 'none'; script-src 'self'; script-src-attr 'none'; "
     "style-src 'self'; img-src 'self' data: https://cf.geekdo-images.com; "
-    "font-src 'self'; connect-src 'self'; "
+    "font-src 'self'; connect-src 'self'; manifest-src 'self'; "
     "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 )
 

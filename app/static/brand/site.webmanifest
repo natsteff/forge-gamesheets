@@ -1,0 +1,15 @@
+{
+  "name": "FORGE GameSheets",
+  "short_name": "FORGE GameSheets",
+  "start_url": "../../",
+  "scope": "../../",
+  "display": "browser",
+  "icons": [
+    {
+      "src": "forge-icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

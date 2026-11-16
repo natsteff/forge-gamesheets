@@ -5,17 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="FORGE GameSheets helps you design printable sheets, use LiveSheets, and manage game resources.">
     <title>{% block title %}FORGE GameSheets{% endblock %}</title>
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="{{ url_for('static', path='/brand/favicon-32.png') }}"
-    >
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="{{ url_for('static', path='/brand/apple-touch-icon.png') }}"
-    >
+    {% include "_app_identity.html" %}
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=74">
     <script src="{{ url_for('static', path='/app.js') }}?v=13" defer></script>
     {% block head %}{% endblock %}

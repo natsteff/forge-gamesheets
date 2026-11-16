@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>{% block title %}FORGE GameSheets{% endblock %}</title>
+    {% include "_app_identity.html" %}
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=38">
   </head>
   <body>
