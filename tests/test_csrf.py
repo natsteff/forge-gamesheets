@@ -4,10 +4,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.main import create_app
 from app.preferences import get_preferences
 from app.security import _origin
 from app.web import router
+from tests.legacy_installation import create_app
 
 
 @pytest.fixture

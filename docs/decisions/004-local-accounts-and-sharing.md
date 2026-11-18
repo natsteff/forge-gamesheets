@@ -4,11 +4,21 @@ Status: implemented and published; basic owner validation completed.
 
 ## Boundaries
 
-- Upgrades add tables only. Local `python -m app.accounts create-admin` prompts
-  for credentials and atomically creates the first Admin and enables protection.
-  A persistent activation marker prevents a missing/reset database from silently
-  reopening a previously protected data directory. There is no web bootstrap or
-  default password. Local recovery resets an Admin without turning protection off.
+- Fresh full-application installations block library access until browser owner
+  setup succeeds. Existing open installations preserve trusted-operator access
+  until explicit browser activation; protected installations remain protected.
+  No default credentials or console setup code is required. The first visitor
+  to complete setup claims the installation, an explicit trusted-deployment
+  tradeoff; operators must complete setup before sharing access.
+- Migration 38 distinguishes new data from pre-existing migration history.
+  A private first-owner installation marker preserves that distinction across
+  interrupted initialization. Setup state is persisted, not inferred from
+  an empty users table. The authentication marker still makes incomplete
+  protected state fail closed. Local recovery remains available.
+- Browser setup uses HTTPS (localhost HTTP allowed), same-origin mutation
+  checks, expiring signed cookie/form tokens, persistent throttling, existing
+  password screening/hashing, and a serialized activation transaction.
+  Existing CLI bootstrap/recovery commands remain supported.
 - Admin: settings, accounts, per-resource QR policy, and all library
   actions. Contributor: existing content edits/artwork/BGG/rescan and shared
   favorites/pins, plus reading/printing. Reader: library browsing, originals,

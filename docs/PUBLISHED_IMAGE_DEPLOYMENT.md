@@ -82,7 +82,10 @@ Older/unsupported NAS CPUs are not made compatible by this Compose file.
 
 ## Trusted-LAN and reverse-proxy access
 
-Defaults remain localhost-only with optional accounts off until configured.
+Defaults remain localhost-only. Fresh full-application installations require
+browser owner setup; existing open installations retain their access mode until
+explicit activation. Remote setup/sign-in require HTTPS. See
+[account setup](ACCOUNTS.md).
 For explicit trusted-LAN access, for example:
 
 ```ini

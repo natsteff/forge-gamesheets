@@ -17,7 +17,6 @@ from PIL import Image
 
 from app.config import Settings
 from app.library.repository import save_game_box_dimensions
-from app.main import create_app
 from app.sheet_designer.commands import delete_block, move_row
 from app.sheet_designer.model import (
     FORMAT_VERSION,
@@ -37,6 +36,7 @@ from app.sheet_designer.shared_rendering import (
 from app.sheet_designer.standalone import create_standalone_app
 from app.sheet_designer.storage import FileDraftStore
 from app.sheet_designer.web import _download_disposition, _fgs_filename, _sheet_filename
+from tests.legacy_installation import create_app
 
 
 def test_fgs_export_filename_preserves_safe_sheet_title():

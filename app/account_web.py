@@ -51,6 +51,113 @@ async def _confirm(request, form):
     )
 
 
+SETUP_COOKIE = "forge_owner_setup"
+
+
+def _setup_available(request):
+    if request.state.auth_enabled:
+        raise HTTPException(404, "Owner setup is already complete.")
+    _require_login_transport(request)
+
+
+def _setup_page(request, *, error=None, status=200):
+    token = accounts.owner_setup_token(_db(request))
+    response = templates.TemplateResponse(
+        request=request,
+        name="owner_setup.html",
+        context={
+            "setup_token": token,
+            "error": error,
+            "required": request.state.owner_setup_required,
+        },
+        status_code=status,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Vary"] = "Cookie"
+    response.set_cookie(
+        SETUP_COOKIE,
+        token,
+        max_age=900,
+        httponly=True,
+        secure=request.url.scheme == "https",
+        samesite="strict",
+        path="/setup",
+    )
+    return response
+
+
+@router.get("/setup", response_class=HTMLResponse, name="owner_setup_form")
+def owner_setup_form(request: Request):
+    try:
+        _setup_available(request)
+    except HTTPException as error:
+        if error.status_code != 400:
+            raise
+        return templates.TemplateResponse(
+            request=request,
+            name="owner_setup_transport.html",
+            context={},
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
+    return _setup_page(request)
+
+
+@router.post("/setup", response_class=HTMLResponse, name="owner_setup_submit")
+async def owner_setup_submit(request: Request):
+    _setup_available(request)
+    form = await request.form()
+    # Bound password hashing across workers before processing credentials.
+    try:
+        await run_in_threadpool(
+            accounts.throttle, _db(request), "owner-setup", _peer(request)
+        )
+    except accounts.LoginThrottled:
+        return HTMLResponse(
+            "Too many setup attempts. Wait 15 minutes and try again.",
+            429,
+            headers={"Cache-Control": "no-store", "Retry-After": "900"},
+        )
+    valid = await run_in_threadpool(
+        accounts.valid_owner_setup_token,
+        _db(request),
+        request.cookies.get(SETUP_COOKIE, ""),
+        str(form.get("setup_token", "")),
+    )
+    if not valid:
+        return _setup_page(
+            request, error="Setup form expired. Please try again.", status=400
+        )
+    if not request.state.owner_setup_required and form.get("activate") != "1":
+        return _setup_page(
+            request, error="Confirm that you want to require sign-in.", status=400
+        )
+    password = str(form.get("password", ""))
+    if password != str(form.get("confirm_password", "")):
+        return _setup_page(request, error="Passphrases did not match.", status=400)
+    try:
+        await run_in_threadpool(
+            accounts.bootstrap_admin,
+            _db(request),
+            str(form.get("username", "")),
+            password,
+            browser=True,
+        )
+    except accounts.AuthUnavailable:
+        return HTMLResponse(
+            "Owner setup state changed. Reload the page before continuing.",
+            503,
+            headers={"Cache-Control": "no-store"},
+        )
+    except accounts.AccountError as error:
+        # The transaction also rejects a competing or repeated setup.
+        return _setup_page(request, error=str(error), status=400)
+    response = RedirectResponse("/login", 303)
+    response.delete_cookie(SETUP_COOKIE, path="/setup")
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @router.get("/login", response_class=HTMLResponse, name="login_form")
 def login_form(request: Request):
     if request.state.auth_enabled:

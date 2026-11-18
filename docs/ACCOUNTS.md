@@ -1,50 +1,64 @@
 # Accounts and QR access
 
-Accounts are optional: upgrading does not activate login. Without local setup,
-everyone who can reach FORGE GameSheets continues to have trusted-operator access. Do not
-expose that mode to untrusted users.
+Fresh full-application installations require an owner account before library
+browsing or editing. The first owner is an Admin; additional users are optional.
+There is no hardcoded primary user, default password, or required terminal
+activation command.
 
-## Activate deliberately
+## First-owner setup
 
-Use a terminal **on the host running the intended FORGE GameSheets installation**, in its
-Compose directory. Start the current container first:
+Start the container and open its configured address. A fresh installation
+redirects to **Create owner account**. Choose a username and a 15–128-character
+passphrase, confirm it, then sign in. Add optional accounts under
+**Admin → User Accounts**. Reader, Contributor and Admin roles are unchanged.
 
-```sh
-cd /opt/forge-gamesheets
-docker compose up -d
-```
+The first person to successfully complete setup becomes the owner. Complete
+setup before sharing access to the installation; an unclaimed installation
+does not establish who owns the NAS or Docker host. Setup cannot be repeated
+after activation. Concurrent submissions can create only one owner.
 
-For access from another device, configure the HTTPS reverse proxy and verify that
-the FORGE GameSheets sign-in page loads over its final HTTPS hostname first. Follow the
-[Nginx Proxy Manager example](deployment.md#https-with-nginx-proxy-manager). A
-self-signed/private-CA certificate works when the client trusts that CA. Do not
-activate accounts while relying on direct LAN HTTP access.
+For another device, configure the HTTPS reverse proxy and test its final address
+before opening setup. Follow the
+[Nginx Proxy Manager example](deployment.md#https-with-nginx-proxy-manager). Remote HTTP does not present or accept the password
+form. Localhost HTTP remains supported for development or a localhost tunnel.
+A private-CA certificate works when the browser trusts its CA. Do not weaken
+Host validation or trust arbitrary forwarded headers to bypass HTTPS.
 
-Confirm the current Compose file passes the proxy settings into the container:
+The DSM/container service account controls filesystem access, not browser
+identity. Its UID/GID and library permissions do not create a FORGE login.
 
-```sh
-docker compose exec app env | grep -E 'FORWARDED|BASE_URL|ALLOWED_HOSTS'
-```
+## Existing installations
 
-When HTTPS is working—or when using localhost only—run this **separately**:
+An existing protected installation keeps its users, roles, sessions and access
+policy. Upgrading an existing open installation does not silently enable
+authentication. It continues trusted-operator access: anyone who can reach it
+can edit shared application content.
+
+To deliberately activate an existing open installation, configure HTTPS first,
+then open **Settings → Access control → Create owner account and require
+sign-in**. Confirm the activation checkbox, choose the owner credentials and
+submit. Successful activation immediately requires sign-in without moving PDFs
+or assigning the shared library to one user. Anyone able to reach an open,
+unclaimed installation may attempt owner setup, so limit access until the
+operator completes activation.
+
+QR addresses remain resource-only and public by default after setup; Admins
+can require sign-in per resource. Before first-owner setup completes, a fresh
+installation exposes no library or QR resources. Accounts alone do not make
+direct public-Internet exposure appropriate; protect the backend port and use
+the established trusted proxy/VPN deployment boundary.
+
+The existing local command remains an optional compatibility path, not the
+normal installation requirement:
 
 ```sh
 docker compose exec app python -m app.accounts create-admin
 ```
 
-Enter a username and a new 15–128-character passphrase at the prompts. No default
-password or public setup URL exists. Passwords are not command-line arguments.
-Successful setup immediately protects the existing shared library; it does not
-move PDFs, change library permissions, or assign existing content to one owner.
-Sign in, then use **Admin → User Accounts** to add accounts. QR codes remain
-resource-only and public by default. An Admin may require sign-in for an
-individual resource from its FORGE GameSheets Reprint page.
-
-Non-local sign-in requires HTTPS through a correctly configured trusted proxy.
-Localhost HTTP is supported for development. Establish HTTPS before activating
-on a LAN server. Keep the direct backend port protected; accounts alone do not
-make public exposure appropriate. External proxy authentication can still block
-public QR access independently of FORGE GameSheets’ resource setting.
+It prompts privately for credentials. Recovery remains operator-only as
+described below. Designer-only mode is separate and retains its existing
+deployment/access model; this full-application setup does not add accounts to
+FGS Studio or the standalone Designer.
 
 ## Permissions
 
@@ -98,8 +112,9 @@ turning protection off. It does not reset library content or QR restrictions.
 There is no web reset or disable-authentication switch.
 
 Back up the complete application data directory, including SQLite and the hidden
-`.authentication-required` marker, alongside the source library. A retained marker
-with missing/reset account state fails closed and requires local recovery.
+`.authentication-required` and `.first-owner-installation` markers, alongside the
+source library. A retained authentication marker with missing/reset account
+state fails closed and requires local recovery.
 Replacing the entire data directory loses this protection and represents a new
 installation: do not restore only selected files or downgrade to a pre-account
 release on a protected deployment. A missing database also loses per-resource QR
@@ -147,7 +162,8 @@ operators must apply equivalent protection to reverse-proxy logs.
 Account/sharing events retain at most 1,000 entries and show the latest 30 to
 Admins, displaying readable actions, current actor usernames, and target account
 names or game/resource titles alongside IDs. Missing targets retain their IDs;
-local setup/recovery is labeled Local operator. Names reflect current records,
+local setup/recovery is labeled Local operator; browser owner setup identifies
+the newly created account. Names reflect current records,
 not historical snapshots. This is not comprehensive content auditing. App access logs redact
 sharing tokens; operators must also redact proxy logs and protect backups.
 These security events remain separate from the general Activity History page,

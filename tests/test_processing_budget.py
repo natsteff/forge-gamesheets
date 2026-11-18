@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.library import processing_budget as budget
 from app.library.reprints import ReprintGenerationError, generate_forge_reprint
-from app.main import create_app
+from tests.legacy_installation import create_app
 
 
 @pytest.fixture

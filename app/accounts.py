@@ -2,12 +2,14 @@
 
 Authentication is persisted, not inferred from an optional environment variable.
 The marker complements SQLite: losing the database must not reopen a protected
-installation. Only the local operator command may establish the first Admin.
+installation. Fresh installations require browser owner setup. Local commands
+remain available for bootstrap and fail-closed administrator recovery.
 """
 
 import argparse
 import getpass
 import hashlib
+import hmac
 import os
 import re
 import secrets
@@ -146,10 +148,11 @@ def digest(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def auth_enabled(database: Database) -> bool:
+def access_state(database: Database) -> tuple[bool, bool]:
+    """Read enabled and pending setup together; a transition cannot open a gate."""
     with database.connect() as connection:
         row = connection.execute(
-            "SELECT enabled FROM auth_configuration WHERE id=1"
+            "SELECT enabled, setup_required FROM auth_configuration WHERE id=1"
         ).fetchone()
         marker = database.path.parent / AUTH_MARKER
         required = marker.exists() or marker.is_symlink()
@@ -163,7 +166,56 @@ def auth_enabled(database: Database) -> bool:
             ).fetchone()
         ):
             raise AuthUnavailable("Authentication needs local administrator recovery.")
-        return enabled
+        return enabled, bool(row["setup_required"])
+
+
+def auth_enabled(database: Database) -> bool:
+    return access_state(database)[0]
+
+
+def owner_setup_required(database: Database) -> bool:
+    """Read persisted setup state; never infer it from an empty user table."""
+    return access_state(database)[1]
+
+
+def owner_setup_token(database: Database) -> str:
+    value = f"{int(time.time())}.{secrets.token_urlsafe(32)}"
+    return value + "." + _owner_setup_signature(database, value)
+
+
+def _owner_setup_signature(database: Database, value: str) -> str:
+    with database.connect() as connection:
+        row = connection.execute(
+            "SELECT share_secret FROM auth_configuration WHERE id=1"
+        ).fetchone()
+        if row is None:
+            raise AuthUnavailable("Missing account state. Use local recovery.")
+        return hmac.new(
+            row["share_secret"].encode(),
+            ("owner-setup:" + value).encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+
+def valid_owner_setup_token(database: Database, cookie: str, submitted: str) -> bool:
+    if (
+        not cookie
+        or len(cookie) > 256
+        or len(submitted) > 256
+        or not cookie.isascii()
+        or not submitted.isascii()
+        or not secrets.compare_digest(cookie, submitted)
+    ):
+        return False
+    try:
+        timestamp, nonce, signature = cookie.split(".")
+        age = int(time.time()) - int(timestamp)
+    except ValueError:
+        return False
+    value = timestamp + "." + nonce
+    return 0 <= age <= 900 and secrets.compare_digest(
+        signature, _owner_setup_signature(database, value)
+    )
 
 
 def validate_username(username: str) -> str:
@@ -224,7 +276,11 @@ def _event(
     )
 
 
-def bootstrap_admin(database: Database, username: str, password: str, *, recover=False):
+def bootstrap_admin(
+    database: Database, username: str, password: str, *, recover=False, browser=False
+):
+    if browser and auth_enabled(database):
+        raise AccountError("Owner setup is already complete.")
     username = validate_username(username)
     encoded = hash_password(password)
     with database.connect() as connection:
@@ -273,12 +329,19 @@ def bootstrap_admin(database: Database, username: str, password: str, *, recover
             user_id = connection.execute(
                 "SELECT id FROM users WHERE username=?", (username,)
             ).fetchone()[0]
-            connection.execute("UPDATE auth_configuration SET enabled=1 WHERE id=1")
+            connection.execute(
+                "UPDATE auth_configuration SET enabled=1, setup_required=0 WHERE id=1"
+            )
             connection.execute("DELETE FROM auth_sessions")
             connection.execute("DELETE FROM auth_attempts")
             _event(
                 connection,
-                "local_recovery" if recover else "local_bootstrap",
+                "owner_setup"
+                if browser
+                else "local_recovery"
+                if recover
+                else "local_bootstrap",
+                actor=user_id if browser else None,
                 target=user_id,
             )
             connection.commit()

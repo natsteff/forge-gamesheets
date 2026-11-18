@@ -1,0 +1,34 @@
+{% extends "public_base.html" %}
+{% block title %}Create owner account · FORGE GameSheets{% endblock %}
+{% block content %}
+<section class="settings-section">
+  <h1>Create owner account</h1>
+  {% if required %}
+  <p>Create your owner account to start using this installation.
+  Browsing and editing stay locked until setup is complete.</p>
+  {% else %}
+  <p>This existing installation currently allows anyone who can reach it to edit.
+  Creating an owner account will immediately require sign-in.</p>
+  {% endif %}
+  <p>Complete setup before sharing access to this installation. The first person
+  to complete setup becomes its owner. No terminal command or default password
+  is needed.</p>
+  {% if error %}<p class="status-banner warning" role="alert">{{ error }}</p>{% endif %}
+  <form class="metadata-form settings-form" action="{{ url_for('owner_setup_submit') }}" method="post">
+    <input type="hidden" name="setup_token" value="{{ setup_token }}">
+    <label for="owner-username">Owner username</label>
+    <input id="owner-username" name="username" autocomplete="username" minlength="3" maxlength="40" required>
+    <label for="owner-password">Passphrase (15–128 characters)</label>
+    <input id="owner-password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+    <label for="owner-confirm">Confirm passphrase</label>
+    <input id="owner-confirm" name="confirm_password" type="password" autocomplete="new-password" minlength="15" maxlength="128" required>
+    {% if not required %}
+    <label><input type="checkbox" name="activate" value="1" required> Require sign-in for this existing installation</label>
+    {% endif %}
+    <button type="submit">Create owner account</button>
+  </form>
+  <p>Your owner account has Admin permissions. After setup, sign in to add optional
+  Reader or Contributor accounts under Admin → User Accounts. Additional accounts
+  are not required.</p>
+</section>
+{% endblock %}

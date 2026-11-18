@@ -65,6 +65,17 @@ will provide one browsable, searchable place to organize and print them.
 
 ### Current execution sequence
 
+First-owner setup increment — fresh full-application installations
+require browser-created owner credentials before library access. Existing open
+installations retain their access mode until explicit browser activation;
+existing protected users/roles/recovery remain unchanged. No terminal code or
+default credentials. Preserve remote HTTPS, same-origin/CSRF protections,
+throttling and atomic single-owner activation. Migration 38 and a persistent
+new-installation marker distinguish fresh data from legacy upgrades, including
+interrupted initialization. Synology documentation revisions remain deferred;
+no standalone Designer or Studio authentication changes are included.
+
+
 Approved deployment portability increment — add a standalone image-only
 `deploy/compose.yml` and optional environment example, preserving root Compose
 and the development workflow. Document download/GUI installation, trusted-LAN

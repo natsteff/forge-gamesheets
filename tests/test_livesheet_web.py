@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.build_info import BuildInfo
 from app.config import Settings
-from app.main import create_app
+from tests.legacy_installation import create_app
 
 
 @pytest.fixture

@@ -7,8 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.main import create_app
 from app.security import LimitedRequestBodies
+from tests.legacy_installation import create_app
 
 
 def run_request(chunks, headers=()):

@@ -29,9 +29,9 @@ from app.bgg.repository import (
 from app.build_info import BuildInfo
 from app.config import Settings
 from app.library.scanner import ScanIssue, ScanResult
-from app.main import create_app
 from app.security import CONTENT_SECURITY_POLICY
 from app.sheet_game_associations import save_association
+from tests.legacy_installation import create_app
 
 
 class _ExecutableMarkupProbe(HTMLParser):

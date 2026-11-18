@@ -106,6 +106,7 @@ def test_initialize_creates_current_schema(database: Database) -> None:
         (35, "add_bgg_category_enrichment_setting"),
         (36, "add_auto_rescan_frequency"),
         (37, "add_local_event_scan_setting"),
+        (38, "add_first_owner_setup_state"),
     ]
     assert preferences["bgg_categories"] == 1
     assert {row["name"] for row in categories} == set(DEFAULT_GAME_CATEGORIES)
@@ -129,7 +130,7 @@ def test_initialize_is_idempotent(database: Database) -> None:
             0
         ]
 
-    assert count == 37
+    assert count == 38
 
 
 def test_local_event_migration_preserves_existing_timed_setting(
@@ -139,7 +140,11 @@ def test_local_event_migration_preserves_existing_timed_setting(
 
     database = Database.in_data_directory(tmp_path)
     with monkeypatch.context() as patch:
-        patch.setattr(database_module, "MIGRATIONS", database_module.MIGRATIONS[:-1])
+        patch.setattr(
+            database_module,
+            "MIGRATIONS",
+            tuple(m for m in database_module.MIGRATIONS if m.version < 37),
+        )
         database.initialize()
     with database.connect() as connection:
         connection.execute(
