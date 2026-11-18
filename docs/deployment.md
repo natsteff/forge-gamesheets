@@ -1,5 +1,10 @@
 # Self-hosted beta deployment
 
+For an image-only install without Git or local builds, use the
+[published-image deployment guide](PUBLISHED_IMAGE_DEPLOYMENT.md). It covers
+standalone Compose, GUI managers, separate image/configuration updates and rollback.
+The Git-based installation below remains supported.
+
 This guide installs FORGE GameSheets from GitHub on a Docker host. The example
 location, `/opt/forge-gamesheets`, is a recommendation rather than a
 requirement. Use any location that the Docker operator can manage safely.

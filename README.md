@@ -78,6 +78,8 @@ invitation is inactive and the **qr code here** placeholder is not scannable.
 
 ## Get started
 
+For installation without Git or local builds, use the
+[published-image deployment guide](docs/PUBLISHED_IMAGE_DEPLOYMENT.md).
 Use the [self-hosted beta deployment guide](docs/deployment.md) for the
 installation, configuration, and update steps. It covers Docker Compose,
 library and data directories, permissions, trusted-LAN access, and backups.

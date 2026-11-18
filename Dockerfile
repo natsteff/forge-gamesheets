@@ -56,6 +56,7 @@ COPY docs ./docs
 COPY PROJECT_PLAN.md ./
 COPY Dockerfile compose.yml .env.example ./
 COPY scripts ./scripts
+COPY deploy ./deploy
 COPY .github/workflows ./.github/workflows
 RUN pip install --no-cache-dir ".[dev]"
 USER forge-gamesheets

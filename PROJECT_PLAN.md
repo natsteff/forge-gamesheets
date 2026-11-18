@@ -65,6 +65,15 @@ will provide one browsable, searchable place to organize and print them.
 
 ### Current execution sequence
 
+Approved deployment portability increment — add a standalone image-only
+`deploy/compose.yml` and optional environment example, preserving root Compose
+and the development workflow. Document download/GUI installation, trusted-LAN
+access, UID/GID and mount permissions, separate image/configuration updates and
+backup/rollback. Add resolved-configuration and disposable bind-mount/startup
+checks. No automatic updates, public exposure, privileged application startup,
+or deployment to an existing installation. First-run diagnostics remain an
+evaluation topic; no Phase 2 interface is authorized by this increment.
+
 Owner-approved separate increment — manual BGG edition reference on FORGE GameSheets game
 entries: optional version URL or ID and readable label in the existing BGG editor
 section, token-free Versions shortcut and View your edition action. Implemented
