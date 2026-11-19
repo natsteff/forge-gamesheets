@@ -95,8 +95,11 @@ library only needs to be readable and searchable by the container.
 
 ## Configure FORGE GameSheets
 
-Edit `.env`; do not edit `compose.yml` for host-specific settings. A future Git
-update may need to replace the tracked Compose file, while `.env` is ignored by
+For this Git-checkout workflow, edit `.env`; do not edit `compose.yml` for
+host-specific settings. Published-image GUI installations can instead configure
+values directly in YAML; see the
+[two configuration options](PUBLISHED_IMAGE_DEPLOYMENT.md#synology-container-manager).
+A future Git update may need to replace the tracked Compose file, while `.env` is ignored by
 Git and remains local to the installation.
 
 ```ini

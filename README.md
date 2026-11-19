@@ -80,6 +80,16 @@ invitation is inactive and the **qr code here** placeholder is not scannable.
 
 For installation without Git or local builds, use the
 [published-image deployment guide](docs/PUBLISHED_IMAGE_DEPLOYMENT.md).
+
+**Configuration can stay in `compose.yml` or use an optional `.env` file.**
+Published-image installs do not require `.env`: enter settings directly in the
+Compose `environment` block, or keep the supplied `${VARIABLE:-default}`
+references and save overrides in `.env` beside `compose.yml`. Compose substitutes
+those values; it does not automatically pass every `.env` entry to the container.
+The existing source/development `.env` workflow remains supported. See the
+[Synology installation steps](docs/PUBLISHED_IMAGE_DEPLOYMENT.md#synology-container-manager)
+for both options, DSM permissions, access modes, and optional BGG configuration.
+
 Use the [self-hosted beta deployment guide](docs/deployment.md) for the
 installation, configuration, and update steps. It covers Docker Compose,
 library and data directories, permissions, trusted-LAN access, and backups.

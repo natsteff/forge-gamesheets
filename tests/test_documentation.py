@@ -26,6 +26,8 @@ def test_topic_guide_local_links_and_images_exist():
         "LIBRARY_GUIDE.md",
         "SCREENSHOT_GALLERY.md",
         "SHEET_DESIGNER.md",
+        "PUBLISHED_IMAGE_DEPLOYMENT.md",
+        "BGG_API.md",
     ):
         source = ROOT / "docs" / name
         for link in re.findall(r"\]\(([^)]+)\)", source.read_text()):

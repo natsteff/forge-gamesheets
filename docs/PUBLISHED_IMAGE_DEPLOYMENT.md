@@ -158,12 +158,88 @@ and the hardening shown in the Compose file.
 
 ### Synology Container Manager
 
-Use **Project** to upload/paste the deployment Compose definition. Choose the
-project's working folder, create the data and library folders, and use absolute
-host paths such as `/volume1/docker/forge-gamesheets/data` and the actual PDF
-share. Configure DSM ACLs for the runtime identity and parent traversal.
-Choose localhost/proxy or explicit trusted-LAN binding before deployment.
-Do not enable a Web Station portal or public exposure automatically.
+Use **Project** to upload/paste the deployment `compose.yml`. The owner has
+successfully installed on Synology with a DSM service-account identity, folder
+ACLs, explicit allowed hosts, and the unsupported CPU quota removed. This is
+experience from one installation, not a compatibility claim for every NAS.
+
+1. Create a project folder and separate data/library folders. Use absolute bind
+   source paths, for example `/volume1/docker/forge-gamesheets/data` and your
+   actual PDF share. Do not replace working paths when upgrading.
+2. Choose the runtime identity. The image defaults to `10001:10001`; grant it
+   data read/write and library read/traverse access. Alternatively, use a
+   dedicated non-administrator DSM service account and add `user: "<UID>:<GID>"`
+   under `app`, replacing both placeholders with its actual numeric IDs. An
+   administrator can obtain them with `id accountname` over SSH. Grant that
+   account the required DSM folder ACLs, including parent traversal. This is a
+   Compose user override, not `PUID`/`PGID` support. Keep `/library` read-only.
+3. Remove `cpus: 2.0` from the imported example on Synology hosts that reject CPU
+   quotas/CFS settings. Retain memory, process, and other security settings.
+4. Choose `owner` for browser account setup with remote HTTPS, or explicitly
+   choose `trusted` for account-free LAN HTTP. Existing accounts remain protected.
+   Choose localhost/proxy or LAN port binding separately; configure the actual
+   hostname/IP in base URL and allowed hosts. Do not enable a Web Station portal,
+   router forwarding, or public exposure automatically.
+5. Choose either configuration method below, then apply/build the Project to
+   download the published image and create the container. No local image build
+   is needed. After changing settings, recreate the container; restarting alone
+   does not change its environment. Check health, Settings build information,
+   library access, and persistence.
+
+#### Option A: settings directly in YAML
+
+No `.env` file is needed. Merge settings into the existing `app.environment`
+block; preserve all other entries, mounts, ports, and security settings:
+
+```yaml
+services:
+  app:
+    environment:
+      FORGE_GAMESHEETS_ACCESS_MODE: trusted
+      FORGE_GAMESHEETS_BASE_URL: "http://192.0.2.20:8000"
+      FORGE_GAMESHEETS_ALLOWED_HOSTS: "192.0.2.20,nas.example.lan"
+      FORGE_GAMESHEETS_BGG_API_TOKEN: ""
+```
+
+This is a fragment, not a complete project. Replace the example address and
+hostname with your NAS values. For direct LAN access, also change the existing
+port mapping to `"0.0.0.0:8000:8000"` (or the intended NAS interface/host port).
+For `owner`, use the HTTPS proxy configuration described above instead.
+
+#### Option B: optional `.env` beside `compose.yml`
+
+Keep the supplied Compose variable references, such as:
+
+```yaml
+FORGE_GAMESHEETS_BGG_API_TOKEN: ${FORGE_GAMESHEETS_BGG_API_TOKEN:-}
+```
+
+Save [deploy/.env.example](../deploy/.env.example) as `.env` in the project's
+Compose working directory and edit its values. For example, for trusted LAN use:
+
+```dotenv
+FORGE_GAMESHEETS_ACCESS_MODE=trusted
+FORGE_GAMESHEETS_BIND_ADDRESS=0.0.0.0
+FORGE_GAMESHEETS_BASE_URL=http://192.0.2.20:8000
+FORGE_GAMESHEETS_ALLOWED_HOSTS=192.0.2.20,nas.example.lan
+FORGE_GAMESHEETS_BGG_API_TOKEN=
+```
+
+Confirm the uploaded project includes `.env` in that directory; a YAML-only
+upload does not transfer it. If the installed manager does not load it, use
+Option A. No `env_file:` entry is required: Compose uses `.env` for substitution.
+A literal YAML value overrides the corresponding `.env` setting, and an entry
+with no reference in Compose is not forwarded automatically. Keep tokens out of
+shared YAML, screenshots, support bundles, and version control with either method.
+
+#### Optional BoardGameGeek integration
+
+Synology uses the same BGG integration as other hosts. Follow the
+[BGG configuration guidance](BGG_API.md) to obtain
+an approved token, then set `FORGE_GAMESHEETS_BGG_API_TOKEN` using either option
+above. Leave it blank to run without API integration. Recreate the container
+after changing the token and check the integration status in Settings. Do not
+share the token or resolved Compose output when troubleshooting.
 
 ### Portainer
 
@@ -189,8 +265,9 @@ use a compatible Compose route rather than claiming equivalent protection.
 
 ### Verification limits
 
-The exact Synology, Portainer and Unraid GUI versions are **not yet verified**
-on physical installations for this deployment recipe. UI wording and supported
+Beyond the owner-reported Synology installation above, other Synology models
+and GUI versions, Portainer and Unraid are **not yet verified** on physical
+installations for this deployment recipe. UI wording and supported
 Compose keys vary. Validate the file in the installed manager and verify actual
 port bindings, UID/GID, mount modes and health after deployment. Engine-based
 automated tests do not establish NAS ACL or GUI compatibility.

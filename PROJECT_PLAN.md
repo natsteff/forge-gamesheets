@@ -74,7 +74,8 @@ existing protected users/roles/recovery remain unchanged. No terminal code or
 default credentials. Preserve remote HTTPS, same-origin/CSRF protections,
 throttling and atomic single-owner activation. Migration 38 and a persistent
 new-installation marker distinguish fresh data from legacy upgrades, including
-interrupted initialization. Synology documentation revisions remain deferred;
+interrupted initialization. Owner-approved Synology documentation revisions now cover optional `.env`,
+direct YAML configuration, DSM identity/ACLs, and CPU-quota compatibility;
 no standalone Designer or Studio authentication changes are included.
 
 
