@@ -11,6 +11,47 @@ defaults are embedded in the Compose file. It uses the same image and
 configuration variables as the root Compose file, without its build section.
 Changing deployment paths does not change the FGS format or database schema.
 
+## Choose access before deploying
+
+The new deployment file defaults to owner-account protection:
+
+```yaml
+environment:
+  FORGE_GAMESHEETS_ACCESS_MODE: owner
+```
+
+`owner` requires browser first-owner setup and sign-in. Remote setup/sign-in
+requires HTTPS through a trusted reverse proxy; localhost HTTP remains supported.
+
+For intentional account-free access on a trusted LAN, change that one entry to:
+
+```yaml
+environment:
+  FORGE_GAMESHEETS_ACCESS_MODE: trusted
+```
+
+Keep all the other environment entries and security settings. In `trusted`
+mode, anyone who can reach FORGE can browse, edit settings/metadata and remove
+shared application content. The source PDF mount remains read-only. LAN HTTP is
+supported in this mode; changing access mode does not expose a localhost-only
+port automatically. Choose LAN binding separately below.
+
+This setting never disables already-enabled accounts or bypasses local recovery.
+If users exist, sign-in stays required even with `trusted` selected. See the
+[account and transition rules](ACCOUNTS.md#choose-the-deployment-access-mode).
+
+An optional `.env` can set this variable when the Compose definition forwards it.
+Older downloaded Compose files may not contain the new environment entry; add
+the entry or deliberately update the configuration as well as the image.
+Older application images may ignore unknown environment variables: use the
+matching image/configuration release and verify its expected build revision.
+A prerelease configuration alone cannot add account protection to an older image.
+
+The root developer Compose file retains an empty compatibility default for an
+omitted variable. That preserves open pre-existing installations; fresh data
+still defaults to owner setup. Its new-install `.env.example` explicitly selects
+`owner`. Existing `.env` files are not rewritten.
+
 ## Prepare storage and permissions
 
 Create separate, nonnested host directories before deploying:
@@ -82,9 +123,9 @@ Older/unsupported NAS CPUs are not made compatible by this Compose file.
 
 ## Trusted-LAN and reverse-proxy access
 
-Defaults remain localhost-only. Fresh full-application installations require
-browser owner setup; existing open installations retain their access mode until
-explicit activation. Remote setup/sign-in require HTTPS. See
+Network defaults remain localhost-only. The standalone file selects `owner`;
+choose `trusted` explicitly for account-free LAN HTTP access. Protected accounts
+stay protected in either mode. Remote setup/sign-in require HTTPS. See
 [account setup](ACCOUNTS.md).
 For explicit trusted-LAN access, for example:
 

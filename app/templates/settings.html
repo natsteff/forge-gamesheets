@@ -94,7 +94,9 @@
   <section class="settings-section">
     <h2>Access control</h2>
       <p>Trusted-operator mode: anyone who can reach this installation can edit it.
-      Upgrading does not automatically activate authentication.</p>
+      Accounts have not been activated. You can keep this mode by explicitly
+      selecting <code>FORGE_GAMESHEETS_ACCESS_MODE=trusted</code> in your container
+      configuration. Selecting <code>owner</code> requires first-owner setup.</p>
       <p><a class="button" href="{{ url_for('owner_setup_form') }}">Create owner account and require sign-in</a></p>
       <p>Configure and test the final HTTPS proxy address before enabling accounts
       from another device. Remote HTTP setup and sign-in are rejected.

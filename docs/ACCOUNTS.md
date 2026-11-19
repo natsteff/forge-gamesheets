@@ -1,15 +1,38 @@
 # Accounts and QR access
 
-Fresh full-application installations require an owner account before library
-browsing or editing. The first owner is an Admin; additional users are optional.
+Fresh full-application installations default to owner-account setup before
+library browsing or editing. Account-free trusted access is an explicit
+deployment choice. The first owner is an Admin; additional users are optional.
 There is no hardcoded primary user, default password, or required terminal
 activation command.
 
+## Choose the deployment access mode
+
+Set `FORGE_GAMESHEETS_ACCESS_MODE` in the container configuration:
+
+| Value | Behavior |
+| --- | --- |
+| `owner` | Require first-owner setup if accounts are not enabled, then require sign-in. Setup/sign-in from another device requires HTTPS. |
+| `trusted` | Permit account-free browsing/editing over HTTP or HTTPS while accounts are not enabled. Anyone who can reach it can change shared content. |
+
+Existing enabled accounts always take precedence: choosing `trusted` cannot
+disable sign-in, erase users, bypass a recovery marker or change roles.
+To enable accounts later from trusted mode, use the explicit Settings activation
+flow over HTTPS. This is a one-way activation from the deployment setting's
+perspective; account recovery remains available.
+
+The standalone deployment file defaults to `owner`. Root Compose passes an
+omitted/empty setting through for compatibility: fresh data defaults to owner
+setup; existing pre-setup-model open installations keep trusted access.
+Keep an explicit selection in new deployments. Selecting `owner` deliberately
+on an existing open installation locks normal access until setup completes.
+Changing this setting does not replace the data directory or modify source PDFs.
+
 ## First-owner setup
 
-Start the container and open its configured address. A fresh installation
-redirects to **Create owner account**. Choose a username and a 15–128-character
-passphrase, confirm it, then sign in. Add optional accounts under
+With owner mode selected, start the container and open its configured address.
+An installation without accounts redirects to **Create owner account**.
+Choose a username and a 15–128-character passphrase, confirm it, then sign in. Add optional accounts under
 **Admin → User Accounts**. Reader, Contributor and Admin roles are unchanged.
 
 The first person to successfully complete setup becomes the owner. Complete
@@ -19,8 +42,8 @@ after activation. Concurrent submissions can create only one owner.
 
 For another device, configure the HTTPS reverse proxy and test its final address
 before opening setup. Follow the
-[Nginx Proxy Manager example](deployment.md#https-with-nginx-proxy-manager). Remote HTTP does not present or accept the password
-form. Localhost HTTP remains supported for development or a localhost tunnel.
+[Nginx Proxy Manager example](deployment.md#https-with-nginx-proxy-manager).
+Remote HTTP does not present or accept the password form. Localhost HTTP remains supported for development or a localhost tunnel.
 A private-CA certificate works when the browser trusts its CA. Do not weaken
 Host validation or trust arbitrary forwarded headers to bypass HTTPS.
 
@@ -30,8 +53,8 @@ identity. Its UID/GID and library permissions do not create a FORGE login.
 ## Existing installations
 
 An existing protected installation keeps its users, roles, sessions and access
-policy. Upgrading an existing open installation does not silently enable
-authentication. It continues trusted-operator access: anyone who can reach it
+policy. With the access-mode setting omitted in an older configuration, upgrading
+an existing open installation does not silently enable authentication. It continues trusted-operator access: anyone who can reach it
 can edit shared application content.
 
 To deliberately activate an existing open installation, configure HTTPS first,
@@ -43,8 +66,8 @@ unclaimed installation may attempt owner setup, so limit access until the
 operator completes activation.
 
 QR addresses remain resource-only and public by default after setup; Admins
-can require sign-in per resource. Before first-owner setup completes, a fresh
-installation exposes no library or QR resources. Accounts alone do not make
+can require sign-in per resource. Before first-owner setup completes, an owner-mode
+installation exposes no library or QR resources until setup succeeds. Accounts alone do not make
 direct public-Internet exposure appropriate; protect the backend port and use
 the established trusted proxy/VPN deployment boundary.
 

@@ -15,7 +15,7 @@ from tests.legacy_installation import create_app as create_legacy_app
 PASSWORD = "owner setup sample passphrase"
 
 
-def make_app(tmp_path, *, legacy=False):
+def make_app(tmp_path, *, legacy=False, access_mode=None):
     library, data = tmp_path / "library", tmp_path / "data"
     library.mkdir(exist_ok=True)
     data.mkdir(exist_ok=True)
@@ -26,6 +26,7 @@ def make_app(tmp_path, *, legacy=False):
             data_path=data,
             base_url="https://testserver",
             allowed_hosts=("testserver",),
+            access_mode=access_mode,
         )
     )
 

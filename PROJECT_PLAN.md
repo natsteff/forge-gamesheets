@@ -65,8 +65,10 @@ will provide one browsable, searchable place to organize and print them.
 
 ### Current execution sequence
 
-First-owner setup increment — fresh full-application installations
-require browser-created owner credentials before library access. Existing open
+First-owner setup increment — fresh full-application installations default to
+browser-created owner credentials before library access. An explicit deployment
+setting chooses `owner` or account-free `trusted` access; established accounts
+and recovery markers cannot be bypassed by that setting. Existing open
 installations retain their access mode until explicit browser activation;
 existing protected users/roles/recovery remain unchanged. No terminal code or
 default credentials. Preserve remote HTTPS, same-origin/CSRF protections,

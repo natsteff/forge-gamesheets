@@ -7,9 +7,13 @@ Publication still requires the applicable release/security gates.
 
 ## Model and boundaries
 
-Fresh full-application data requires owner setup before library/QR access.
-Existing open installations stay open until explicit activation; existing
-protected users/roles/sessions remain protected. No default credentials or
+Fresh full-application data defaults to owner setup before library/QR access.
+The deployment setting `FORGE_GAMESHEETS_ACCESS_MODE` explicitly chooses `owner`
+or account-free `trusted` access. Trusted mode accepts open editing by anyone who
+can reach the service; it never overrides enabled accounts or recovery markers.
+Omitted settings preserve existing pre-model open installations; explicit owner
+mode requires setup even on those installations. Existing protected
+users/roles/sessions remain protected. No default credentials or
 console setup token exists. First successful setup claims the installation:
 access must be restricted until the operator finishes. This design cannot prove
 NAS ownership and deliberately accepts first-visitor claim risk.
@@ -23,6 +27,7 @@ Standalone Designer and Studio authentication are outside this change.
 | Control area | Implementation and verification |
 | --- | --- |
 | Pre-setup authorization | Middleware blocks library, settings, Designer, QR, docs/API routes and writes; only static assets, health and setup remain reachable. Tests inventory normal role routes and exercise fresh-install route denial. |
+| Explicit access modes | Fresh/legacy and owner/trusted/omitted combinations tested; invalid modes fail startup; existing accounts and recovery cannot be bypassed by trusted mode. Root Compose retains omitted-setting compatibility; standalone defaults to owner. |
 | Transport | HTTPS guard runs before form display or submission; HTTP gets guidance without a password form. Untrusted forwarded-proto headers do not enable setup. |
 | CSRF and caching | Existing strict same-origin middleware plus expiring HMAC-signed matching cookie/form token; host-only HttpOnly/SameSite Strict cookie, Secure on HTTPS, 15-minute expiry. Setup/error/redirect responses use no-store. |
 | Password processing | Existing bounded username/passphrase validation, common-password screening and Argon2id retained. Confirmation required; form errors do not echo passphrases. Persistent attempt budget precedes password hashing. |
@@ -38,8 +43,11 @@ suites, full regression/lint, and a disposable real-browser create-owner/sign-in
 check. Existing workflow suites explicitly seed pre-38 installation history;
 fresh behavior has its own direct application-factory tests.
 
-Local verification: 122 focused authentication/migration tests passed; the full
-suite passed 1,110 tests with one skip. Ruff lint and changed-file formatting
+Owner-setup checkpoint verification: 122 focused authentication/migration tests
+passed; its full suite passed 1,110 tests with one skip. Access-mode verification
+passed 88 focused tests, with a full suite of 1,134 passed and one skipped.
+Ruff and changed-file formatting passed. Container packaging is verified
+separately before an image is offered for review. Ruff lint and changed-file formatting
 checks passed. Disposable browser setup and sign-in succeeded. Container
 packaging verification is a separate local check; no published image or
 installed deployment is changed by this source checkpoint.

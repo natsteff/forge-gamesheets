@@ -7,7 +7,8 @@ name: forge-gamesheets
 # The default bind address, 127.0.0.1, allows access only from this Docker host.
 # Set FORGE_GAMESHEETS_BIND_ADDRESS=0.0.0.0 only for a trusted LAN or when an
 # appropriate access-control layer protects FORGE GameSheets. New installations
-# require owner setup; remote setup/sign-in require HTTPS. No direct Internet exposure.
+# default to owner setup; trusted mode is an explicit open-access choice.
+# Remote setup/sign-in require HTTPS. No direct Internet exposure.
 # See docs/ACCOUNTS.md.
 #
 # The data mount is writable persistent application state. The library mount
@@ -31,6 +32,10 @@ services:
     image: ghcr.io/natsteff/forge-gamesheets:${FORGE_GAMESHEETS_IMAGE_TAG:-main}
     environment:
       FORGE_GAMESHEETS_MODE: ${FORGE_GAMESHEETS_MODE:-full}
+      # owner: require account setup/sign-in (HTTPS from another device).
+      # trusted: no accounts; anyone who can reach it can edit shared content.
+      # Existing accounts always stay protected, even when trusted is selected.
+      FORGE_GAMESHEETS_ACCESS_MODE: ${FORGE_GAMESHEETS_ACCESS_MODE:-owner}
       FORWARDED_ALLOW_IPS: ${FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS:-127.0.0.1}
       FORGE_GAMESHEETS_ALLOWED_HOSTS: ${FORGE_GAMESHEETS_ALLOWED_HOSTS:-}
       FORGE_GAMESHEETS_BASE_URL: ${FORGE_GAMESHEETS_BASE_URL:-}

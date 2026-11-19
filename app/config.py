@@ -23,6 +23,7 @@ class Settings:
     base_url: str | None = None
     bgg_api_token: str | None = field(default=None, repr=False)
     allowed_hosts: tuple[str, ...] = ()
+    access_mode: str | None = None
 
     @classmethod
     def from_environment(cls) -> Settings:
@@ -32,6 +33,7 @@ class Settings:
             data_path=Path(os.environ.get("FORGE_GAMESHEETS_DATA", "/data")),
             base_url=os.environ.get("FORGE_GAMESHEETS_BASE_URL"),
             bgg_api_token=os.environ.get("FORGE_GAMESHEETS_BGG_API_TOKEN"),
+            access_mode=os.environ.get("FORGE_GAMESHEETS_ACCESS_MODE"),
             allowed_hosts=tuple(
                 host.strip()
                 for host in os.environ.get("FORGE_GAMESHEETS_ALLOWED_HOSTS", "").split(
@@ -43,6 +45,11 @@ class Settings:
 
     def validated(self) -> Settings:
         """Return canonical settings or raise with a useful startup error."""
+        access_mode = (self.access_mode or "").strip().lower() or None
+        if access_mode not in {None, "owner", "trusted"}:
+            raise ConfigurationError(
+                "FORGE_GAMESHEETS_ACCESS_MODE must be owner or trusted."
+            )
         library_path = _validate_directory(
             self.library_path,
             label="Library",
@@ -77,6 +84,7 @@ class Settings:
             data_path=data_path,
             base_url=base_url,
             bgg_api_token=_optional_secret(self.bgg_api_token),
+            access_mode=access_mode,
             allowed_hosts=tuple(dict.fromkeys(normalize_host(host) for host in hosts)),
         )
 

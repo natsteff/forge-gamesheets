@@ -172,8 +172,10 @@ modes.
 | Trusted private LAN | `0.0.0.0` | Trusted household or isolated test network |
 | HTTPS reverse proxy | Usually `127.0.0.1` | Non-local account sign-in through a protected frontend |
 
-FORGE GameSheets supports opt-in accounts, roles, and login throttling, but has no built-in
-TLS or general per-client traffic limit. Non-local sign-in requires HTTPS through
+FORGE GameSheets supports owner-account protection or explicitly selected
+trusted open access, roles, and login throttling, but has no built-in TLS or
+general per-client traffic limit. See the
+[deployment access-mode choice](ACCOUNTS.md#choose-the-deployment-access-mode). Non-local sign-in requires HTTPS through
 a correctly configured proxy. Binding to `0.0.0.0` exposes the port on every
 host interface allowed by the firewall. Use it only on a trusted private LAN.
 Do not forward that port from an internet router.

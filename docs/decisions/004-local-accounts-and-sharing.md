@@ -4,9 +4,13 @@ Status: implemented and published; basic owner validation completed.
 
 ## Boundaries
 
-- Fresh full-application installations block library access until browser owner
-  setup succeeds. Existing open installations preserve trusted-operator access
-  until explicit browser activation; protected installations remain protected.
+- Fresh full-application installations default to blocking library access until
+  browser owner setup succeeds. An explicit deployment access mode chooses
+  `owner` or account-free `trusted` access. Enabled accounts always override
+  `trusted`; the setting cannot disable authentication or bypass recovery.
+  Omitted settings preserve existing pre-model open installations; explicitly
+  choosing `owner` requires their activation. Protected installations remain
+  protected.
   No default credentials or console setup code is required. The first visitor
   to complete setup claims the installation, an explicit trusted-deployment
   tradeoff; operators must complete setup before sharing access.

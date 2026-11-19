@@ -87,10 +87,12 @@ def check_configurations():
                 "FORGE_GAMESHEETS_FORWARDED_ALLOW_IPS": "192.0.2.10",
                 "FORGE_GAMESHEETS_IMAGE_TAG": "sha-example",
                 "FORGE_GAMESHEETS_MODE": "designer",
+                "FORGE_GAMESHEETS_ACCESS_MODE": "trusted",
                 "FORGE_GAMESHEETS_BGG_API_TOKEN": "fictional-test-token",
             },
         ]:
             settings = {
+                "FORGE_GAMESHEETS_ACCESS_MODE": "owner",
                 "FORGE_GAMESHEETS_DATA_PATH": str(root / "application data"),
                 "FORGE_GAMESHEETS_LIBRARY_PATH": str(root / "PDF library"),
                 **custom,
@@ -116,6 +118,13 @@ def check_configurations():
         assert service["environment"]["FORWARDED_ALLOW_IPS"] == "127.0.0.1"
         assert service["environment"]["FORGE_GAMESHEETS_BGG_API_TOKEN"] == ""
         assert service["environment"]["FORGE_GAMESHEETS_MODE"] == "full"
+        assert service["environment"]["FORGE_GAMESHEETS_ACCESS_MODE"] == "owner"
+        assert (
+            resolved(source)["services"]["app"]["environment"][
+                "FORGE_GAMESHEETS_ACCESS_MODE"
+            ]
+            == ""
+        )
         assert service["image"] == "ghcr.io/natsteff/forge-gamesheets:main"
         assert service["volumes"][0]["source"] == str(download.parent / "data")
         assert service["volumes"][1]["source"] == str(download.parent / "library")

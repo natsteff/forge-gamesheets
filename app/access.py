@@ -203,7 +203,10 @@ class AccessControl:
         database = scope["app"].state.database
         try:
             enabled, setup_required = await run_in_threadpool(access_state, database)
-            setup_required = setup_required and not enabled
+            mode = scope["app"].state.settings.access_mode
+            setup_required = not enabled and (
+                mode == "owner" or (mode is None and setup_required)
+            )
         except AuthUnavailable:
             return await PlainTextResponse(
                 "Authentication unavailable. "
