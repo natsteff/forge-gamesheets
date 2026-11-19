@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from app import accounts
 from app.access import ADMIN_ROUTES, CONTRIBUTOR_ROUTES, PUBLIC_ROUTES, READ_ROUTES
 from app.config import Settings
-from app.main import create_app
+from tests.legacy_installation import create_app
 
 PASSWORD = "sample passphrase for testing"
 

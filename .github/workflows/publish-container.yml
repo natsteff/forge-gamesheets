@@ -37,6 +37,9 @@ jobs:
       - name: Install application and security tools
         run: python -m pip install ".[dev]" "pip-audit==2.10.1"
 
+      - name: Validate standalone deployment configuration
+        run: python scripts/check_deployment.py
+
       - name: Run tests
         run: pytest
 
@@ -121,6 +124,9 @@ jobs:
 
       - name: Smoke-test both runtime variants
         run: python scripts/check_container_variants.py
+
+      - name: Verify deployment bind mounts and recovery
+        run: python scripts/check_deployment.py --image forge-gamesheets:security-review-amd64
 
       - name: Report high and critical container vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0

@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import ConfigurationError, Settings
-from app.main import create_app
+from tests.legacy_installation import create_app
 
 
 @pytest.fixture

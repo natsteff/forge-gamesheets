@@ -1,0 +1,22 @@
+{% extends "public_base.html" %}
+{% block title %}HTTPS required · FORGE GameSheets{% endblock %}
+{% block content %}
+<section class="settings-section">
+  <h1>Use HTTPS to create your owner account</h1>
+  <p>This address uses an unencrypted HTTP connection. To protect your passphrase,
+  owner setup and sign-in from another device require HTTPS.</p>
+  <p>Open this installation through its configured HTTPS reverse proxy.
+  Localhost HTTP on the Docker host is also supported.</p>
+  {% if request.state.owner_setup_required %}
+  <p>The installation remains locked until owner setup is complete.</p>
+  {% else %}
+  <p>Your existing account-free access has not changed.</p>
+  {% endif %}
+  <p>For an intentionally account-free trusted-LAN installation, select
+  <code>FORGE_GAMESHEETS_ACCESS_MODE=trusted</code> in the container configuration
+  and recreate the container. Anyone who can reach it will be able to browse and
+  edit shared content. This setting cannot turn off existing accounts.</p>
+  <p>No password has been requested or saved.</p>
+  <p><a href="https://github.com/natsteff/forge-gamesheets/blob/main/docs/ACCOUNTS.md">Account setup and recovery guide</a></p>
+</section>
+{% endblock %}

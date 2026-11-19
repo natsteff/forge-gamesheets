@@ -38,7 +38,7 @@ from app.library.repository import (
     save_game_title_override,
 )
 from app.library.scanner import scan_library
-from app.main import create_app
+from tests.legacy_installation import create_app
 
 
 @pytest.fixture

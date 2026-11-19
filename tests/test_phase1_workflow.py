@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.config import Settings
-from app.main import create_app
+from tests.legacy_installation import create_app
 
 
 def test_phase1_state_persists_across_restart_and_rescan(tmp_path: Path) -> None:

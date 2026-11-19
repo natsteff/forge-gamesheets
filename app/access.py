@@ -17,7 +17,7 @@ from app.accounts import (
     ROLES,
     SESSION_COOKIE,
     AuthUnavailable,
-    auth_enabled,
+    access_state,
     session_user,
 )
 
@@ -145,6 +145,8 @@ ADMIN_ROUTES = {
     "reprint_maintenance_resume",
 }
 PUBLIC_ROUTES = {
+    "owner_setup_form",
+    "owner_setup_submit",
     "health",
     "login_form",
     "login_submit",
@@ -188,7 +190,11 @@ class AccessControl:
         request = Request(scope)
         state = scope.setdefault("state", {})
         state.update(
-            auth_enabled=False, user=None, can_admin=False, can_contribute=False
+            auth_enabled=False,
+            user=None,
+            can_admin=False,
+            can_contribute=False,
+            owner_setup_required=False,
         )
         path = scope["path"]
         # Static assets and a minimal liveness endpoint never expose library data.
@@ -196,7 +202,11 @@ class AccessControl:
             return await self.app(scope, receive, send)
         database = scope["app"].state.database
         try:
-            enabled = await run_in_threadpool(auth_enabled, database)
+            enabled, setup_required = await run_in_threadpool(access_state, database)
+            mode = scope["app"].state.settings.access_mode
+            setup_required = not enabled and (
+                mode == "owner" or (mode is None and setup_required)
+            )
         except AuthUnavailable:
             return await PlainTextResponse(
                 "Authentication unavailable. "
@@ -205,6 +215,15 @@ class AccessControl:
                 headers={"Cache-Control": "no-store"},
             )(scope, receive, send)
         state["auth_enabled"] = enabled
+        state["owner_setup_required"] = setup_required
+        if setup_required and path != "/setup":
+            response = (
+                RedirectResponse("/setup", 303)
+                if scope["method"] in {"GET", "HEAD"}
+                else PlainTextResponse("Create the owner account first.", 403)
+            )
+            response.headers["Cache-Control"] = "no-store"
+            return await response(scope, receive, send)
         user = (
             await run_in_threadpool(
                 session_user,
@@ -226,7 +245,9 @@ class AccessControl:
                 name = route.name
                 break
         if not enabled or name in PUBLIC_ROUTES:
-            return await self._private_response(scope, receive, send, enabled)
+            return await self._private_response(
+                scope, receive, send, enabled or path == "/setup"
+            )
         if not user:
             if scope["method"] in {"GET", "HEAD"}:
                 response = RedirectResponse(

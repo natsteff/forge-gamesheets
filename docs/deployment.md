@@ -1,5 +1,10 @@
 # Self-hosted beta deployment
 
+For an image-only install without Git or local builds, use the
+[published-image deployment guide](PUBLISHED_IMAGE_DEPLOYMENT.md). It covers
+standalone Compose, GUI managers, separate image/configuration updates and rollback.
+The Git-based installation below remains supported.
+
 This guide installs FORGE GameSheets from GitHub on a Docker host. The example
 location, `/opt/forge-gamesheets`, is a recommendation rather than a
 requirement. Use any location that the Docker operator can manage safely.
@@ -90,8 +95,11 @@ library only needs to be readable and searchable by the container.
 
 ## Configure FORGE GameSheets
 
-Edit `.env`; do not edit `compose.yml` for host-specific settings. A future Git
-update may need to replace the tracked Compose file, while `.env` is ignored by
+For this Git-checkout workflow, edit `.env`; do not edit `compose.yml` for
+host-specific settings. Published-image GUI installations can instead configure
+values directly in YAML; see the
+[two configuration options](PUBLISHED_IMAGE_DEPLOYMENT.md#synology-container-manager).
+A future Git update may need to replace the tracked Compose file, while `.env` is ignored by
 Git and remains local to the installation.
 
 ```ini
@@ -167,8 +175,10 @@ modes.
 | Trusted private LAN | `0.0.0.0` | Trusted household or isolated test network |
 | HTTPS reverse proxy | Usually `127.0.0.1` | Non-local account sign-in through a protected frontend |
 
-FORGE GameSheets supports opt-in accounts, roles, and login throttling, but has no built-in
-TLS or general per-client traffic limit. Non-local sign-in requires HTTPS through
+FORGE GameSheets supports owner-account protection or explicitly selected
+trusted open access, roles, and login throttling, but has no built-in TLS or
+general per-client traffic limit. See the
+[deployment access-mode choice](ACCOUNTS.md#choose-the-deployment-access-mode). Non-local sign-in requires HTTPS through
 a correctly configured proxy. Binding to `0.0.0.0` exposes the port on every
 host interface allowed by the firewall. Use it only on a trusted private LAN.
 Do not forward that port from an internet router.

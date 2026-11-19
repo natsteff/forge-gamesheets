@@ -65,6 +65,29 @@ will provide one browsable, searchable place to organize and print them.
 
 ### Current execution sequence
 
+First-owner setup increment — fresh full-application installations default to
+browser-created owner credentials before library access. An explicit deployment
+setting chooses `owner` or account-free `trusted` access; established accounts
+and recovery markers cannot be bypassed by that setting. Existing open
+installations retain their access mode until explicit browser activation;
+existing protected users/roles/recovery remain unchanged. No terminal code or
+default credentials. Preserve remote HTTPS, same-origin/CSRF protections,
+throttling and atomic single-owner activation. Migration 38 and a persistent
+new-installation marker distinguish fresh data from legacy upgrades, including
+interrupted initialization. Owner-approved Synology documentation revisions now cover optional `.env`,
+direct YAML configuration, DSM identity/ACLs, and CPU-quota compatibility;
+no standalone Designer or Studio authentication changes are included.
+
+
+Approved deployment portability increment — add a standalone image-only
+`deploy/compose.yml` and optional environment example, preserving root Compose
+and the development workflow. Document download/GUI installation, trusted-LAN
+access, UID/GID and mount permissions, separate image/configuration updates and
+backup/rollback. Add resolved-configuration and disposable bind-mount/startup
+checks. No automatic updates, public exposure, privileged application startup,
+or deployment to an existing installation. First-run diagnostics remain an
+evaluation topic; no Phase 2 interface is authorized by this increment.
+
 Owner-approved separate increment — manual BGG edition reference on FORGE GameSheets game
 entries: optional version URL or ID and readable label in the existing BGG editor
 section, token-free Versions shortcut and View your edition action. Implemented

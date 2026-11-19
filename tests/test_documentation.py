@@ -26,6 +26,8 @@ def test_topic_guide_local_links_and_images_exist():
         "LIBRARY_GUIDE.md",
         "SCREENSHOT_GALLERY.md",
         "SHEET_DESIGNER.md",
+        "PUBLISHED_IMAGE_DEPLOYMENT.md",
+        "BGG_API.md",
     ):
         source = ROOT / "docs" / name
         for link in re.findall(r"\]\(([^)]+)\)", source.read_text()):
@@ -203,11 +205,11 @@ def test_readme_gallery_images_are_valid_and_cover_current_workflows():
 
 def test_settings_explains_how_account_activation_works():
     template = (ROOT / "app/templates/settings.html").read_text()
-    assert "docker compose exec app python -m app.accounts create-admin" in template
-    assert "immediately require sign-in" in template
+    assert "owner_setup_form" in template
+    assert "require sign-in" in template
     assert re.search(r"no\s+default password", template, re.IGNORECASE)
-    assert "docs/ACCOUNTS.md" in template
-    assert "remote HTTP sign-in is rejected" in template
+    assert "Remote HTTP setup and sign-in are rejected" in template
+    assert "Local administrator recovery" in template
 
 
 def test_deployment_covers_proxy_and_upgrade_contract():

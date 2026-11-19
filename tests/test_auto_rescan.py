@@ -18,8 +18,8 @@ from app.library import auto_rescan
 from app.library.auto_rescan import _scan_once
 from app.library.reconciliation import DeletionReviewRequired, reconcile_scan
 from app.library.scanner import scan_library
-from app.main import create_app
 from app.preferences import get_preferences
+from tests.legacy_installation import create_app
 
 
 @pytest.fixture

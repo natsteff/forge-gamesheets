@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app import accounts, links
 from app.config import Settings
-from app.main import create_app
+from tests.legacy_installation import create_app
 
 PASSWORD = "sample passphrase for testing"
 

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
+import stat
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
 DATABASE_FILENAME = "forge-gamesheets.db"
+FIRST_OWNER_MARKER = ".first-owner-installation"
 
 
 class MigrationError(RuntimeError):
@@ -867,6 +870,17 @@ MIGRATIONS += (
     ),
 )
 
+MIGRATIONS += (
+    Migration(
+        version=38,
+        name="add_first_owner_setup_state",
+        statements=(
+            "ALTER TABLE auth_configuration ADD COLUMN setup_required "
+            "INTEGER NOT NULL DEFAULT 0 CHECK(setup_required IN (0,1))",
+        ),
+    ),
+)
+
 
 @dataclass(frozen=True, slots=True)
 class Database:
@@ -894,10 +908,34 @@ class Database:
     def initialize(self) -> None:
         """Create or upgrade the database to the current schema version."""
         with self.connect() as connection:
-            migrate(connection)
+            has_history = connection.execute(
+                "SELECT 1 FROM sqlite_schema WHERE type='table' "
+                "AND name='schema_migrations'"
+            ).fetchone()
+            fresh = (
+                not has_history
+                or not connection.execute(
+                    "SELECT 1 FROM schema_migrations LIMIT 1"
+                ).fetchone()
+            )
+            marker = self.path.parent / FIRST_OWNER_MARKER
+            if fresh or marker.exists() or marker.is_symlink():
+                descriptor = os.open(
+                    marker,
+                    os.O_CREAT | os.O_WRONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                    0o600,
+                )
+                try:
+                    if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                        raise MigrationError("Invalid first-owner installation marker.")
+                    os.fsync(descriptor)
+                finally:
+                    os.close(descriptor)
+                fresh = True
+            migrate(connection, first_owner_installation=fresh)
 
 
-def migrate(connection: sqlite3.Connection) -> None:
+def migrate(connection: sqlite3.Connection, *, first_owner_installation=False) -> None:
     """Apply all pending migrations and validate recorded migration history."""
     connection.execute(
         """
@@ -928,14 +966,24 @@ def migrate(connection: sqlite3.Connection) -> None:
     for migration in MIGRATIONS:
         if migration.version in applied:
             continue
-        _apply_migration(connection, migration)
+        _apply_migration(
+            connection,
+            migration,
+            fresh_install=first_owner_installation or not applied,
+        )
 
 
-def _apply_migration(connection: sqlite3.Connection, migration: Migration) -> None:
+def _apply_migration(
+    connection: sqlite3.Connection, migration: Migration, *, fresh_install=False
+) -> None:
     try:
         connection.execute("BEGIN IMMEDIATE")
         for statement in migration.statements:
             connection.execute(statement)
+        if migration.version == 38 and fresh_install:
+            connection.execute(
+                "UPDATE auth_configuration SET setup_required=1 WHERE id=1"
+            )
         if migration.version == 29:
             from app.links import seed_defaults
 

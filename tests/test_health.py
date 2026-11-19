@@ -7,6 +7,7 @@ from app.config import Settings
 from app.database import DATABASE_FILENAME
 from app.library.scanner import ScanIssue, ScanResult
 from app.main import create_app
+from tests.legacy_installation import create_app as create_legacy_app
 
 
 def test_health_reports_service_is_available(tmp_path) -> None:
@@ -53,7 +54,7 @@ def test_application_starts_with_an_incomplete_scan(tmp_path, monkeypatch) -> No
         issues=(ScanIssue(library_path / "Unreadable", "permission denied"),),
     )
     monkeypatch.setattr("app.main.scan_library", lambda _path: incomplete)
-    app = create_app(
+    app = create_legacy_app(
         Settings(
             library_path=library_path,
             data_path=data_path,

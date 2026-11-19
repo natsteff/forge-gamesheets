@@ -17,20 +17,34 @@ identify and allow one environment to be revoked without interrupting another.
 
 ## Private configuration
 
-Add the approved token to the installation's untracked `.env` file:
+For a Git-checkout installation, add the approved token to its untracked `.env`
+file:
 
 ```dotenv
 FORGE_GAMESHEETS_BGG_API_TOKEN=replace-with-the-private-token
 ```
 
-Recreate the FORGE GameSheets container so it receives the changed environment, sign in as
-an Admin, and use **Settings > BoardGameGeek integration > Test BGG connection**.
+For published-image GUI installations, including Synology, `.env` is optional.
+You can instead set the token directly in the existing Compose `environment`
+block in a private project definition:
+
+```yaml
+FORGE_GAMESHEETS_BGG_API_TOKEN: "replace-with-the-private-token"
+```
+
+See the [Synology configuration options](PUBLISHED_IMAGE_DEPLOYMENT.md#synology-container-manager).
+When using `.env`, retain the corresponding variable reference in Compose;
+creating `.env` alone does not forward arbitrary values to the container.
+
+Recreate the FORGE GameSheets container so it receives the changed environment,
+sign in as an Admin if accounts are enabled, and use **Settings > BoardGameGeek integration > Test BGG connection**.
 The test makes one request and reports whether BGG accepted the configured token.
 FORGE GameSheets never displays the token.
 
-Never put a real token in GitHub, `compose.yml`, `.env.example`, a Docker image,
-a screenshot, application data, or a metadata export. Keep the `.env` file with
-the installation's other private deployment configuration.
+Never put a real token in GitHub, a shared `compose.yml`, `.env.example`, a Docker
+image, a screenshot, application data, or a metadata export. Keep either the
+private YAML or `.env` file with the installation's private deployment
+configuration; redact the token before sharing either file.
 
 ## Behavior without a token
 
