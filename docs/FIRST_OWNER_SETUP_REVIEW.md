@@ -63,7 +63,29 @@ installed deployment is changed by this source checkpoint.
 - Full ASVS requirement coverage, independent review and internet-exposure
   hardening are not claimed. Keep the supported trusted/private/protected-proxy
   deployment boundary.
-- Synology-specific documentation revision remains a separate deferred task.
+- Synology guidance now includes the owner-reported installation adjustments,
+  optional `.env`/direct YAML, and BGG configuration; other NAS/GUI combinations
+  and protected Synology owner setup still require installation acceptance.
 
 References: [OWASP authentication](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html),
 [OWASP CSRF prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
+
+## Moving-beta merge checkpoint — 2026-11-19
+
+The owner reported a successful fresh installation of the test branch and
+explicitly authorized merging and publishing after the remaining scan findings
+were disclosed. This is approval to proceed with this moving-beta update, not
+blanket acceptance of future findings or a completed wider-release assessment.
+No existing installation is automatically upgraded by this publication.
+
+The previous candidate `13adf0d` (workflow `44432107468`) reported zero Critical
+and 47 High package entries per architecture, spanning 11 OS advisories, with
+no fixed package versions listed. Previous acceptance covering eight advisories
+is not represented as acceptance of all eleven. The new publication must scan
+both architectures again; any changed findings remain subject to review.
+The SQLite advisories concern FTS/session changesets; no use of those APIs was
+found in application code. This is not proof of non-exploitability. Container
+hardening and the private-network boundary do not eliminate dependency risk.
+Physical production migration, metadata import acceptance, and full ASVS
+wider-release review remain outstanding. Preserve the previous image plus a
+matching stopped-data backup before upgrading an existing installation.
